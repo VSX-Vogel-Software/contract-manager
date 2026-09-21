@@ -1,6 +1,6 @@
 [
   {
-    "version": "2.35.3",
+    "version": "2.35.4",
     "date": "2026-09-21",
     "title": "Monatsreports werden wieder versendet",
     "description": "Die automatischen Monatsreports zu Fehlzeiten und Abteilungs-Zeitanalyse gingen nicht mehr raus. Zusätzlich wird ein fehlgeschlagener Versand jetzt als Fehler angezeigt statt stillschweigend als Erfolg.",
