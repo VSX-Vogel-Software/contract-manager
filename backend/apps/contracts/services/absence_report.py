@@ -382,8 +382,11 @@ class AbsenceReportService:
                 body_html=body_html,
                 attachments=attachments,
             )
-            logger.info("Absence report %s sent to %s", report.id, recipients)
-            return True
         except M365Error as e:
+            # Raise, don't report a False that callers forget to check: a
+            # swallowed send failure looks exactly like a successful send.
             logger.error("Failed to send absence report %s: %s", report.id, e)
-            return False
+            raise
+
+        logger.info("Absence report %s sent to %s", report.id, recipients)
+        return True

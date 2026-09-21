@@ -358,3 +358,68 @@ class TestAbsenceReportService:
         service = AbsenceReportService(tenant)
         with pytest.raises(ValueError, match="finalized"):
             service.send_report(report.id, ["hr@example.com"])
+
+
+# ---- Failure propagation ----
+
+
+class TestAbsenceReportSendFailure:
+    """A failed send must reach the caller, not only the log.
+
+    An expired M365 client secret went unnoticed for five weeks because
+    send_report swallowed the error and "send now" reported success anyway.
+    """
+
+    @patch("apps.core.m365.send_mail")
+    def test_send_report_propagates_m365_error(self, mock_send_mail, db, tenant):
+        from apps.core.m365 import M365Error
+
+        mock_send_mail.side_effect = M365Error("Authentication failed: keys are expired")
+        report = AbsenceReport.objects.create(
+            tenant=tenant, year=2026, month=2,
+            status=AbsenceReport.Status.FINALIZED,
+        )
+        report.pdf_file.save("test.pdf", ContentFile(b"%PDF-fake"), save=True)
+
+        service = AbsenceReportService(tenant)
+        with pytest.raises(M365Error, match="keys are expired"):
+            service.send_report(report.id, ["hr@example.com"])
+
+    @patch("apps.core.m365.send_mail")
+    def test_send_report_now_reports_the_reason(self, mock_send_mail, db, tenant, user):
+        """The "send now" mutation must not claim success when nothing was sent."""
+        from unittest.mock import Mock
+
+        from apps.core.context import Context
+        from apps.core.m365 import M365Error
+        from apps.tenants.models import ReportSchedule
+        from config.schema import schema
+
+        mock_send_mail.side_effect = M365Error("Authentication failed: keys are expired")
+        ReportSchedule.objects.create(
+            tenant=tenant, report_type="absence", enabled=True,
+            recipients=["hr@example.com"], auto_finalize=True,
+        )
+        report = AbsenceReport.objects.create(
+            tenant=tenant, year=2026, month=2,
+            status=AbsenceReport.Status.FINALIZED,
+        )
+        report.pdf_file.save("test.pdf", ContentFile(b"%PDF-fake"), save=True)
+
+        result = schema.execute_sync(
+            """
+            mutation($reportType: String!, $year: Int!, $month: Int!) {
+                sendReportNow(reportType: $reportType, year: $year, month: $month) {
+                    success
+                    error
+                }
+            }
+            """,
+            variable_values={"reportType": "absence", "year": 2026, "month": 2},
+            context_value=Context(request=Mock(), user=user),
+        )
+
+        assert result.errors is None
+        payload = result.data["sendReportNow"]
+        assert payload["success"] is False
+        assert "keys are expired" in payload["error"]

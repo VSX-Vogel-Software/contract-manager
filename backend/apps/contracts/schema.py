@@ -4861,9 +4861,15 @@ class ContractMutation:
         """Send a finalized absence report via email."""
         user = require_perm(info, "department_analysis", "send")
         from apps.contracts.services.absence_report import AbsenceReportService
+        from apps.core.m365 import M365Error
 
         service = AbsenceReportService(user.tenant)
-        return service.send_report(int(report_id), recipients)
+        try:
+            return service.send_report(int(report_id), recipients)
+        except M365Error:
+            # Keeps the boolean contract of this mutation. The reason is only
+            # in the log until the dialog can show it.
+            return False
 
     @strawberry.mutation
     def provision_clockodo_projects(
