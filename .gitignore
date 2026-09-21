@@ -64,6 +64,10 @@ staticfiles/
 
 # Media uploads
 media/
+uploads/
+
+# Gunicorn control file (dev container)
+backend/gunicorn.ctl
 
 # Temporary files
 tmp/
