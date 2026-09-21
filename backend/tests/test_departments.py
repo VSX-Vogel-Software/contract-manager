@@ -892,3 +892,49 @@ class TestClockodoGetUsers:
         assert len(users) == 2
         assert users[0] == {"id": "101", "name": "Alice"}
         assert users[1] == {"id": "102", "name": "Bob"}
+
+
+# --- Scheduled report: user selection for the internal analysis query ---
+
+
+class TestDepartmentTimeXlsxUserSelection:
+    """The scheduled report has no request user and picks one itself.
+
+    Picking a deactivated or permission-less account makes the internal
+    GraphQL query fail with "Permission denied" — the report then never
+    reaches the mail step.
+    """
+
+    def test_skips_admin_without_permissions(self, db, tenant, user):
+        """An is_admin account without roles must not shadow an eligible user."""
+        from apps.contracts.services.department_time_csv import generate_department_time_xlsx
+        from apps.tenants.models import User
+
+        User.objects.create_user(
+            email="legacy-admin@example.com",
+            password="testpass123",
+            tenant=tenant,
+            is_admin=True,
+            is_active=False,
+        )
+
+        xlsx_bytes, filename = generate_department_time_xlsx(tenant, 2026, 8)
+
+        assert filename == "department-time-2026-08.xlsx"
+        assert xlsx_bytes[:2] == b"PK"  # XLSX is a ZIP container
+
+    def test_without_eligible_user_raises_clear_error(self, db, tenant):
+        """No usable account must produce a named cause, not a GraphQL error."""
+        from apps.contracts.services.department_time_csv import generate_department_time_xlsx
+        from apps.tenants.models import User
+
+        User.objects.create_user(
+            email="legacy-admin@example.com",
+            password="testpass123",
+            tenant=tenant,
+            is_admin=True,
+            is_active=False,
+        )
+
+        with pytest.raises(ValueError, match="no active user with department_analysis.read"):
+            generate_department_time_xlsx(tenant, 2026, 8)

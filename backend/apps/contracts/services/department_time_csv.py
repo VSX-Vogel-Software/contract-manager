@@ -6,6 +6,22 @@ from openpyxl import Workbook
 from openpyxl.styles import Font, numbers
 
 
+def _select_report_user(tenant):
+    """Pick the user the internal analysis query runs as.
+
+    The scheduled report has no request user, so one is chosen here. Prefer an
+    admin, but only accept an account that is active and actually holds the
+    permission: a deactivated admin, or one whose roles were never migrated to
+    the roles m2m, makes the query fail with "Permission denied" — the report
+    then never reaches the mail step.
+    """
+    candidates = tenant.users.filter(is_active=True).order_by("-is_admin", "id")
+    for candidate in candidates:
+        if candidate.has_perm_check("department_analysis", "read"):
+            return candidate
+    return None
+
+
 def generate_department_time_xlsx(tenant, year: int, month: int) -> tuple[bytes, str]:
     """Generate XLSX for department time analysis. Returns (xlsx_bytes, filename)."""
     from dateutil.relativedelta import relativedelta
@@ -16,14 +32,16 @@ def generate_department_time_xlsx(tenant, year: int, month: int) -> tuple[bytes,
     date_from = date(year, month, 1)
     date_to = (date_from + relativedelta(months=1)) - timedelta(days=1)
 
-    admin_user = tenant.users.filter(is_admin=True).first()
-    if not admin_user:
-        admin_user = tenant.users.first()
+    report_user = _select_report_user(tenant)
+    if report_user is None:
+        raise ValueError(
+            f"Tenant {tenant.id}: no active user with department_analysis.read permission"
+        )
 
     class FakeRequest:
         headers = {}
 
-    ctx = Context(request=FakeRequest(), user=admin_user)
+    ctx = Context(request=FakeRequest(), user=report_user)
 
     result = schema.execute_sync(
         """
