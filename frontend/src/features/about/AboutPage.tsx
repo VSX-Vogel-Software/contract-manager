@@ -195,12 +195,12 @@ export function AboutPage() {
                   {t('about.sourceCode')}
                 </h3>
                 <a
-                  href="https://github.com/tuergeist/contract-manager"
+                  href="https://github.com/VSX-Vogel-Software/contract-manager"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 hover:underline"
                 >
-                  github.com/tuergeist/contract-manager
+                  github.com/VSX-Vogel-Software/contract-manager
                   <ExternalLink className="h-3.5 w-3.5" />
                 </a>
               </div>
@@ -212,7 +212,7 @@ export function AboutPage() {
                 <p className="text-sm font-medium">{t('about.licenseType')}</p>
                 <p className="mt-1 text-xs text-gray-500">{t('about.licenseDescription')}</p>
                 <a
-                  href="https://github.com/tuergeist/contract-manager/blob/main/LICENSE"
+                  href="https://github.com/VSX-Vogel-Software/contract-manager/blob/main/LICENSE"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-2 inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline"

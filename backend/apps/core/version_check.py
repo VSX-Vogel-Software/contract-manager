@@ -14,7 +14,7 @@ from django.core.cache import cache
 logger = logging.getLogger(__name__)
 
 # Public repo that holds the release tags.
-DEFAULT_REPO = "tuergeist/contract-manager"
+DEFAULT_REPO = "VSX-Vogel-Software/contract-manager"
 
 CACHE_KEY = "latest_version:github_tag"
 CACHE_TTL = 60 * 60  # 1 hour

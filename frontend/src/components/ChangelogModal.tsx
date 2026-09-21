@@ -14,7 +14,7 @@ import { isNewer } from '@/lib/versionCheck'
 
 /** Raw changelog on the default branch — always reflects the latest release. */
 const CHANGELOG_RAW_URL =
-  'https://raw.githubusercontent.com/tuergeist/contract-manager/main/frontend/public/changelogs.json'
+  'https://raw.githubusercontent.com/VSX-Vogel-Software/contract-manager/main/frontend/public/changelogs.json'
 
 interface ChangelogEntry {
   version: string
