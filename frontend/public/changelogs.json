@@ -1,5 +1,17 @@
 [
   {
+    "version": "2.35.3",
+    "date": "2026-09-21",
+    "title": "Monatsreports werden wieder versendet",
+    "description": "Die automatischen Monatsreports zu Fehlzeiten und Abteilungs-Zeitanalyse gingen nicht mehr raus. Zusätzlich wird ein fehlgeschlagener Versand jetzt als Fehler angezeigt statt stillschweigend als Erfolg.",
+    "type": "bugfix",
+    "details": [
+      "Abteilungs-Zeitanalyse: Der geplante Versand wählt für die interne Auswertung jetzt ein aktives Konto mit den nötigen Rechten — vorher scheiterte die Erzeugung an einem deaktivierten Konto",
+      "\"Jetzt senden\" meldet einen fehlgeschlagenen Mailversand mit Grund, statt Erfolg zu melden",
+      "Ohne geeignetes Konto nennt die Fehlermeldung die fehlende Berechtigung"
+    ]
+  },
+  {
     "version": "2.35.2",
     "date": "2026-07-02",
     "title": "Update-Hinweis mit Changelog-Modal",
