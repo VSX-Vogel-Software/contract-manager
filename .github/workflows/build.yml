@@ -13,7 +13,6 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_PREFIX: ${{ github.repository }}
 
 jobs:
   preflight:
@@ -23,12 +22,17 @@ jobs:
       is_release: ${{ steps.check.outputs.is_release }}
       tag: ${{ steps.check.outputs.tag }}
       minor_tag: ${{ steps.check.outputs.minor_tag }}
+      image_prefix: ${{ steps.check.outputs.image_prefix }}
     steps:
       - name: Determine run mode
         id: check
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # Docker verlangt kleingeschriebene Repository-Namen; github.repository
+          # traegt die Schreibweise des Owners (z.B. VSX-Vogel-Software).
+          echo "image_prefix=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+
           if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
             echo "should_test=true" >> "$GITHUB_OUTPUT"
             echo "is_release=true" >> "$GITHUB_OUTPUT"
@@ -149,9 +153,9 @@ jobs:
           file: ./backend/Dockerfile.prod
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/backend:${{ needs.preflight.outputs.tag }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/backend:${{ needs.preflight.outputs.minor_tag }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/backend:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ needs.preflight.outputs.image_prefix }}/backend:${{ needs.preflight.outputs.tag }}
+            ${{ env.REGISTRY }}/${{ needs.preflight.outputs.image_prefix }}/backend:${{ needs.preflight.outputs.minor_tag }}
+            ${{ env.REGISTRY }}/${{ needs.preflight.outputs.image_prefix }}/backend:${{ github.sha }}
           build-args: |
             BUILD_VERSION=${{ needs.preflight.outputs.tag }}
             BUILD_DATE=${{ github.event.head_commit.timestamp }}
@@ -187,9 +191,9 @@ jobs:
           file: ./frontend/Dockerfile.prod
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/frontend:${{ needs.preflight.outputs.tag }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/frontend:${{ needs.preflight.outputs.minor_tag }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/frontend:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ needs.preflight.outputs.image_prefix }}/frontend:${{ needs.preflight.outputs.tag }}
+            ${{ env.REGISTRY }}/${{ needs.preflight.outputs.image_prefix }}/frontend:${{ needs.preflight.outputs.minor_tag }}
+            ${{ env.REGISTRY }}/${{ needs.preflight.outputs.image_prefix }}/frontend:${{ github.sha }}
           build-args: |
             VITE_API_URL=/graphql
             BUILD_VERSION=${{ needs.preflight.outputs.tag }}
