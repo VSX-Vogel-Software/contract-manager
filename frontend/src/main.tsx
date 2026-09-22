@@ -5,6 +5,7 @@ import { ApolloProvider } from '@apollo/client'
 import App from './App'
 import { apolloClient } from './lib/apollo'
 import { AuthProvider } from './lib/auth'
+import { Toaster } from './components/Toaster'
 import './lib/i18n'
 import './index.css'
 
@@ -14,6 +15,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       <BrowserRouter>
         <AuthProvider>
           <App />
+          <Toaster />
         </AuthProvider>
       </BrowserRouter>
     </ApolloProvider>

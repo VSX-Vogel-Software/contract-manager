@@ -44,7 +44,8 @@
     "copy": "Copy",
     "copied": "Copied",
     "done": "Done",
-    "of": "of"
+    "of": "of",
+    "networkError": "Could not reach the server"
   },
   "search": {
     "pages": "Pages",

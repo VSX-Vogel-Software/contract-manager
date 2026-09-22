@@ -44,7 +44,8 @@
     "copy": "Kopieren",
     "copied": "Kopiert",
     "done": "Fertig",
-    "of": "von"
+    "of": "von",
+    "networkError": "Verbindung zum Server fehlgeschlagen"
   },
   "search": {
     "pages": "Seiten",
