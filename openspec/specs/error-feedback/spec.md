@@ -134,3 +134,13 @@ Das System SHALL einem Benutzer, der einen Bereich ohne die noetige Berechtigung
 
 - **WHEN** ein Benutzer einen Bereich aufruft, fuer den ihm die Berechtigung fehlt
 - **THEN** erscheint an der Stelle des Inhalts ein Hinweis auf die fehlende Berechtigung
+
+### Requirement: Hoechstens vier Meldungen gleichzeitig
+
+Das System SHALL nicht mehr als vier Meldungen gleichzeitig anzeigen. Trifft eine weitere ein, MUST die aelteste weichen — die neueste bleibt immer sichtbar.
+
+#### Scenario: Viele Fehler in kurzer Folge
+
+- **WHEN** fuenf verschiedene Meldungen kurz hintereinander eintreffen
+- **THEN** sind vier davon sichtbar, darunter die neueste, und die aelteste ist verschwunden
+

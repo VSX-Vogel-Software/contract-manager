@@ -4,6 +4,7 @@
 - [x] 1.2 Grüne Darstellung in `components/ui/toast.tsx`, `data-testid="toast-success"`
 - [x] 1.3 Standarddauer für Bestätigungen auf 4 Sekunden (Fehler bleiben bei 12)
 - [x] 1.4 Tests: Bestätigung erscheint, verschwindet früher als ein Fehler, stapelt sich nicht
+- [x] 1.5 Höchstens vier Meldungen gleichzeitig, älteste weicht (Rückmeldung aus der Sichtprüfung)
 
 ## 2. Bestätigungen dort, wo nichts Sichtbares passiert
 

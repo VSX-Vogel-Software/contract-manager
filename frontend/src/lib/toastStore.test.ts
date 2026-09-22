@@ -87,6 +87,37 @@ describe('toastStore', () => {
     expect(getToasts()).toHaveLength(1)
   })
 
+  it('keeps at most four messages at once', () => {
+    // Bei gestopptem Server klickt man sich sonst einen vollen Bildschirm.
+    for (const n of [1, 2, 3, 4, 5]) {
+      pushToast({ title: 'Fehler', description: `Grund ${n}` })
+    }
+
+    expect(getToasts()).toHaveLength(4)
+  })
+
+  it('drops the oldest message, never the newest', () => {
+    for (const n of [1, 2, 3, 4, 5]) {
+      pushToast({ title: 'Fehler', description: `Grund ${n}` })
+    }
+
+    const descriptions = getToasts().map((t) => t.description)
+    expect(descriptions).toContain('Grund 5')
+    expect(descriptions).not.toContain('Grund 1')
+  })
+
+  it('forgets the timer of a dropped message', () => {
+    for (const n of [1, 2, 3, 4, 5]) {
+      pushToast({ title: 'Fehler', description: `Grund ${n}` })
+    }
+
+    // Waere der Zeitgeber der verdraengten Meldung noch aktiv, wuerde er
+    // spaeter ins Leere laufen und die Liste erneut anfassen.
+    vi.advanceTimersByTime(12000)
+
+    expect(getToasts()).toHaveLength(0)
+  })
+
   it('keeps distinct messages side by side', () => {
     pushToast({ title: 'Fehler', description: 'Erster' })
     pushToast({ title: 'Fehler', description: 'Zweiter' })

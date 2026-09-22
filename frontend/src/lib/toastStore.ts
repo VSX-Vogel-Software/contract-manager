@@ -27,6 +27,8 @@ export interface Toast extends ToastInput {
 }
 
 const DEFAULT_DURATION_MS = 12000
+/** Mehr als das fuellt bei einer Stoerung den halben Bildschirm. */
+const MAX_VISIBLE = 4
 const DEFAULT_SUCCESS_DURATION_MS = 4000
 
 type Listener = (toasts: Toast[]) => void
@@ -63,6 +65,17 @@ export function pushToast(input: ToastInput): string {
   const id = `toast-${++counter}`
   const toast: Toast = { ...input, id, variant: input.variant ?? 'error' }
   toasts = [...toasts, toast]
+
+  // Aelteste verdraengen, damit die neueste Meldung immer sichtbar bleibt.
+  while (toasts.length > MAX_VISIBLE) {
+    const [oldest, ...rest] = toasts
+    const timer = timers.get(oldest.id)
+    if (timer) {
+      clearTimeout(timer)
+      timers.delete(oldest.id)
+    }
+    toasts = rest
+  }
 
   const duration =
     input.durationMs ??
