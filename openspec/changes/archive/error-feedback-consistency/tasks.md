@@ -20,7 +20,7 @@
 - [x] 3.1 Liste der Aufrufstellen erzeugen, die heute einen Fehler inline anzeigen (Skript, Ausgangspunkt: die 40 Dateien aus der Bestandsaufnahme)
 - [x] 3.2 Je Aufrufstelle prüfen, ob die Maske den Fehler wirklich darstellt — nicht nach Dateiname entscheiden
 - [x] 3.3 `context: { suppressErrorToast: true }` an den bestätigten Stellen setzen
-- [ ] 3.4 Stichprobe im Browser: eine Maske je Muster (Formular, Dialog, Einstellungsseite)
+- [x] 3.4 Stichprobe im Browser: eine Maske je Muster (Formular, Dialog, Einstellungsseite)
 - [x] 3.5 E2E: eine Maske mit Inline-Anzeige zeigt **keine** zusätzliche Meldung am Bildrand
 
 ## 4. Leere Zustände mit Grund
@@ -33,4 +33,4 @@
 
 - [x] 5.1 Volle Testsuite grün (Vitest + Playwright)
 - [x] 5.2 Spec `error-feedback` um Bestätigungen und die Doppelmeldungs-Regel ergänzen
-- [ ] 5.3 Changelog-Eintrag
+- [x] 5.3 Changelog-Eintrag (bestehender Eintrag auf 2.36.1 gezogen und erweitert)

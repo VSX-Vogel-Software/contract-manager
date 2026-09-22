@@ -1,6 +1,6 @@
 [
   {
-    "version": "2.36.0",
+    "version": "2.36.1",
     "date": "2026-09-22",
     "title": "Fehler werden jetzt angezeigt statt verschwiegen",
     "description": "Bisher konnte eine Aktion fehlschlagen, ohne dass die Oberfläche etwas gesagt hat — der Grund stand nur im Protokoll. Jetzt erscheint bei jedem unbehandelten Fehler eine Meldung am unteren Bildrand.",
@@ -10,7 +10,11 @@
       "Auch abgebrochene Verbindungen zum Server werden gemeldet — die sahen bisher aus wie \"nichts passiert\"",
       "Fehlermeldungen an Formularfeldern bleiben wie gewohnt am Feld stehen",
       "Das VSX-Logo steht wieder in der Seitenleiste, darunter der Produktname",
-      "Neues Symbol im Browser-Tab"
+      "Neues Symbol im Browser-Tab",
+      "Erfolgreiches Speichern wird mit einer grünen Meldung bestätigt, wo sich sonst sichtbar nichts ändert",
+      "Fehler, die eine Maske bereits am Feld anzeigt, erscheinen nicht mehr zusätzlich am Bildrand",
+      "Bereiche ohne Berechtigung erklären das, statt leer zu bleiben",
+      "Höchstens vier Meldungen gleichzeitig — die älteste weicht"
     ]
   },
   {
