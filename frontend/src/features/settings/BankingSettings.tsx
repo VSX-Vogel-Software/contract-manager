@@ -38,7 +38,7 @@ export function BankingSettings() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const { data } = useQuery(BANKING_SETTINGS_QUERY)
-  const [saveSettings, { loading: saving }] = useMutation(SAVE_BANKING_SETTINGS)
+  const [saveSettings, { loading: saving }] = useMutation(SAVE_BANKING_SETTINGS, { context: { suppressErrorToast: true } })
 
   useEffect(() => {
     const settings = data?.bankingSettings

@@ -45,7 +45,10 @@
     "copied": "Copied",
     "done": "Done",
     "of": "of",
-    "networkError": "Could not reach the server"
+    "networkError": "Could not reach the server",
+    "saved": "Saved",
+    "noPermission": "No permission",
+    "noPermissionHint": "You do not have the rights for this area. Ask an administrator if you need access."
   },
   "search": {
     "pages": "Pages",
@@ -2535,7 +2538,8 @@
     "from": "From",
     "to": "To",
     "days": "Days",
-    "totalDays": "Total Absence Days"
+    "totalDays": "Total Absence Days",
+    "sendFailed": "The report could not be sent. Please check the M365 settings."
   },
   "orderConfirmation": {
     "dialog": {

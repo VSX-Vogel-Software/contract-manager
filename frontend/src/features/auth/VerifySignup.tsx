@@ -23,7 +23,7 @@ export function VerifySignup() {
   const [error, setError] = useState<string | null>(null)
   const [verified, setVerified] = useState(false)
 
-  const [verifySignup] = useMutation(VERIFY_SIGNUP)
+  const [verifySignup] = useMutation(VERIFY_SIGNUP, { context: { suppressErrorToast: true } })
   const token = searchParams.get('token')
 
   useEffect(() => {

@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, gql } from '@apollo/client'
+import { pushToast } from '@/lib/toastStore'
 import { Loader2, FileText, Send, RefreshCw, Lock, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -158,8 +159,22 @@ export function AbsenceReport() {
     onCompleted: () => refetch(),
   })
 
+  // sendAbsenceReport liefert nur bool - ein Fehlschlag traegt keinen Grund.
+  // Bis die Mutation einen OperationResult liefert, wird er hier wenigstens
+  // als Fehlschlag gemeldet, statt den Dialog wortlos zu schliessen.
   const [sendReport, { loading: sending }] = useMutation(SEND_ABSENCE_REPORT, {
-    onCompleted: () => setShowSendDialog(false),
+    onCompleted: (data) => {
+      if (data?.sendAbsenceReport) {
+        setShowSendDialog(false)
+        pushToast({ title: t('absenceReport.sent'), variant: 'success' })
+      } else {
+        pushToast({
+          title: t('absenceReport.error'),
+          description: t('absenceReport.sendFailed'),
+          variant: 'error',
+        })
+      }
+    },
   })
 
   const report: AbsenceReportData | null = data?.absenceReport || null

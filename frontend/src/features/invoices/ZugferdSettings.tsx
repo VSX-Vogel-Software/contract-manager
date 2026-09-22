@@ -3,6 +3,7 @@ import { useQuery, useMutation, gql } from '@apollo/client'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
+import { notifySavedIfSuccessful } from '@/lib/notify'
 
 const ZUGFERD_ENABLED = gql`
   query ZugferdEnabled {
@@ -29,6 +30,7 @@ export function ZugferdSettings({ showHeader = true }: ZugferdSettingsProps) {
   const { data, loading } = useQuery<{ zugferdEnabled: boolean }>(ZUGFERD_ENABLED)
   const [setZugferdDefault] = useMutation(SET_ZUGFERD_DEFAULT, {
     refetchQueries: [{ query: ZUGFERD_ENABLED }],
+    onCompleted: notifySavedIfSuccessful,
   })
 
   const enabled = data?.zugferdEnabled ?? false

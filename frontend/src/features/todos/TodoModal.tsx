@@ -137,7 +137,7 @@ export function TodoModal({ open, onOpenChange, context, onSuccess }: TodoModalP
   const [error, setError] = useState<string | null>(null)
 
   const { data: usersData } = useQuery(USERS_QUERY, { skip: !open })
-  const [createTodo, { loading }] = useMutation(CREATE_TODO)
+  const [createTodo, { loading }] = useMutation(CREATE_TODO, { context: { suppressErrorToast: true } })
 
   const users = (usersData?.users || []).filter((u: User) => u.isActive && u.id) as User[]
 

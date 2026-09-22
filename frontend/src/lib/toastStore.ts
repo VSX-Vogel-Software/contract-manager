@@ -7,13 +7,17 @@
  * abonniert nur.
  */
 
-export type ToastVariant = 'error' | 'info'
+export type ToastVariant = 'error' | 'success' | 'info'
 
 export interface ToastInput {
   title: string
   description?: string
   variant?: ToastVariant
-  /** 0 = bleibt stehen, bis der Benutzer schliesst. Default: 12 Sekunden. */
+  /**
+   * 0 = bleibt stehen, bis der Benutzer schliesst. Ohne Angabe: 12 Sekunden,
+   * bei Bestaetigungen 4 - ein Fehler will gelesen werden, eine Bestaetigung
+   * nur wahrgenommen.
+   */
   durationMs?: number
 }
 
@@ -23,6 +27,7 @@ export interface Toast extends ToastInput {
 }
 
 const DEFAULT_DURATION_MS = 12000
+const DEFAULT_SUCCESS_DURATION_MS = 4000
 
 type Listener = (toasts: Toast[]) => void
 
@@ -59,7 +64,9 @@ export function pushToast(input: ToastInput): string {
   const toast: Toast = { ...input, id, variant: input.variant ?? 'error' }
   toasts = [...toasts, toast]
 
-  const duration = input.durationMs ?? DEFAULT_DURATION_MS
+  const duration =
+    input.durationMs ??
+    (toast.variant === 'success' ? DEFAULT_SUCCESS_DURATION_MS : DEFAULT_DURATION_MS)
   if (duration > 0) {
     timers.set(
       id,

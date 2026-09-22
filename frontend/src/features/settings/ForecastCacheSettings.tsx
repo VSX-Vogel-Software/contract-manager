@@ -24,7 +24,7 @@ export function ForecastCacheSettings() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const { data } = useQuery(FORECAST_CACHE_TTL_QUERY)
-  const [saveSettings, { loading: saving }] = useMutation(SAVE_FORECAST_CACHE_TTL)
+  const [saveSettings, { loading: saving }] = useMutation(SAVE_FORECAST_CACHE_TTL, { context: { suppressErrorToast: true } })
 
   useEffect(() => {
     if (data?.forecastCacheTtl != null) {

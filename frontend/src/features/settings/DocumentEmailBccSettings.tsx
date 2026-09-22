@@ -5,6 +5,7 @@ import { Loader2, Plus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { notifySavedIfSuccessful } from '@/lib/notify'
 
 const DOCUMENT_EMAIL_BCC_QUERY = gql`
   query DocumentEmailBcc {
@@ -40,6 +41,7 @@ export function DocumentEmailBccSettings() {
 
   const [setDocumentEmailBcc] = useMutation(SET_DOCUMENT_EMAIL_BCC, {
     refetchQueries: [{ query: DOCUMENT_EMAIL_BCC_QUERY }],
+    onCompleted: notifySavedIfSuccessful,
   })
 
   if (loading) {

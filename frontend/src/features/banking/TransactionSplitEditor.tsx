@@ -42,7 +42,7 @@ export function TransactionSplitEditor({ transactionId, transactionAmount, onClo
   const { data: splitsData, refetch } = useQuery(TRANSACTION_SPLITS_QUERY, {
     variables: { transactionId },
   })
-  const [splitTransaction, { loading }] = useMutation(SPLIT_TRANSACTION)
+  const [splitTransaction, { loading }] = useMutation(SPLIT_TRANSACTION, { context: { suppressErrorToast: true } })
   const [rows, setRows] = useState<SplitRow[]>([{ costCenterId: '', amount: '' }])
   const [error, setError] = useState('')
   const [editing, setEditing] = useState(false)

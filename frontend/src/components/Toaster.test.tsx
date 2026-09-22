@@ -38,6 +38,17 @@ describe('Toaster', () => {
     )
   })
 
+  it('renders a confirmation in its own colour', () => {
+    render(<Toaster />)
+
+    act(() => {
+      pushToast({ title: 'Gespeichert', variant: 'success' })
+    })
+
+    expect(screen.getByTestId('toast-success')).toBeInTheDocument()
+    expect(screen.queryByTestId('toast-error')).not.toBeInTheDocument()
+  })
+
   it('lets the user close it, which also clears the store', async () => {
     const user = userEvent.setup()
     render(<Toaster />)

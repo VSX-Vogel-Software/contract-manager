@@ -106,6 +106,7 @@ function ScheduleCard({
           <input
             type="text"
             value={schedule.recipients}
+            data-testid={`report-schedule-recipients-${reportType}`}
             onChange={(e) => onChange('recipients', e.target.value)}
             placeholder="hr@example.com, finance@example.com"
             className={inputClass}
@@ -155,6 +156,7 @@ function ScheduleCard({
           </button>
           <button
             onClick={onSendNow}
+            data-testid={`report-schedule-send-${reportType}`}
             disabled={sending || !schedule.recipients.trim()}
             className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
             title={t('settings.reports.sendNowHint')}
@@ -163,7 +165,10 @@ function ScheduleCard({
             {t('settings.reports.sendNow')}
           </button>
           {message && (
-            <span className={`text-sm ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+            <span
+              data-testid={`report-schedule-message-${reportType}`}
+              className={`text-sm ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}
+            >
               {message.text}
             </span>
           )}
@@ -183,7 +188,7 @@ export function ReportScheduleSettings() {
 
   const { data } = useQuery(REPORT_SCHEDULES_QUERY)
   const [saveSchedule, { loading: saving }] = useMutation(SAVE_REPORT_SCHEDULE)
-  const [sendNow] = useMutation(SEND_REPORT_NOW)
+  const [sendNow] = useMutation(SEND_REPORT_NOW, { context: { suppressErrorToast: true } })
   const [savingType, setSavingType] = useState<string | null>(null)
   const [sendingType, setSendingType] = useState<string | null>(null)
 

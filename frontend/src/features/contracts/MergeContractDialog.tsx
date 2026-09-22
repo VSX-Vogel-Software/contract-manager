@@ -155,7 +155,7 @@ export function MergeContractDialog({
   const preview = previewData?.mergeContractPreview
   const previewItems: PreviewItem[] = preview?.items || []
 
-  const [mergeContract, { loading: merging }] = useMutation(MERGE_CONTRACT_MUTATION)
+  const [mergeContract, { loading: merging }] = useMutation(MERGE_CONTRACT_MUTATION, { context: { suppressErrorToast: true } })
 
   const handleMerge = async () => {
     if (!targetContractId) return

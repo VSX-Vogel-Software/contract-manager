@@ -45,7 +45,10 @@
     "copied": "Kopiert",
     "done": "Fertig",
     "of": "von",
-    "networkError": "Verbindung zum Server fehlgeschlagen"
+    "networkError": "Verbindung zum Server fehlgeschlagen",
+    "saved": "Gespeichert",
+    "noPermission": "Keine Berechtigung",
+    "noPermissionHint": "Für diesen Bereich fehlen dir die nötigen Rechte. Wende dich an eine Administratorin oder einen Administrator, wenn du Zugriff brauchst."
   },
   "search": {
     "pages": "Seiten",
@@ -2535,7 +2538,8 @@
     "from": "Von",
     "to": "Bis",
     "days": "Tage",
-    "totalDays": "Gesamt Fehltage"
+    "totalDays": "Gesamt Fehltage",
+    "sendFailed": "Der Report konnte nicht versendet werden. Bitte die M365-Einstellungen pruefen."
   },
   "orderConfirmation": {
     "dialog": {

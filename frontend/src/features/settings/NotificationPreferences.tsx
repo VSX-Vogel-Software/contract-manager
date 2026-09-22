@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, gql } from '@apollo/client'
 import { Switch } from '@/components/ui/switch'
 import { Loader2 } from 'lucide-react'
+import { notifySavedIfSuccessful } from '@/lib/notify'
 
 const NOTIFICATION_PREFERENCES = gql`
   query NotificationPreferences {
@@ -28,6 +29,7 @@ export function NotificationPreferences() {
   const { data, loading } = useQuery(NOTIFICATION_PREFERENCES)
   const [updatePreferences] = useMutation(UPDATE_NOTIFICATION_PREFERENCES, {
     refetchQueries: [{ query: NOTIFICATION_PREFERENCES }],
+    onCompleted: notifySavedIfSuccessful,
   })
 
   if (loading) {

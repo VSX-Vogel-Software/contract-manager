@@ -37,7 +37,7 @@ export function ResetPassword() {
     skip: !token,
   })
 
-  const [resetPassword, { loading: resetting }] = useMutation(RESET_PASSWORD)
+  const [resetPassword, { loading: resetting }] = useMutation(RESET_PASSWORD, { context: { suppressErrorToast: true } })
 
   const validation = data?.validatePasswordReset
 

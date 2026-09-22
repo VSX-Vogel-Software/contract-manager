@@ -101,7 +101,7 @@ export function OrderConfirmationDialog({
   const [previewHtml, setPreviewHtml] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const [previewMutation, { loading: previewing }] = useMutation(PREVIEW_ORDER_CONFIRMATION)
+  const [previewMutation, { loading: previewing }] = useMutation(PREVIEW_ORDER_CONFIRMATION, { context: { suppressErrorToast: true } })
   const [createMutation, { loading: creating }] = useMutation(CREATE_ORDER_CONFIRMATION)
   const [sendMutation, { loading: sending }] = useMutation(SEND_ORDER_CONFIRMATION)
 

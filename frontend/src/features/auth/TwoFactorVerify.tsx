@@ -33,7 +33,7 @@ export function TwoFactorVerify({ challengeToken, method, onSuccess, onCancel }:
   const [error, setError] = useState<string | null>(null)
   const [useRecovery, setUseRecovery] = useState(false)
 
-  const [verify, { loading }] = useMutation(VERIFY_2FA)
+  const [verify, { loading }] = useMutation(VERIFY_2FA, { context: { suppressErrorToast: true } })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

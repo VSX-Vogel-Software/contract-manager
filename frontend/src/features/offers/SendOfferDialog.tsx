@@ -47,7 +47,7 @@ export function SendOfferDialog({
   const [newEmail, setNewEmail] = useState('')
   const [error, setError] = useState<string | null>(null)
 
-  const [sendEmail, { loading }] = useMutation(SEND_OFFER_EMAIL)
+  const [sendEmail, { loading }] = useMutation(SEND_OFFER_EMAIL, { context: { suppressErrorToast: true } })
 
   const handleAddRecipient = () => {
     const email = newEmail.trim()

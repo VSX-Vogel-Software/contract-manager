@@ -372,7 +372,7 @@ export function ContractForm() {
 
   const [createContract, { loading: creating }] = useMutation(CREATE_CONTRACT_MUTATION)
   const [updateContract, { loading: updating }] = useMutation(UPDATE_CONTRACT_MUTATION)
-  const [deleteContract, { loading: deleting }] = useMutation(DELETE_CONTRACT_MUTATION)
+  const [deleteContract, { loading: deleting }] = useMutation(DELETE_CONTRACT_MUTATION, { context: { suppressErrorToast: true } })
   const [createContractGroup] = useMutation(CREATE_CONTRACT_GROUP_MUTATION)
   const [changeCustomerMutation, { loading: changingCustomer }] = useMutation(CHANGE_CONTRACT_CUSTOMER_MUTATION)
 
@@ -1493,7 +1493,7 @@ function StatusTransitionModal({
   const { t } = useTranslation()
   const [error, setError] = useState<string | null>(null)
 
-  const [transitionStatus, { loading }] = useMutation(TRANSITION_CONTRACT_STATUS_MUTATION)
+  const [transitionStatus, { loading }] = useMutation(TRANSITION_CONTRACT_STATUS_MUTATION, { context: { suppressErrorToast: true } })
 
   const handleConfirm = async () => {
     setError(null)

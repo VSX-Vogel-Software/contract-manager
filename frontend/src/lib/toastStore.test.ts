@@ -59,6 +59,25 @@ describe('toastStore', () => {
     expect(getToasts()).toHaveLength(1)
   })
 
+  it('lets a confirmation disappear sooner than an error', () => {
+    // Ein Fehler will gelesen werden, eine Bestaetigung nur wahrgenommen.
+    pushToast({ title: 'Gespeichert', variant: 'success' })
+    pushToast({ title: 'Fehler', variant: 'error' })
+
+    vi.advanceTimersByTime(4000)
+
+    expect(getToasts()).toHaveLength(1)
+    expect(getToasts()[0].variant).toBe('error')
+  })
+
+  it('keeps an explicit duration even for a confirmation', () => {
+    pushToast({ title: 'Gespeichert', variant: 'success', durationMs: 20000 })
+
+    vi.advanceTimersByTime(10000)
+
+    expect(getToasts()).toHaveLength(1)
+  })
+
   it('collapses an identical message instead of stacking it', () => {
     // Ein fehlschlagender Request wird oft mehrfach ausgeloest (Retry, mehrere
     // Queries auf einer Seite). Derselbe Fehler soll den Bildschirm nicht fluten.

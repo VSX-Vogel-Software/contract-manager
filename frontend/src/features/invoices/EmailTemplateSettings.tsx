@@ -76,7 +76,7 @@ export function EmailTemplateSettings({ showHeader = true }: EmailTemplateSettin
   const { data: companyData } = useQuery<{
     companyLegalData: { companyName: string } | null
   }>(COMPANY_NAME_QUERY)
-  const [setEmailTemplate, { loading: saving }] = useMutation(SET_INVOICE_EMAIL_TEMPLATE)
+  const [setEmailTemplate, { loading: saving }] = useMutation(SET_INVOICE_EMAIL_TEMPLATE, { context: { suppressErrorToast: true } })
 
   const sampleData: Record<string, string> = {
     ...FALLBACK_SAMPLE_DATA,

@@ -63,8 +63,8 @@ const emptyForm: RuleForm = {
 export function SplitRuleSettings() {
   const { t } = useTranslation()
   const { data, refetch } = useQuery(SPLIT_RULES_QUERY)
-  const [createRule, { loading: creating }] = useMutation(CREATE_SPLIT_RULE)
-  const [updateRule, { loading: updating }] = useMutation(UPDATE_SPLIT_RULE)
+  const [createRule, { loading: creating }] = useMutation(CREATE_SPLIT_RULE, { context: { suppressErrorToast: true } })
+  const [updateRule, { loading: updating }] = useMutation(UPDATE_SPLIT_RULE, { context: { suppressErrorToast: true } })
   const [deleteRule] = useMutation(DELETE_SPLIT_RULE)
   const [form, setForm] = useState<RuleForm>(emptyForm)
   const [editId, setEditId] = useState<string | null>(null)

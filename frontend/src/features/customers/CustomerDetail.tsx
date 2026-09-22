@@ -576,18 +576,18 @@ export function CustomerDetail() {
 
   // Mutations
   const [uploadAttachment] = useMutation(UPLOAD_CUSTOMER_ATTACHMENT_MUTATION)
-  const [deleteAttachment] = useMutation(DELETE_CUSTOMER_ATTACHMENT_MUTATION)
+  const [deleteAttachment] = useMutation(DELETE_CUSTOMER_ATTACHMENT_MUTATION, { context: { suppressErrorToast: true } })
   const [updateAttachmentMeta] = useMutation(UPDATE_CUSTOMER_ATTACHMENT_META_MUTATION)
-  const [addLink] = useMutation(ADD_CUSTOMER_LINK_MUTATION)
-  const [deleteLink] = useMutation(DELETE_CUSTOMER_LINK_MUTATION)
+  const [addLink] = useMutation(ADD_CUSTOMER_LINK_MUTATION, { context: { suppressErrorToast: true } })
+  const [deleteLink] = useMutation(DELETE_CUSTOMER_LINK_MUTATION, { context: { suppressErrorToast: true } })
   const [updateCustomer] = useMutation(UPDATE_CUSTOMER_MUTATION)
-  const [updateBillingEmails] = useMutation(UPDATE_CUSTOMER_BILLING_EMAILS_MUTATION)
+  const [updateBillingEmails] = useMutation(UPDATE_CUSTOMER_BILLING_EMAILS_MUTATION, { context: { suppressErrorToast: true } })
   const [updateVatId] = useMutation(UPDATE_CUSTOMER_VAT_ID_MUTATION)
   const [updateInvoiceLanguage] = useMutation(UPDATE_CUSTOMER_INVOICE_LANGUAGE_MUTATION)
   const [updatePaymentTerm] = useMutation(UPDATE_CUSTOMER_PAYMENT_TERM)
-  const [assignInvoiceContract] = useMutation(ASSIGN_INVOICE_CONTRACT_MUTATION)
-  const [createContractGroup] = useMutation(CREATE_CONTRACT_GROUP_MUTATION)
-  const [assignContractToGroup] = useMutation(ASSIGN_CONTRACT_TO_GROUP_MUTATION)
+  const [assignInvoiceContract] = useMutation(ASSIGN_INVOICE_CONTRACT_MUTATION, { context: { suppressErrorToast: true } })
+  const [createContractGroup] = useMutation(CREATE_CONTRACT_GROUP_MUTATION, { context: { suppressErrorToast: true } })
+  const [assignContractToGroup] = useMutation(ASSIGN_CONTRACT_TO_GROUP_MUTATION, { context: { suppressErrorToast: true } })
 
   const customer = data?.customer
   const contractGroups = (groupsData?.contractGroups || []) as ContractGroup[]

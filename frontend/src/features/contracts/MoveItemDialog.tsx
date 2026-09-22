@@ -160,7 +160,7 @@ export function MoveItemDialog({
 
   const selectedContract = eligibleContracts.find((c: { id: string }) => c.id === targetContractId)
 
-  const [moveItem, { loading }] = useMutation(MOVE_ITEM_MUTATION)
+  const [moveItem, { loading }] = useMutation(MOVE_ITEM_MUTATION, { context: { suppressErrorToast: true } })
 
   const itemName = item.product?.name || item.description || '-'
 

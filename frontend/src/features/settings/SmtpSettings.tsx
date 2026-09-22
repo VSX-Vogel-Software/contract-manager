@@ -75,7 +75,7 @@ export function SmtpSettings() {
   const [sendResult, setSendResult] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const { data, refetch } = useQuery(SMTP_SETTINGS_QUERY)
-  const [saveSettings, { loading: saving }] = useMutation(SAVE_SMTP_SETTINGS)
+  const [saveSettings, { loading: saving }] = useMutation(SAVE_SMTP_SETTINGS, { context: { suppressErrorToast: true } })
   const [testConnection, { loading: testing }] = useMutation(TEST_SMTP_CONNECTION)
   const [sendTestEmail, { loading: sending }] = useMutation(SEND_SMTP_TEST_EMAIL)
 

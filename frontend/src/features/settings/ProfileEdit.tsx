@@ -28,7 +28,7 @@ export function ProfileEdit() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
-  const [updateProfile, { loading }] = useMutation(UPDATE_PROFILE)
+  const [updateProfile, { loading }] = useMutation(UPDATE_PROFILE, { context: { suppressErrorToast: true } })
 
   // Initialize form with current user data
   useEffect(() => {

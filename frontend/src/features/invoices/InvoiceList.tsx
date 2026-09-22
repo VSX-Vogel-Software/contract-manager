@@ -530,10 +530,10 @@ export function InvoiceList() {
   const [extractInvoiceMutation] = useMutation(EXTRACT_INVOICE)
   const [reExtractInvoiceMutation] = useMutation(RE_EXTRACT_INVOICE)
   const [confirmCustomerMatchMutation] = useMutation(CONFIRM_CUSTOMER_MATCH)
-  const [unlinkCustomerMutation] = useMutation(UNLINK_CUSTOMER)
+  const [unlinkCustomerMutation] = useMutation(UNLINK_CUSTOMER, { context: { suppressErrorToast: true } })
   const { data: m365Data } = useQuery(M365_SETTINGS_QUERY)
-  const [sendInvoiceEmail, { loading: sendingEmail }] = useMutation(SEND_INVOICE_EMAIL)
-  const [sendAllUnsent, { loading: sendingAll }] = useMutation(SEND_ALL_UNSENT)
+  const [sendInvoiceEmail, { loading: sendingEmail }] = useMutation(SEND_INVOICE_EMAIL, { context: { suppressErrorToast: true } })
+  const [sendAllUnsent, { loading: sendingAll }] = useMutation(SEND_ALL_UNSENT, { context: { suppressErrorToast: true } })
   const [bulkSendErrors, setBulkSendErrors] = useState<{ invoiceNumber: string; error: string }[]>([])
   const [bulkSendSent, setBulkSendSent] = useState<number | null>(null)
 

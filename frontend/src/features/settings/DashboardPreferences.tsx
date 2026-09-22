@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, gql } from '@apollo/client'
 import { Switch } from '@/components/ui/switch'
 import { Loader2 } from 'lucide-react'
+import { notifySavedIfSuccessful } from '@/lib/notify'
 
 const DASHBOARD_PREFERENCES = gql`
   query DashboardPreferences {
@@ -29,6 +30,7 @@ export function DashboardPreferences() {
   const { data, loading } = useQuery(DASHBOARD_PREFERENCES)
   const [updatePreferences] = useMutation(UPDATE_DASHBOARD_PREFERENCES, {
     refetchQueries: [{ query: DASHBOARD_PREFERENCES }],
+    onCompleted: notifySavedIfSuccessful,
   })
 
   if (loading) {

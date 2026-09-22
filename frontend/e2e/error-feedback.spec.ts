@@ -40,6 +40,41 @@ test.describe('Fehlerrueckmeldung', () => {
     await expect(page.locator('[data-testid="toast-error"]')).toBeVisible()
   })
 
+  test('meldet einen Fehler nicht doppelt, wenn die Maske ihn selbst anzeigt', async ({ page }) => {
+    await page.goto('/login')
+    await page.fill('input[type="email"]', 'admin@test.local')
+    await page.fill('input[type="password"]', 'admin123')
+    await page.click('button[type="submit"]')
+    await expect(page).toHaveURL('/')
+
+    await page.goto('/settings/general/reports')
+
+    // Der Knopf ist gesperrt, solange kein Empfaenger dasteht. Gespeichert wird
+    // nicht - der Server kennt also weiterhin keine Empfaenger und lehnt ab.
+    await page.getByTestId('report-schedule-recipients-absence').fill('hr@example.com')
+    await page.getByTestId('report-schedule-send-absence').click()
+
+    // Grosszuegig: der Server versucht dabei eine M365-Verbindung, und beim
+    // ersten Zugriff nach einem Neustart kompiliert der Dev-Server noch.
+    await expect(page.getByTestId('report-schedule-message-absence')).toBeVisible({
+      timeout: 20000,
+    })
+    await expect(page.locator('[data-testid="toast-error"]')).toHaveCount(0)
+  })
+
+  test('erklaert eine Seite ohne Berechtigung, statt sie leer zu lassen', async ({ page }) => {
+    await page.goto('/login')
+    await page.fill('input[type="email"]', 'viewer@test.local')
+    await page.fill('input[type="password"]', 'viewer123')
+    await page.click('button[type="submit"]')
+    await expect(page).toHaveURL('/')
+
+    // Direktlink in einen Bereich, fuer den die Viewer-Rolle keine Rechte hat.
+    await page.goto('/settings/general/reports')
+
+    await expect(page.getByTestId('no-permission-notice')).toBeVisible()
+  })
+
   test('laesst sich schliessen', async ({ page }) => {
     await page.goto('/login')
     await page.fill('input[type="email"]', 'admin@test.local')

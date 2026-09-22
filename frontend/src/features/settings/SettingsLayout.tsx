@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { User, Settings, Puzzle, Users, FileText, Landmark, Hash, Mail, Inbox, Calculator } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
+import { NoPermissionNotice } from '@/components/NoPermissionNotice'
 import { UserSettings } from './UserSettings'
 import { TeamSettingsTabs } from './TeamSettingsTabs'
 import { DocumentSettingsTabs } from './DocumentSettingsTabs'
@@ -77,6 +78,22 @@ export function SettingsLayout() {
   const canViewBanking = hasPermission('banking', 'read')
   const canConfigInboxes = hasPermission('incoming_invoices', 'config')
 
+  // Wird ein Bereich ohne Berechtigung aufgerufen - etwa ueber einen
+  // Direktlink -, blieb bisher eine leere Flaeche stehen.
+  const tabAllowed: Record<string, boolean> = {
+    user: true,
+    integrations: true,
+    general: canViewSettings,
+    accounting: canViewSettings,
+    team: canViewUsers,
+    documents: canViewInvoiceSettings,
+    numbering: canViewInvoiceSettings,
+    'email-templates': canViewInvoiceSettings,
+    banking: canViewBanking,
+    'invoice-inboxes': canConfigInboxes,
+  }
+  const activeTabAllowed = tabAllowed[activeTab] !== false
+
   return (
     <div>
       <h1 className="text-2xl font-bold">{t('nav.settings')}</h1>
@@ -112,6 +129,9 @@ export function SettingsLayout() {
             <TabsTrigger value="invoice-inboxes"><Inbox className="mr-1.5 h-4 w-4" />{t('settings.tabs.invoiceInboxes')}</TabsTrigger>
           )}
         </TabsList>
+
+        {!activeTabAllowed && <NoPermissionNotice />}
+
 
         <TabsContent value="user">
           <UserSettings />

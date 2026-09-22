@@ -231,7 +231,7 @@ export function TransactionMatchSheet({ transactionId, open, onOpenChange, onMat
   const [createMatch] = useMutation(CREATE_PAYMENT_MATCH)
   const [createMatchForRecord] = useMutation(CREATE_PAYMENT_MATCH_FOR_RECORD)
   const [createMatchForIncoming] = useMutation(CREATE_PAYMENT_MATCH_FOR_INCOMING)
-  const [deleteMatch] = useMutation(DELETE_PAYMENT_MATCH)
+  const [deleteMatch] = useMutation(DELETE_PAYMENT_MATCH, { context: { suppressErrorToast: true } })
 
   const txn: TransactionMatchData | null = data?.transactionMatchDetails ?? null
   const suggestions: SuggestedMatchesData | null = suggestionsData?.suggestedInvoiceMatches ?? null

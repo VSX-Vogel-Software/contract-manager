@@ -106,7 +106,7 @@ export function ActivationWorkflowModal({
     variables: { customerId: contract.customer.id },
   })
 
-  const [transitionStatus, { loading }] = useMutation(TRANSITION_CONTRACT_STATUS_MUTATION)
+  const [transitionStatus, { loading }] = useMutation(TRANSITION_CONTRACT_STATUS_MUTATION, { context: { suppressErrorToast: true } })
 
   const m365Configured = m365Data?.m365Settings?.isConfigured === true
   const hasBillingEmails = (billingData?.customer?.billingEmails?.length ?? 0) > 0

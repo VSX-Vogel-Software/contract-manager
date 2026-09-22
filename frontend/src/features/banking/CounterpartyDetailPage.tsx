@@ -556,13 +556,16 @@ export function CounterpartyDetailPage() {
 
   // Mutations
   const [updateCounterparty, { loading: updating }] = useMutation(UPDATE_COUNTERPARTY, {
+    context: { suppressErrorToast: true },
     refetchQueries: ['CounterpartyDetail'],
   })
-  const [mergeCounterparties, { loading: merging }] = useMutation(MERGE_COUNTERPARTIES)
+  const [mergeCounterparties, { loading: merging }] = useMutation(MERGE_COUNTERPARTIES, { context: { suppressErrorToast: true } })
   const [linkCustomer, { loading: linking }] = useMutation(LINK_COUNTERPARTY_TO_CUSTOMER, {
+    context: { suppressErrorToast: true },
     refetchQueries: ['CounterpartyDetail'],
   })
   const [unlinkCustomer, { loading: unlinking }] = useMutation(UNLINK_COUNTERPARTY_FROM_CUSTOMER, {
+    context: { suppressErrorToast: true },
     refetchQueries: ['CounterpartyDetail'],
   })
 

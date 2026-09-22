@@ -146,12 +146,12 @@ export function UserManagement() {
 
   const { data, loading, refetch } = useQuery(USERS_QUERY)
   const { data: rolesData } = useQuery(ROLES_QUERY)
-  const [createInvitation, { loading: creating }] = useMutation(CREATE_INVITATION)
-  const [revokeInvitation] = useMutation(REVOKE_INVITATION)
-  const [deactivateUser] = useMutation(DEACTIVATE_USER)
+  const [createInvitation, { loading: creating }] = useMutation(CREATE_INVITATION, { context: { suppressErrorToast: true } })
+  const [revokeInvitation] = useMutation(REVOKE_INVITATION, { context: { suppressErrorToast: true } })
+  const [deactivateUser] = useMutation(DEACTIVATE_USER, { context: { suppressErrorToast: true } })
   const [reactivateUser] = useMutation(REACTIVATE_USER)
   const [createPasswordReset] = useMutation(CREATE_PASSWORD_RESET)
-  const [assignUserRoles] = useMutation(ASSIGN_USER_ROLES)
+  const [assignUserRoles] = useMutation(ASSIGN_USER_ROLES, { context: { suppressErrorToast: true } })
 
   const users: User[] = data?.users || []
   const invitations: Invitation[] = data?.pendingInvitations || []

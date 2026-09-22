@@ -124,9 +124,9 @@ export function RevenueGoalSettings() {
   const { data: nbData, loading: nbLoading } = useQuery<{ newBusinessGoals: NewBusinessGoal[] }>(NEW_BUSINESS_GOALS_QUERY, {
     variables: { year: selectedYear },
   })
-  const [setRevenueGoal] = useMutation(SET_REVENUE_GOAL)
-  const [deleteRevenueGoal] = useMutation(DELETE_REVENUE_GOAL)
-  const [setNewBusinessGoalMutation] = useMutation(SET_NEW_BUSINESS_GOAL)
+  const [setRevenueGoal] = useMutation(SET_REVENUE_GOAL, { context: { suppressErrorToast: true } })
+  const [deleteRevenueGoal] = useMutation(DELETE_REVENUE_GOAL, { context: { suppressErrorToast: true } })
+  const [setNewBusinessGoalMutation] = useMutation(SET_NEW_BUSINESS_GOAL, { context: { suppressErrorToast: true } })
   const [deleteNewBusinessGoalMutation] = useMutation(DELETE_NEW_BUSINESS_GOAL)
 
   useEffect(() => {

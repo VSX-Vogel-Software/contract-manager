@@ -39,7 +39,7 @@ export function AcceptInvitation() {
     skip: !token,
   })
 
-  const [acceptInvitation, { loading: accepting }] = useMutation(ACCEPT_INVITATION)
+  const [acceptInvitation, { loading: accepting }] = useMutation(ACCEPT_INVITATION, { context: { suppressErrorToast: true } })
 
   const validation = data?.validateInvitation
 

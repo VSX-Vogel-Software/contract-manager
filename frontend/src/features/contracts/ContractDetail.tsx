@@ -2435,7 +2435,7 @@ function PriceIncreaseModal({
     }>
   } | null>(null)
 
-  const [bulkIncrease, { loading }] = useMutation(BULK_PRICE_INCREASE_MUTATION)
+  const [bulkIncrease, { loading }] = useMutation(BULK_PRICE_INCREASE_MUTATION, { context: { suppressErrorToast: true } })
 
   const handleSubmit = async () => {
     setError(null)
@@ -3228,8 +3228,8 @@ function EditItemModal({
 
   const [updateItem, { loading }] = useMutation(UPDATE_CONTRACT_ITEM_MUTATION)
   const [addPricePeriodMutation, { loading: addingPeriod }] = useMutation(ADD_CONTRACT_ITEM_PRICE_MUTATION)
-  const [removePricePeriodMutation, { loading: removingPeriod }] = useMutation(REMOVE_CONTRACT_ITEM_PRICE_MUTATION)
-  const [updatePricePeriodMutation, { loading: updatingPeriod }] = useMutation(UPDATE_CONTRACT_ITEM_PRICE_MUTATION)
+  const [removePricePeriodMutation, { loading: removingPeriod }] = useMutation(REMOVE_CONTRACT_ITEM_PRICE_MUTATION, { context: { suppressErrorToast: true } })
+  const [updatePricePeriodMutation, { loading: updatingPeriod }] = useMutation(UPDATE_CONTRACT_ITEM_PRICE_MUTATION, { context: { suppressErrorToast: true } })
 
   // State for editing an existing price period
   const [editingPeriodId, setEditingPeriodId] = useState<string | null>(null)
@@ -4195,7 +4195,7 @@ function ForecastTab({ contractId }: { contractId: string }) {
 
   const [createOffer] = useMutation(CREATE_OFFER_MUTATION)
   const [uploadForecastInvoice] = useMutation(UPLOAD_FORECAST_INVOICE_MUTATION)
-  const [confirmForecastInvoice] = useMutation(CONFIRM_FORECAST_INVOICE_MUTATION)
+  const [confirmForecastInvoice] = useMutation(CONFIRM_FORECAST_INVOICE_MUTATION, { context: { suppressErrorToast: true } })
   const [deleteInvoice] = useMutation(DELETE_INVOICE_MUTATION)
 
   const handleInvoiceUpload = (billingDate: string) => {
@@ -4619,7 +4619,7 @@ function AttachmentsTab({
   const [uploadAttachment] = useMutation(UPLOAD_ATTACHMENT_MUTATION)
   const [deleteAttachment] = useMutation(DELETE_ATTACHMENT_MUTATION)
   const [updateAttachmentMeta] = useMutation(UPDATE_ATTACHMENT_META_MUTATION)
-  const [addLink] = useMutation(ADD_CONTRACT_LINK_MUTATION)
+  const [addLink] = useMutation(ADD_CONTRACT_LINK_MUTATION, { context: { suppressErrorToast: true } })
   const [deleteLink] = useMutation(DELETE_CONTRACT_LINK_MUTATION)
 
   const ATTACHMENT_CATEGORIES = [

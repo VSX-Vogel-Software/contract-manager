@@ -43,7 +43,7 @@ export function EditPatternModal({ pattern, onClose, onSave }: EditPatternModalP
   const [dayOfMonth, setDayOfMonth] = useState(pattern.dayOfMonth?.toString() || '')
   const [error, setError] = useState<string | null>(null)
 
-  const [updatePattern, { loading }] = useMutation(UPDATE_PATTERN)
+  const [updatePattern, { loading }] = useMutation(UPDATE_PATTERN, { context: { suppressErrorToast: true } })
 
   const handleSave = async () => {
     setError(null)

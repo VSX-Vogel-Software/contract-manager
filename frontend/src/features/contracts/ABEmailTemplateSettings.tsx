@@ -81,7 +81,7 @@ export function ABEmailTemplateSettings({ showHeader = true }: ABEmailTemplateSe
       companyData?.companyLegalData?.companyName ||
       FALLBACK_SAMPLE_DATA.company_name,
   }
-  const [setEmailTemplate, { loading: saving }] = useMutation(SET_AB_EMAIL_TEMPLATE)
+  const [setEmailTemplate, { loading: saving }] = useMutation(SET_AB_EMAIL_TEMPLATE, { context: { suppressErrorToast: true } })
 
   useEffect(() => {
     const templates = data?.abEmailTemplates?.templates

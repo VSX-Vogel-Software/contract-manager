@@ -26,12 +26,17 @@ Das System SHALL jeden Fehler, den kein Aufrufer selbst behandelt, als Meldung a
 
 ### Requirement: Inline behandelte Fehler bleiben inline
 
-Das System SHALL keine zusaetzliche Meldung anzeigen, wenn der Aufrufer den Fehler selbst darstellt. Die Operation kennzeichnet das ueber `context: { suppressErrorToast: true }`.
+Das System SHALL keine zusaetzliche Meldung anzeigen, wenn der Aufrufer den Fehler selbst darstellt. Die Operation kennzeichnet das ueber `context: { suppressErrorToast: true }`. Jede Aufrufstelle, die einen Fehler inline anzeigt, MUST dieses Kennzeichen setzen; dieselbe Aussage darf dem Benutzer nicht zweimal begegnen.
 
 #### Scenario: Formularfehler am Feld
 
 - **WHEN** eine Operation mit gesetztem `suppressErrorToast` fehlschlaegt
 - **THEN** erscheint keine Meldung am Bildrand, und die Anzeige bleibt dem Aufrufer ueberlassen
+
+#### Scenario: Maske zeigt den Fehler bereits an
+
+- **WHEN** eine Maske den Fehler einer Mutation inline darstellt
+- **THEN** erscheint zu demselben Fehlschlag keine zusaetzliche Meldung am Bildrand
 
 ### Requirement: Abgelaufene Sitzung navigiert statt zu melden
 
@@ -92,3 +97,40 @@ Das System SHALL das Melden von Fehlern auch aus Code erlauben, der keinen React
 
 - **WHEN** ein Apollo-Link einen Fehler feststellt
 - **THEN** kann er die Meldung ohne React-Kontext ausloesen, und die Anzeige erscheint
+
+### Requirement: Aktionen ohne sichtbare Wirkung bestaetigen sich
+
+Das System SHALL eine Bestaetigung anzeigen, wenn eine Aktion gelingt, ohne dass sich die Oberflaeche sichtbar aendert. Fuehrt die Aktion zu einer sichtbaren Zustandsaenderung, MUST keine zusaetzliche Bestaetigung erscheinen.
+
+#### Scenario: Einstellung gespeichert
+
+- **WHEN** ein Benutzer eine Einstellung speichert, deren Oberflaeche danach unveraendert aussieht
+- **THEN** erscheint eine Bestaetigung, dass gespeichert wurde
+
+#### Scenario: Liste aendert sich sichtbar
+
+- **WHEN** eine Aktion einen Eintrag entfernt und die Liste neu geladen wird
+- **THEN** erscheint keine zusaetzliche Bestaetigung
+
+#### Scenario: Erfolg trotz Fehlschlag in den Nutzdaten
+
+- **WHEN** eine Aktion technisch durchlaeuft, ihre Nutzdaten aber einen Fehlschlag melden
+- **THEN** erscheint keine Bestaetigung, sondern ausschliesslich die Fehlermeldung
+
+### Requirement: Bestaetigungen sind kuerzer sichtbar als Fehler
+
+Das System SHALL Bestaetigungen nach kuerzerer Zeit ausblenden als Fehlermeldungen.
+
+#### Scenario: Bestaetigung und Fehler nebeneinander
+
+- **WHEN** eine Bestaetigung und eine Fehlermeldung gleichzeitig angezeigt werden
+- **THEN** verschwindet die Bestaetigung zuerst
+
+### Requirement: Fehlende Berechtigung wird erklaert statt leer dargestellt
+
+Das System SHALL einem Benutzer, der einen Bereich ohne die noetige Berechtigung aufruft, den Grund in der Flaeche anzeigen, statt eine leere Flaeche zu hinterlassen.
+
+#### Scenario: Bereich ohne Berechtigung ueber einen Direktlink
+
+- **WHEN** ein Benutzer einen Bereich aufruft, fuer den ihm die Berechtigung fehlt
+- **THEN** erscheint an der Stelle des Inhalts ein Hinweis auf die fehlende Berechtigung

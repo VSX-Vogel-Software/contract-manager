@@ -71,7 +71,7 @@ export function FeedbackModal({ open, onOpenChange }: FeedbackModalProps) {
   const [showSuccess, setShowSuccess] = useState(false)
   const [titleError, setTitleError] = useState(false)
 
-  const [submitFeedback, { loading, error: mutationError }] = useMutation(SUBMIT_FEEDBACK_MUTATION)
+  const [submitFeedback, { loading, error: mutationError }] = useMutation(SUBMIT_FEEDBACK_MUTATION, { context: { suppressErrorToast: true } })
 
   // Capture screenshot when modal opens
   useEffect(() => {

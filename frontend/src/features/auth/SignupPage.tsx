@@ -23,7 +23,7 @@ export function SignupPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
-  const [signUp, { loading }] = useMutation(SIGN_UP)
+  const [signUp, { loading }] = useMutation(SIGN_UP, { context: { suppressErrorToast: true } })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

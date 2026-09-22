@@ -64,8 +64,8 @@ export function ReminderDialog({
   const [error, setError] = useState<string | null>(null)
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
-  const [createReminder, { loading: creating }] = useMutation(CREATE_PAYMENT_REMINDER)
-  const [sendReminder, { loading: sending }] = useMutation(SEND_PAYMENT_REMINDER)
+  const [createReminder, { loading: creating }] = useMutation(CREATE_PAYMENT_REMINDER, { context: { suppressErrorToast: true } })
+  const [sendReminder, { loading: sending }] = useMutation(SEND_PAYMENT_REMINDER, { context: { suppressErrorToast: true } })
 
   const applyDraft = useCallback((d: PaymentReminderDraft) => {
     setDraft(d)

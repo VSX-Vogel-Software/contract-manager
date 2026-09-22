@@ -20,7 +20,7 @@ export function PasswordChange() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
-  const [changePassword, { loading }] = useMutation(CHANGE_PASSWORD)
+  const [changePassword, { loading }] = useMutation(CHANGE_PASSWORD, { context: { suppressErrorToast: true } })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
