@@ -33,6 +33,16 @@ class EntraError(Exception):
     """Anmeldung ueber Entra ID nicht moeglich."""
 
 
+class EntraUnavailable(EntraError):
+    """Das Verzeichnis war technisch nicht erreichbar.
+
+    Bewusst eigene Klasse: Nur in diesem Fall darf die Oberflaeche den Notweg
+    ueber die lokale Anmeldung anbieten. Eine Ablehnung - gesperrtes Konto,
+    unbekannter Benutzer - darf das nicht, sonst bekaeme genau das gesperrte
+    Konto eine Hintertuer.
+    """
+
+
 def get_sso_config(tenant) -> dict:
     """Konfiguration des Mandanten, oder Fehler wenn SSO nicht eingerichtet ist."""
     config = (tenant.settings or {}).get("entra_sso", {})
@@ -73,11 +83,11 @@ def fetch_jwks(config: dict, force_refresh: bool = False) -> dict:
         response.raise_for_status()
         keys = response.json()
     except httpx.HTTPError as exc:
-        raise EntraError(f"Could not reach the directory: {exc}") from exc
+        raise EntraUnavailable(f"Could not reach the directory: {exc}") from exc
     except ValueError as exc:
         # Eine 200-Antwort, die kein JSON ist (Portal, Proxy-Fehlerseite) darf
         # nicht als irgendein Fehler nach oben durchschlagen.
-        raise EntraError(f"The directory returned no usable key set: {exc}") from exc
+        raise EntraUnavailable(f"The directory returned no usable key set: {exc}") from exc
 
     cache.set(cache_key, keys, JWKS_CACHE_TTL)
     return keys

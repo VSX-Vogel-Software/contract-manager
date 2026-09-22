@@ -27,6 +27,7 @@ from apps.core.version_views import VersionView, BackendLicensesView, GraphQLSch
 from apps.invoices.views import InvoiceExportView, InvoicePreviewHtmlView, InvoicePreviewView, InvoiceRecordPdfView
 from apps.offers.views import OfferRecordPdfView
 from apps.contracts.views import AttachmentDownloadView, AttachmentPermalinkView, ContractExportView
+from apps.core.entra_views import entra_login_callback, entra_login_start
 from apps.customers.views import CustomerAttachmentDownloadView
 from apps.banking.views import UploadStatementView
 from apps.customers.webhooks import HubSpotWebhookView
@@ -34,6 +35,9 @@ from apps.mcp.views import DynamicClientRegistrationView, McpAuthorizationView, 
 
 urlpatterns = [
     path("accounts/", include("django.contrib.auth.urls")),
+    # Anmeldung ueber Entra ID (Browser-Umleitungen, kein GraphQL)
+    path("auth/entra/start", entra_login_start, name="entra-login-start"),
+    path("auth/entra/callback", entra_login_callback, name="entra-login-callback"),
     path("admin/", admin.site.urls),
     path("graphql", csrf_exempt(AuthenticatedGraphQLView.as_view(schema=schema))),
     # Public GraphQL SDL for client codegen + docs

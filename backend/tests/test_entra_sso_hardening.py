@@ -279,3 +279,99 @@ class TestLocalLoginCanBeDisabled:
         assert result.errors is None
         assert "disabled" in result.data["login"]["message"]
         assert not result.data["login"].get("accessToken")
+
+
+class TestRefreshChecksTheAccount:
+    """Aufgabe 3.2: Eine Sperrung soll nicht erst mit dem Token ablaufen."""
+
+    def _refresh(self, token):
+        from unittest.mock import Mock
+
+        from apps.core.context import Context
+        from config.schema import schema
+
+        return schema.execute_sync(
+            """
+            mutation($t: String!) {
+                refreshToken(refreshToken: $t) {
+                    ... on AuthPayload { accessToken }
+                    ... on AuthError { message }
+                }
+            }
+            """,
+            variable_values={"t": token},
+            context_value=Context(request=Mock(), user=None),
+        )
+
+    def test_refresh_works_for_an_active_account(self, db, tenant):
+        from apps.core.auth import create_refresh_token
+
+        u = User.objects.create_user(email="active@example.com", password="x", tenant=tenant)
+
+        result = self._refresh(create_refresh_token(u))
+
+        assert result.data["refreshToken"].get("accessToken")
+
+    def test_refresh_is_refused_after_deactivation(self, db, tenant):
+        """Deckt bereits bestehendes Verhalten ab, damit es nicht verlorengeht.
+
+        `get_user_from_token` filtert auf `is_active` - und liegt in jedem
+        Request, nicht nur beim Erneuern. Ein deaktiviertes Konto ist also
+        sofort draussen, nicht erst mit Ablauf des Tokens.
+        """
+        from apps.core.auth import create_refresh_token
+
+        u = User.objects.create_user(email="gone@example.com", password="x", tenant=tenant)
+        token = create_refresh_token(u)
+        u.is_active = False
+        u.save(update_fields=["is_active"])
+
+        result = self._refresh(token)
+
+        assert not result.data["refreshToken"].get("accessToken")
+        assert result.data["refreshToken"]["message"]
+
+
+class TestFallbackLeavesATrace:
+    """Aufgabe 3.4: Ein unbemerkter Notweg wird zum Hauptweg."""
+
+    def _login(self, email, password):
+        from unittest.mock import Mock
+
+        from apps.core.context import Context
+        from config.schema import schema
+
+        return schema.execute_sync(
+            """
+            mutation($email: String!, $password: String!) {
+                login(email: $email, password: $password) {
+                    ... on AuthPayload { accessToken }
+                    ... on AuthError { message }
+                }
+            }
+            """,
+            variable_values={"email": email, "password": password},
+            context_value=Context(request=Mock(), user=None),
+        )
+
+    def test_password_login_is_recorded_while_sso_is_active(self, db, tenant):
+        from apps.audit.models import AuditLog
+
+        tenant.settings = sso_settings()
+        tenant.save(update_fields=["settings"])
+        User.objects.create_user(email="fallback@example.com", password="secret123", tenant=tenant)
+
+        self._login("fallback@example.com", "secret123")
+
+        entry = AuditLog.objects.filter(entity_repr__startswith="Password sign-in").first()
+        assert entry is not None
+        assert entry.changes["method"]["new"] == "password_while_sso_active"
+
+    def test_nothing_is_recorded_while_sso_is_off(self, db, tenant):
+        from apps.audit.models import AuditLog
+
+        User.objects.create_user(email="normal2@example.com", password="secret123", tenant=tenant)
+
+        self._login("normal2@example.com", "secret123")
+
+        assert not AuditLog.objects.filter(entity_repr__startswith="Password sign-in").exists()

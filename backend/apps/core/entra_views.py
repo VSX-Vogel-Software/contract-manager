@@ -1,0 +1,151 @@
+"""HTTP-Endpunkte fuer die Anmeldung ueber Entra ID.
+
+Zwei Umleitungen, kein GraphQL: Der Browser muss zu Microsoft und wieder
+zurueck. Am Ende stellt die Anwendung ihren eigenen JWT aus und uebergibt ihn
+dem Frontend im URL-Fragment - das schickt der Browser weder an Server noch in
+Zugriffsprotokolle, anders als ein Query-Parameter.
+"""
+import logging
+from urllib.parse import urlencode
+
+from django.conf import settings
+from django.http import HttpResponseRedirect
+from django.utils import timezone
+from django.views.decorators.http import require_GET
+
+from apps.core.auth import create_2fa_challenge_token, create_access_token, create_refresh_token
+from apps.core.entra_sso import (
+    EntraError,
+    EntraUnavailable,
+    build_login_url,
+    complete_login,
+    get_sso_config,
+)
+from apps.tenants.models import Tenant
+
+logger = logging.getLogger(__name__)
+
+
+def frontend_base(request) -> str:
+    return (
+        request.headers.get("Origin")
+        or getattr(settings, "FRONTEND_URL", "")
+        or request.build_absolute_uri("/").rstrip("/")
+    )
+
+
+def callback_uri(request) -> str:
+    return request.build_absolute_uri("/auth/entra/callback")
+
+
+def resolve_tenant(request) -> Tenant:
+    """Fuer welchen Mandanten wird angemeldet?
+
+    Anders als beim Passwort-Login gibt es hier keine E-Mail-Adresse, aus der
+    sich das ableiten liesse. Bei genau einem eingerichteten Mandanten ist die
+    Antwort eindeutig; sonst muss der Aufrufer ihn benennen.
+    """
+    explicit = request.GET.get("tenant")
+    if explicit:
+        tenant = Tenant.objects.filter(pk=explicit, is_active=True).first()
+        if not tenant:
+            raise EntraError("Unknown tenant")
+        get_sso_config(tenant)  # wirft, wenn dort kein SSO eingerichtet ist
+        return tenant
+
+    candidates = [
+        t
+        for t in Tenant.objects.filter(is_active=True)
+        if (t.settings or {}).get("entra_sso", {}).get("enabled")
+    ]
+    if len(candidates) == 1:
+        return candidates[0]
+    if not candidates:
+        raise EntraError("Entra SSO is not configured")
+    raise EntraError("Several tenants use SSO - please name the tenant")
+
+
+def _redirect_to_frontend(request, **fragment) -> HttpResponseRedirect:
+    return HttpResponseRedirect(f"{frontend_base(request)}/login#{urlencode(fragment)}")
+
+
+@require_GET
+def entra_login_start(request):
+    """Beginnt den Anmeldeversuch und schickt den Browser zu Microsoft."""
+    try:
+        tenant = resolve_tenant(request)
+        url, _state = build_login_url(tenant, redirect_uri=callback_uri(request))
+    except EntraUnavailable as exc:
+        logger.warning("Entra SSO start failed, directory unreachable: %s", exc)
+        return _redirect_to_frontend(request, sso_error="unavailable")
+    except EntraError as exc:
+        logger.warning("Entra SSO start refused: %s", exc)
+        return _redirect_to_frontend(request, sso_error="denied", detail=str(exc))
+
+    return HttpResponseRedirect(url)
+
+
+@require_GET
+def entra_login_callback(request):
+    """Nimmt den Rueckkanal entgegen und stellt den anwendungseigenen JWT aus."""
+    if request.GET.get("error"):
+        # Microsoft selbst hat abgelehnt - kein Ausweichangebot.
+        detail = request.GET.get("error_description") or request.GET["error"]
+        logger.warning("Entra SSO denied by the directory: %s", detail)
+        return _redirect_to_frontend(request, sso_error="denied", detail=detail)
+
+    code = request.GET.get("code")
+    state = request.GET.get("state")
+    if not code or not state:
+        return _redirect_to_frontend(request, sso_error="denied", detail="Incomplete response")
+
+    try:
+        tenant = resolve_tenant(request)
+        result = complete_login(
+            tenant, code=code, state=state, redirect_uri=callback_uri(request)
+        )
+    except EntraUnavailable as exc:
+        # Nur hier darf die Oberflaeche den Notweg anbieten.
+        logger.warning("Entra SSO callback failed, directory unreachable: %s", exc)
+        return _redirect_to_frontend(request, sso_error="unavailable")
+    except EntraError as exc:
+        logger.warning("Entra SSO callback refused: %s", exc)
+        return _redirect_to_frontend(request, sso_error="denied", detail=str(exc))
+
+    user = result.user
+
+    # Die App-2FA entfaellt nur, wenn das Verzeichnis mehrstufig geprueft hat.
+    two_factor = getattr(user, "two_factor_config", None)
+    if two_factor and two_factor.is_active and not result.multi_factor:
+        challenge = create_2fa_challenge_token(user, two_factor.method)
+        return _redirect_to_frontend(request, two_factor=challenge, method=two_factor.method)
+
+    user.last_login = timezone.now()
+    user.save(update_fields=["last_login"])
+    _log_sso_login(user, result)
+
+    return _redirect_to_frontend(
+        request,
+        access_token=create_access_token(user),
+        refresh_token=create_refresh_token(user),
+    )
+
+
+def _log_sso_login(user, result) -> None:
+    from apps.audit.models import AuditLog
+
+    try:
+        AuditLog.objects.create(
+            tenant=user.tenant,
+            action=AuditLog.Action.UPDATE,
+            entity_type="user",
+            entity_id=user.pk,
+            entity_repr=f"SSO sign-in {user.email}",
+            user=user,
+            changes={
+                "method": {"old": None, "new": "entra_sso"},
+                "multi_factor": {"old": None, "new": result.multi_factor},
+            },
+        )
+    except Exception:
+        logger.exception("Could not record the SSO sign-in for %s", user.email)

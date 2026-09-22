@@ -33,7 +33,7 @@ Die Anmeldung ist heute vollständig selbst gebaut. Relevante vorhandene Infrast
 
 Entra beweist die Identität, danach übernimmt die Anwendung wie bisher. Alternative wäre, Entras Token durchzureichen und überall zu prüfen — das hätte Kontext, Rechteprüfung, Frontend-Sitzung und die MCP-Anbindung berührt. Der gewählte Weg lässt beide Anmeldearten parallel laufen und macht die Umstellung reversibel.
 
-**Preis:** Sitzungsdrift. Wird ein Konto in Entra gesperrt, kommt der Benutzer bis zum Ablauf des App-Tokens weiter herein. Gegenmaßnahme: beim Erneuern des Tokens einmal `is_active` in der Datenbank prüfen. Das deckt den praktisch wichtigen Fall ab, ohne bei Entra zurückzufragen.
+**Preis:** Sitzungsdrift — allerdings kleiner als zunächst angenommen. `get_user_from_token` filtert bereits auf `is_active`, und diese Funktion liegt in **jedem** Request, nicht nur beim Erneuern: Ein in der Anwendung deaktiviertes Konto ist sofort draußen. Offen bleibt allein der Fall, dass ein Konto **in Entra** gesperrt wird, in der Anwendung aber aktiv bleibt — davon erfährt die Anwendung nichts, bis jemand die Deaktivierung nachzieht. Wer das schließen will, braucht eine Rückfrage beim Verzeichnis; für den Anfang ist es bewusst offen und hier dokumentiert.
 
 ### Zuordnung über `oid`, nicht über die E-Mail-Adresse
 
@@ -71,7 +71,7 @@ Andere Rechte (delegiert `openid`, `profile`, `email` statt `Mail.Send` als Anwe
 
 - **Aussperrung.** Fällt Entra aus und ist der Notweg nicht erprobt, steht die Anwendung. Gegenmaßnahme: Notfallkonten anlegen **und** den Weg mindestens einmal bewusst durchspielen, bevor die Passwort-Anmeldung abgeschaltet wird.
 - **Gastkonten.** In einem Verzeichnis mit B2B-Gästen entscheidet die Verzeichnisprüfung, ob diese hereinkommen. Bewusst entscheiden.
-- **Doppelte Wahrheit über Benutzer.** Solange beide Anmeldewege laufen, kann ein Konto in der Anwendung aktiv und im Verzeichnis gesperrt sein. Die `is_active`-Prüfung beim Erneuern mildert das, hebt es aber nicht auf.
+- **Doppelte Wahrheit über Benutzer.** Ein Konto kann in der Anwendung aktiv und im Verzeichnis gesperrt sein. In der Anwendung wirkt `is_active` sofort (siehe oben), die Sperrung in Entra dagegen gar nicht — bis sie jemand nachzieht. Das ist der eigentliche Grund, die Deaktivierung an einer Stelle zu führen.
 
 ## Migration Plan
 

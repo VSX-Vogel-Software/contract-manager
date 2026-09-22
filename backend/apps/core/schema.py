@@ -387,6 +387,8 @@ class AuthMutation:
             logger.warning("Password login refused for %s: local login disabled", user.email)
             return AuthError(message="Password sign-in is disabled for this account")
 
+        _record_password_login_under_sso(user)
+
         from django.utils import timezone
         user.last_login = timezone.now()
         user.save(update_fields=["last_login"])
@@ -577,3 +579,30 @@ class FeedbackMutation:
             if "not configured" in str(e).lower():
                 return FeedbackResult(success=False, error="Feedback system is not configured. Please contact an administrator.")
             return FeedbackResult(success=False, error=str(e))
+
+
+def _record_password_login_under_sso(user) -> None:
+    """Haelt fest, wenn der Notweg benutzt wurde.
+
+    Ein Notweg, den niemand bemerkt, wird zum Hauptweg. Solange SSO fuer den
+    Mandanten nicht aktiv ist, ist die Passwort-Anmeldung der normale Weg und
+    wird nicht gesondert vermerkt.
+    """
+    tenant = user.tenant
+    if not tenant or not (tenant.settings or {}).get("entra_sso", {}).get("enabled"):
+        return
+
+    from apps.audit.models import AuditLog
+
+    try:
+        AuditLog.objects.create(
+            tenant=tenant,
+            action=AuditLog.Action.UPDATE,
+            entity_type="user",
+            entity_id=user.pk,
+            entity_repr=f"Password sign-in {user.email}",
+            user=user,
+            changes={"method": {"old": None, "new": "password_while_sso_active"}},
+        )
+    except Exception:
+        logger.exception("Could not record the password sign-in for %s", user.email)
