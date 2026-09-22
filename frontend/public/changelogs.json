@@ -1,5 +1,19 @@
 [
   {
+    "version": "2.36.0",
+    "date": "2026-09-22",
+    "title": "Fehler werden jetzt angezeigt statt verschwiegen",
+    "description": "Bisher konnte eine Aktion fehlschlagen, ohne dass die Oberfläche etwas gesagt hat — der Grund stand nur im Protokoll. Jetzt erscheint bei jedem unbehandelten Fehler eine Meldung am unteren Bildrand.",
+    "type": "improvement",
+    "details": [
+      "Fehlgeschlagene Aktionen melden sich mit Grund, statt stillschweigend nichts zu tun",
+      "Auch abgebrochene Verbindungen zum Server werden gemeldet — die sahen bisher aus wie \"nichts passiert\"",
+      "Fehlermeldungen an Formularfeldern bleiben wie gewohnt am Feld stehen",
+      "Das VSX-Logo steht wieder in der Seitenleiste, darunter der Produktname",
+      "Neues Symbol im Browser-Tab"
+    ]
+  },
+  {
     "version": "2.35.4",
     "date": "2026-09-21",
     "title": "Monatsreports werden wieder versendet",
