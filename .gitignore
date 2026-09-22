@@ -69,6 +69,11 @@ uploads/
 # Gunicorn control file (dev container)
 backend/gunicorn.ctl
 
+# Playwright (Artefakte der E2E-Laeufe)
+frontend/test-results/
+frontend/playwright-report/
+frontend/playwright/.auth/
+
 # Temporary files
 tmp/
 temp/

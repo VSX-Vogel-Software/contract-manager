@@ -54,6 +54,18 @@ describe('Sidebar', () => {
     vi.clearAllMocks()
   })
 
+  it('shows the VSX logo in the header', () => {
+    // Das Logo war schon einmal stillschweigend verschwunden (2.35.2).
+    mockAuth([])
+    renderSidebar()
+
+    const logo = screen.getByAltText('VSX Vogel Software')
+    expect(logo).toBeInTheDocument()
+    expect(logo).toHaveAttribute('src', '/vsx-logo.png')
+    expect(screen.getByText(/Contract/)).toBeInTheDocument()
+    expect(screen.getByText(/Manager/)).toBeInTheDocument()
+  })
+
   it('always renders items without permission requirements', () => {
     mockAuth([])
     renderSidebar()
