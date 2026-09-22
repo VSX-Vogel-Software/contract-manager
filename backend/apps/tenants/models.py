@@ -116,6 +116,17 @@ class User(AbstractUser):
     notification_preferences = models.JSONField(default=dict, blank=True)
     dashboard_preferences = models.JSONField(default=dict, blank=True)
 
+    # Entra ID. Zugeordnet wird beim ersten SSO-Login ueber die E-Mail-Adresse,
+    # danach ueber die Objekt-ID: Adressen aendern sich, die oid nicht. Die
+    # Verzeichnis-ID steht daneben, damit eine oid aus einem fremden
+    # Verzeichnis nicht kollidieren kann.
+    entra_object_id = models.CharField(max_length=64, blank=True, db_index=True)
+    entra_tenant_id = models.CharField(max_length=64, blank=True)
+
+    # Nach der Umstellung auf SSO duerfen nur noch ausdrueckliche
+    # Notfallkonten den Passwort-Weg gehen.
+    local_login_allowed = models.BooleanField(default=True)
+
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
 
@@ -123,6 +134,15 @@ class User(AbstractUser):
 
     class Meta:
         ordering = ["email"]
+        constraints = [
+            # Je Mandant eindeutig, nicht global: ein Verzeichnis kann mehrere
+            # Mandanten bedienen, dieselbe Person dort je ein Konto haben.
+            models.UniqueConstraint(
+                fields=["tenant", "entra_tenant_id", "entra_object_id"],
+                condition=models.Q(entra_object_id__gt=""),
+                name="unique_entra_identity",
+            ),
+        ]
 
     def __str__(self):
         return self.email

@@ -1,4 +1,5 @@
 """Core GraphQL schema for authentication."""
+import logging
 from typing import Annotated, Union
 
 import strawberry
@@ -15,6 +16,8 @@ from apps.core.auth import (
     get_user_from_token,
 )
 from apps.core.context import Context
+
+logger = logging.getLogger(__name__)
 
 
 @strawberry.type
@@ -375,6 +378,14 @@ class AuthMutation:
 
         if user.tenant and not user.tenant.is_active:
             return AuthError(message="Tenant is inactive")
+
+        # Nach der Umstellung auf SSO duerfen nur noch ausdrueckliche
+        # Notfallkonten den Passwort-Weg gehen. Die Entscheidung faellt hier und
+        # nicht in der Oberflaeche: Ob das Formular sichtbar war, entscheidet der
+        # Browser des Aufrufers.
+        if not user.local_login_allowed:
+            logger.warning("Password login refused for %s: local login disabled", user.email)
+            return AuthError(message="Password sign-in is disabled for this account")
 
         from django.utils import timezone
         user.last_login = timezone.now()
