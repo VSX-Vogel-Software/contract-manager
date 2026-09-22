@@ -13,6 +13,8 @@ import base64
 import hashlib
 import logging
 import secrets
+import time
+import uuid
 from dataclasses import dataclass
 from urllib.parse import urlencode
 
@@ -46,9 +48,11 @@ class EntraUnavailable(EntraError):
 def get_sso_config(tenant) -> dict:
     """Konfiguration des Mandanten, oder Fehler wenn SSO nicht eingerichtet ist."""
     config = (tenant.settings or {}).get("entra_sso", {})
-    required = ("tenant_id", "client_id", "client_secret")
-    if not config.get("enabled") or any(not config.get(k) for k in required):
+    has_credential = config.get("client_secret") or config.get("certificate_private_key")
+    if not config.get("enabled") or not config.get("tenant_id") or not config.get("client_id"):
         raise EntraError("Entra SSO is not configured for this tenant")
+    if not has_credential:
+        raise EntraError("Entra SSO is not configured for this tenant: no credential")
     return config
 
 
@@ -206,6 +210,72 @@ def build_login_url(tenant, *, redirect_uri: str) -> tuple[str, str]:
     return f"{authorize_url(config)}?{urlencode(params)}", state
 
 
+def _certificate_thumbprint(config: dict) -> str:
+    """Der x5t-Wert, mit dem das Verzeichnis das Zertifikat wiedererkennt."""
+    configured = config.get("certificate_thumbprint")
+    if configured:
+        raw = bytes.fromhex(configured.replace(":", "").replace(" ", "").strip())
+        return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
+
+    certificate = config.get("certificate")
+    if not certificate:
+        raise EntraError(
+            "Certificate login needs either the certificate itself or its thumbprint"
+        )
+
+    from cryptography import x509
+    from cryptography.hazmat.primitives import serialization
+
+    try:
+        loaded = x509.load_pem_x509_certificate(certificate.encode())
+    except Exception as exc:
+        raise EntraError(f"Unusable certificate: {exc}") from exc
+
+    digest = hashlib.sha1(loaded.public_bytes(serialization.Encoding.DER)).digest()
+    return base64.urlsafe_b64encode(digest).rstrip(b"=").decode()
+
+
+def client_authentication(config: dict, *, token_url: str) -> dict:
+    """Womit sich die Anwendung selbst beim Verzeichnis ausweist.
+
+    Ein Zertifikat hat Vorrang vor einem Geheimnis: Das Geheimnis geht bei
+    jedem Token-Tausch ueber die Leitung, der private Schluessel nie - er
+    signiert nur ein kurzlebiges JWT (Client-Assertion).
+    """
+    private_key = config.get("certificate_private_key")
+    if private_key:
+        thumbprint = _certificate_thumbprint(config)
+        now = int(time.time())
+        claims = {
+            "iss": config["client_id"],
+            "sub": config["client_id"],
+            "aud": token_url,
+            "jti": str(uuid.uuid4()),
+            "iat": now,
+            "nbf": now,
+            "exp": now + 300,
+        }
+        try:
+            assertion = jwt.encode(
+                claims, private_key, algorithm="RS256", headers={"x5t": thumbprint}
+            )
+        except Exception as exc:
+            raise EntraError(f"Unusable private key: {exc}") from exc
+
+        return {
+            "client_assertion_type": (
+                "urn:ietf:params:oauth:client-assertion-type:jwt-bearer"
+            ),
+            "client_assertion": assertion,
+        }
+
+    secret = config.get("client_secret")
+    if secret:
+        return {"client_secret": secret}
+
+    raise EntraError("No client credential configured (certificate or secret)")
+
+
 def exchange_code(config: dict, *, code: str, code_verifier: str, redirect_uri: str) -> dict:
     """Loest den Autorisierungscode beim Verzeichnis ein.
 
@@ -215,9 +285,10 @@ def exchange_code(config: dict, *, code: str, code_verifier: str, redirect_uri: 
     Mock-Anbieter noch gegen einen anderen OIDC-Anbieter testen. Fuer den
     Mailversand per Client Credentials bleibt MSAL, wo es passt.
     """
+    endpoint = token_url(config)
     data = {
         "client_id": config["client_id"],
-        "client_secret": config["client_secret"],
+        **client_authentication(config, token_url=endpoint),
         "grant_type": "authorization_code",
         "code": code,
         "redirect_uri": redirect_uri,
@@ -226,7 +297,7 @@ def exchange_code(config: dict, *, code: str, code_verifier: str, redirect_uri: 
     }
 
     try:
-        response = httpx.post(token_url(config), data=data, timeout=15)
+        response = httpx.post(endpoint, data=data, timeout=15)
     except httpx.HTTPError as exc:
         raise EntraUnavailable(f"Could not reach the token endpoint: {exc}") from exc
 

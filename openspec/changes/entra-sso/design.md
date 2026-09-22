@@ -65,7 +65,9 @@ Dazu drei Abgrenzungen:
 
 ### Eigene App-Registrierung, getrennt vom Mailversand
 
-Andere Rechte (delegiert `openid`, `profile`, `email` statt `Mail.Send` als Anwendungsrecht), eigene Redirect-URI. Trennung heißt: Das Rotieren des einen Geheimnisses legt nicht beides lahm. Zertifikat statt Geheimnis ist die robustere Variante, und die Registrierung darf nicht an einem persönlichen Konto hängen.
+Andere Rechte (delegiert `openid`, `profile`, `email` statt `Mail.Send` als Anwendungsrecht), eigene Redirect-URI. Trennung heißt: Das Rotieren des einen Geheimnisses legt nicht beides lahm. Die Registrierung darf nicht an einem persönlichen Konto hängen.
+
+**Ausweis über Zertifikat, nicht über ein Geheimnis.** Ein Geheimnis geht bei jedem Token-Tausch über die Leitung; der private Schlüssel nie — er signiert nur ein kurzlebiges JWT (Client-Assertion, fünf Minuten), und im Header steht als `x5t` der Fingerabdruck, damit das Verzeichnis weiß, welches Zertifikat gemeint ist. Ein Geheimnis bleibt als Konfiguration möglich, das Zertifikat hat Vorrang.
 
 ## Risks / Trade-offs
 

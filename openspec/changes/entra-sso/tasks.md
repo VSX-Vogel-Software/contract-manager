@@ -68,6 +68,8 @@
 ## 8. Rollout
 
 - [ ] 8.1 App-Registrierung anlegen (nicht an einem persönlichen Konto, Zertifikat bevorzugt), Ablauf überwachen
+  - [x] Zertifikats-Anmeldung im Code umgesetzt (Client-Assertion mit `x5t`), Geheimnis bleibt möglich
+  - [x] Skript zum Anlegen der Registrierung vorbereitet
 - [ ] 8.2 Ausliefern mit SSO für keinen Mandanten aktiv
 - [ ] 8.3 Für einen Mandanten aktivieren, Verknüpfung der Benutzer beobachten
 - [ ] 8.4 Notfallkonten festlegen und den Notweg einmal bewusst durchspielen
