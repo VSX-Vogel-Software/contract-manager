@@ -375,3 +375,71 @@ class TestFallbackLeavesATrace:
         self._login("normal2@example.com", "secret123")
 
         assert not AuditLog.objects.filter(entity_repr__startswith="Password sign-in").exists()
+
+
+class TestEndpointsAreConfigurable:
+    """Die Naht fuer den Mock-Anbieter: nichts ist auf Microsoft festgenagelt."""
+
+    def test_falls_back_to_the_microsoft_shape(self, db, sso_tenant):
+        from apps.core.entra_sso import authorize_url, jwks_url, token_url
+
+        config = sso_tenant.settings["entra_sso"]
+
+        assert authorize_url(config).endswith(f"/{TENANT_ID}/oauth2/v2.0/authorize")
+        assert token_url(config).endswith(f"/{TENANT_ID}/oauth2/v2.0/token")
+        assert jwks_url(config).endswith(f"/{TENANT_ID}/discovery/v2.0/keys")
+
+    def test_a_configured_provider_wins(self, db, sso_tenant):
+        from apps.core.entra_sso import authorize_url, expected_issuer, jwks_url, token_url
+
+        config = dict(
+            sso_tenant.settings["entra_sso"],
+            authorize_url="http://mock-oidc:8080/vsx/authorize",
+            token_url="http://mock-oidc:8080/vsx/token",
+            jwks_url="http://mock-oidc:8080/vsx/jwks",
+            issuer="http://mock-oidc:8080/vsx",
+        )
+
+        assert authorize_url(config) == "http://mock-oidc:8080/vsx/authorize"
+        assert token_url(config) == "http://mock-oidc:8080/vsx/token"
+        assert jwks_url(config) == "http://mock-oidc:8080/vsx/jwks"
+        assert expected_issuer(config) == "http://mock-oidc:8080/vsx"
+
+    def test_an_unreachable_token_endpoint_is_an_outage_not_a_rejection(self, db, sso_tenant):
+        import httpx
+
+        from apps.core.entra_sso import EntraUnavailable, exchange_code
+
+        def boom(*args, **kwargs):
+            raise httpx.ConnectError("connection refused")
+
+        import apps.core.entra_sso as module
+
+        original, module.httpx.post = module.httpx.post, boom
+        try:
+            with pytest.raises(EntraUnavailable):
+                exchange_code(
+                    sso_tenant.settings["entra_sso"],
+                    code="c",
+                    code_verifier="v",
+                    redirect_uri=REDIRECT,
+                )
+        finally:
+            module.httpx.post = original
+
+    def test_a_refused_code_is_a_rejection(self, db, sso_tenant, monkeypatch):
+        from apps.core.entra_sso import exchange_code
+
+        class Refused:
+            status_code = 400
+            text = "bad request"
+
+            def json(self):
+                return {"error": "invalid_grant", "error_description": "Code already used"}
+
+        monkeypatch.setattr("apps.core.entra_sso.httpx.post", lambda *a, **kw: Refused())
+
+        with pytest.raises(EntraError, match="Code already used"):
+            exchange_code(
+                sso_tenant.settings["entra_sso"], code="c", code_verifier="v", redirect_uri=REDIRECT
+            )

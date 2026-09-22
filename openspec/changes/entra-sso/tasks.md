@@ -45,9 +45,9 @@
 
 ## 6. Testaufbau
 
-- [ ] 6.1 Aussteller-URL und JWKS-Quelle aus der Konfiguration beziehen, damit Tests eigene Token signieren können
-- [ ] 6.2 Mock-OIDC-Anbieter als optionaler Dienst in `docker-compose.yml`
-- [ ] 6.3 Kurzanleitung in der README: lokal gegen den Mock, einmal gegen eine Dev-Registrierung mit `http://localhost:…`
+- [x] 6.1 Aussteller-URL und JWKS-Quelle aus der Konfiguration beziehen, damit Tests eigene Token signieren können
+- [x] 6.2 Mock-OIDC-Anbieter als optionaler Dienst in `docker-compose.yml`
+- [x] 6.3 Kurzanleitung in der README: lokal gegen den Mock, einmal gegen eine Dev-Registrierung mit `http://localhost:…`
 
 ## 7. Tests
 
@@ -63,7 +63,7 @@
 - [x] 7.10 Passwort-Endpunkt lehnt `local_login_allowed == False` ab
 - [x] 7.11 Erneuern prüft `is_active`
 - [x] 7.12 Frontend: SSO-Knopf nur bei aktivem SSO; lokale Anmeldung erscheint nach technischem Fehlschlag, **nicht** nach Ablehnung
-- [ ] 7.13 E2E gegen den Mock-Anbieter, inklusive Notweg bei abgeschaltetem Anbieter
+- [x] 7.13 E2E gegen den Mock-Anbieter, inklusive Notweg bei abgeschaltetem Anbieter
 
 ## 8. Rollout
 

@@ -71,6 +71,26 @@ make test            # Run all tests
 make logs            # Follow logs
 ```
 
+## Anmeldung über Entra ID lokal ausprobieren
+
+Der SSO-Weg lässt sich ohne echtes Verzeichnis durchklicken. Dafür liegt eine OIDC-Attrappe im Compose-Stack (eigenes Profil, startet nicht mit `make up`):
+
+```bash
+docker compose --profile sso up -d mock-oidc
+docker compose exec backend python manage.py use_mock_sso
+```
+
+Danach auf http://localhost:4002/login den Knopf „Sign in with Microsoft" drücken. Die Attrappe fragt nichts und stellt ein Token mit Entra-typischen Claims aus (`tid`, `oid`, `email`, `amr`), der Benutzer wird über die E-Mail-Adresse `admin@test.local` zugeordnet. Zurückstellen mit `use_mock_sso --off`.
+
+**Browser und Backend sehen den Anbieter unter verschiedenen Adressen** — der Browser über den veröffentlichten Port, das Backend über den Dienstnamen im Containernetz. Deshalb sind Autorisierungs-, Token- und Schlüsseladresse getrennt konfigurierbar. Für die E2E-Tests läuft der Browser selbst im Container:
+
+```bash
+docker compose exec backend python manage.py use_mock_sso   --browser-host mock-oidc:8080 --app-url http://localhost:3000
+docker compose exec frontend npx playwright test e2e/sso-login.spec.ts
+```
+
+Vor dem scharfen Betrieb sollte der Weg einmal gegen eine echte Registrierung laufen: Entra erlaubt `http` nur für `localhost`, und Eigenheiten wie das fehlende `email_verified` oder der Inhalt von `amr` bildet keine Attrappe nach.
+
 ## Releasing
 
 Releases are tagged on the `main` branch. CI (`.github/workflows/build.yml`) builds and pushes Docker images to `ghcr.io` on every tag that matches `[0-9]*`. Tags have **no `v` prefix** — use `2.34.1`, not `v2.34.1`.

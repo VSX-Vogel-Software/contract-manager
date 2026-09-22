@@ -34,8 +34,16 @@ def frontend_base(request) -> str:
     )
 
 
-def callback_uri(request) -> str:
-    return request.build_absolute_uri("/auth/entra/callback")
+def callback_uri(request, config: dict | None = None) -> str:
+    """Wohin das Verzeichnis zurueckleitet.
+
+    Eine konfigurierte Adresse hat Vorrang: Entra verlangt exakte
+    Uebereinstimmung mit der registrierten Redirect-URI, und hinter einem Proxy
+    ist die aus dem Request abgeleitete Adresse nicht zwangslaeufig die, die der
+    Browser gesehen hat.
+    """
+    configured = (config or {}).get("redirect_uri")
+    return configured or request.build_absolute_uri("/auth/entra/callback")
 
 
 def resolve_tenant(request) -> Tenant:
@@ -74,7 +82,9 @@ def entra_login_start(request):
     """Beginnt den Anmeldeversuch und schickt den Browser zu Microsoft."""
     try:
         tenant = resolve_tenant(request)
-        url, _state = build_login_url(tenant, redirect_uri=callback_uri(request))
+        url, _state = build_login_url(
+            tenant, redirect_uri=callback_uri(request, get_sso_config(tenant))
+        )
     except EntraUnavailable as exc:
         logger.warning("Entra SSO start failed, directory unreachable: %s", exc)
         return _redirect_to_frontend(request, sso_error="unavailable")
@@ -102,7 +112,10 @@ def entra_login_callback(request):
     try:
         tenant = resolve_tenant(request)
         result = complete_login(
-            tenant, code=code, state=state, redirect_uri=callback_uri(request)
+            tenant,
+            code=code,
+            state=state,
+            redirect_uri=callback_uri(request, get_sso_config(tenant)),
         )
     except EntraUnavailable as exc:
         # Nur hier darf die Oberflaeche den Notweg anbieten.

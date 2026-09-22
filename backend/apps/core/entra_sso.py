@@ -65,6 +65,14 @@ def jwks_url(config: dict) -> str:
     return config.get("jwks_url") or f"{authority(config)}/discovery/v2.0/keys"
 
 
+def authorize_url(config: dict) -> str:
+    return config.get("authorize_url") or f"{authority(config)}/oauth2/v2.0/authorize"
+
+
+def token_url(config: dict) -> str:
+    return config.get("token_url") or f"{authority(config)}/oauth2/v2.0/token"
+
+
 def fetch_jwks(config: dict, force_refresh: bool = False) -> dict:
     """Signaturschluessel des Verzeichnisses, eine Stunde zwischengespeichert.
 
@@ -191,28 +199,42 @@ def build_login_url(tenant, *, redirect_uri: str) -> tuple[str, str]:
         "code_challenge": challenge,
         "code_challenge_method": "S256",
     }
-    return f"{authority(config)}/oauth2/v2.0/authorize?{urlencode(params)}", state
+    return f"{authorize_url(config)}?{urlencode(params)}", state
 
 
 def exchange_code(config: dict, *, code: str, code_verifier: str, redirect_uri: str) -> dict:
-    """Loest den Autorisierungscode beim Verzeichnis ein."""
-    from msal import ConfidentialClientApplication
+    """Loest den Autorisierungscode beim Verzeichnis ein.
 
-    app = ConfidentialClientApplication(
-        client_id=config["client_id"],
-        client_credential=config["client_secret"],
-        authority=authority(config),
-    )
-    result = app.acquire_token_by_authorization_code(
-        code,
-        scopes=["openid", "profile", "email"],
-        redirect_uri=redirect_uri,
-        data={"code_verifier": code_verifier},
-    )
-    if "id_token" not in result:
-        reason = result.get("error_description") or result.get("error") or "unknown error"
+    Bewusst ein direkter Aufruf des Token-Endpunkts statt ueber MSAL: MSAL
+    prueft die Authority gegen bekannte Microsoft-Muster und sucht die
+    Konfiguration an einem festen Ort. Damit liesse sich weder gegen einen
+    Mock-Anbieter noch gegen einen anderen OIDC-Anbieter testen. Fuer den
+    Mailversand per Client Credentials bleibt MSAL, wo es passt.
+    """
+    data = {
+        "client_id": config["client_id"],
+        "client_secret": config["client_secret"],
+        "grant_type": "authorization_code",
+        "code": code,
+        "redirect_uri": redirect_uri,
+        "code_verifier": code_verifier,
+        "scope": "openid profile email",
+    }
+
+    try:
+        response = httpx.post(token_url(config), data=data, timeout=15)
+    except httpx.HTTPError as exc:
+        raise EntraUnavailable(f"Could not reach the token endpoint: {exc}") from exc
+
+    try:
+        payload = response.json()
+    except ValueError as exc:
+        raise EntraUnavailable(f"The token endpoint returned no usable answer: {exc}") from exc
+
+    if response.status_code != 200 or "id_token" not in payload:
+        reason = payload.get("error_description") or payload.get("error") or response.text[:200]
         raise EntraError(f"Could not redeem the authorization code: {reason}")
-    return result
+    return payload
 
 
 @dataclass

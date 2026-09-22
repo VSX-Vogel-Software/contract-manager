@@ -18,6 +18,14 @@ export default defineConfig({
         target: 'http://backend:8000',  // Internal Docker network
         changeOrigin: true,
       },
+      // Anmeldung ueber Entra ID: zwei Browser-Umleitungen im Backend.
+      // changeOrigin bleibt aus - das Backend baut aus dem Host-Header die
+      // Rueckkehradresse, und die muss zum Browser zeigen, nicht ins
+      // Containernetz.
+      '/auth': {
+        target: 'http://backend:8000',
+        changeOrigin: false,
+      },
       '/api': {
         target: 'http://backend:8000',  // Internal Docker network
         changeOrigin: true,
