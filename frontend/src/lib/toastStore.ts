@@ -13,7 +13,7 @@ export interface ToastInput {
   title: string
   description?: string
   variant?: ToastVariant
-  /** 0 = bleibt stehen, bis der Benutzer schliesst. Default: 8 Sekunden. */
+  /** 0 = bleibt stehen, bis der Benutzer schliesst. Default: 12 Sekunden. */
   durationMs?: number
 }
 
@@ -22,7 +22,7 @@ export interface Toast extends ToastInput {
   variant: ToastVariant
 }
 
-const DEFAULT_DURATION_MS = 8000
+const DEFAULT_DURATION_MS = 12000
 
 type Listener = (toasts: Toast[]) => void
 
