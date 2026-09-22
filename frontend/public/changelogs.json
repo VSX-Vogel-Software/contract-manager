@@ -3,10 +3,10 @@
     "version": "2.37.0",
     "date": "2026-09-22",
     "title": "Anmeldung über Microsoft",
-    "description": "Wer möchte, kann sich künftig über sein Microsoft-Konto anmelden statt über ein eigenes Passwort. Die Anmeldung mit Passwort bleibt daneben bestehen; sichtbar wird der neue Weg erst, wenn er für die Instanz eingerichtet ist.",
+    "description": "Wer möchte, kann sich künftig über sein Microsoft-Konto anmelden statt über ein eigenes Passwort. Die Anmeldung mit Passwort bleibt daneben bestehen.",
     "type": "feature",
     "details": [
-      "Knopf „Mit Microsoft anmelden\" auf der Anmeldeseite, sobald eingerichtet",
+      "Knopf „Mit Microsoft anmelden\" auf der Anmeldeseite",
       "Bestehende Benutzerkonten bleiben erhalten und werden beim ersten Mal verknüpft — es entstehen keine neuen Konten",
       "Ist Microsoft nicht erreichbar, bietet die Seite die Anmeldung mit Passwort an; bei einer abgelehnten Anmeldung nicht",
       "Beim Abmelden lässt sich wählen, ob auch die Microsoft-Sitzung beendet wird",
