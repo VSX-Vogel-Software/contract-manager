@@ -130,13 +130,19 @@ def entra_login_callback(request):
 
     # Die App-2FA entfaellt nur, wenn das Verzeichnis mehrstufig geprueft hat.
     two_factor = getattr(user, "two_factor_config", None)
-    if two_factor and two_factor.is_active and not result.multi_factor:
+    needs_second_factor = bool(two_factor and two_factor.is_active and not result.multi_factor)
+
+    # Protokolliert wird die Anmeldung am Verzeichnis - auch wenn danach noch
+    # der zweite Faktor kommt. Sonst hinterlaesst genau der sicherere Weg
+    # keine Spur.
+    _log_sso_login(user, result, second_factor_pending=needs_second_factor)
+
+    if needs_second_factor:
         challenge = create_2fa_challenge_token(user, two_factor.method)
         return _redirect_to_frontend(request, two_factor=challenge, method=two_factor.method)
 
     user.last_login = timezone.now()
     user.save(update_fields=["last_login"])
-    _log_sso_login(user, result)
 
     return _redirect_to_frontend(
         request,
@@ -145,7 +151,7 @@ def entra_login_callback(request):
     )
 
 
-def _log_sso_login(user, result) -> None:
+def _log_sso_login(user, result, *, second_factor_pending: bool = False) -> None:
     from apps.audit.models import AuditLog
 
     try:
@@ -159,6 +165,7 @@ def _log_sso_login(user, result) -> None:
             changes={
                 "method": {"old": None, "new": "entra_sso"},
                 "multi_factor": {"old": None, "new": result.multi_factor},
+                "second_factor_pending": {"old": None, "new": second_factor_pending},
             },
         )
     except Exception:

@@ -297,3 +297,41 @@ class TestLogout:
         response = client.get("/auth/entra/logout")
 
         assert response["Location"].endswith("/login")
+
+
+class TestSignInIsAlwaysRecorded:
+    """Auch der sicherere Weg muss eine Spur hinterlassen."""
+
+    def _enable_2fa(self, user):
+        from apps.tenants.models import TwoFactorConfig
+
+        return TwoFactorConfig.objects.create(user=user, method="totp", is_active=True)
+
+    def test_records_the_sign_in_even_when_a_second_factor_follows(
+        self, db, sso_tenant, sso_user, client, exchange, jwks
+    ):
+        from apps.audit.models import AuditLog
+
+        self._enable_2fa(sso_user)
+        state = start_login(client)
+        exchange(state, amr=["pwd"])
+
+        response = client.get("/auth/entra/callback", {"code": "c", "state": state})
+
+        assert fragment_of(response).get("two_factor")
+        entry = AuditLog.objects.filter(entity_repr__startswith="SSO sign-in").first()
+        assert entry is not None
+        assert entry.changes["second_factor_pending"]["new"] is True
+
+    def test_marks_a_sign_in_without_a_pending_second_factor(
+        self, db, sso_tenant, sso_user, client, exchange, jwks
+    ):
+        from apps.audit.models import AuditLog
+
+        state = start_login(client)
+        exchange(state, amr=["pwd", "mfa"])
+
+        client.get("/auth/entra/callback", {"code": "c", "state": state})
+
+        entry = AuditLog.objects.filter(entity_repr__startswith="SSO sign-in").first()
+        assert entry.changes["second_factor_pending"]["new"] is False
