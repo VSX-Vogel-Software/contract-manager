@@ -73,6 +73,10 @@ def token_url(config: dict) -> str:
     return config.get("token_url") or f"{authority(config)}/oauth2/v2.0/token"
 
 
+def end_session_url(config: dict) -> str:
+    return config.get("end_session_url") or f"{authority(config)}/oauth2/v2.0/logout"
+
+
 def fetch_jwks(config: dict, force_refresh: bool = False) -> dict:
     """Signaturschluessel des Verzeichnisses, eine Stunde zwischengespeichert.
 

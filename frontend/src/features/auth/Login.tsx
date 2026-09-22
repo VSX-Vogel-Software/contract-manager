@@ -5,6 +5,7 @@ import { useQuery, gql } from '@apollo/client'
 import { useAuth } from '../../lib/auth'
 import { MicrosoftLogo } from '@/components/MicrosoftLogo'
 import { clearFragment, readSsoFragment } from '@/lib/ssoFragment'
+import { markSsoSession } from '@/lib/ssoSession'
 import { TwoFactorVerify } from './TwoFactorVerify'
 
 const SIGNUP_ENABLED = gql`
@@ -54,6 +55,7 @@ export function Login() {
     clearFragment()
 
     if (outcome.kind === 'tokens') {
+      markSsoSession()
       loginWithTokens(outcome.accessToken, outcome.refreshToken).then(() =>
         navigate(from, { replace: true })
       )

@@ -21,11 +21,11 @@
 
 ## 3. Backend — Abmelden, Erneuern, Notweg
 
-- [ ] 3.1 Abmelden: Wahl zwischen „nur hier" und Weiterleitung zum Abmelden bei Microsoft
+- [x] 3.1 Abmelden: Wahl zwischen „nur hier" und Weiterleitung zum Abmelden bei Microsoft
 - [x] 3.2 Beim Erneuern des Tokens `is_active` prüfen — war bereits erfüllt: `get_user_from_token` filtert darauf, in jedem Request. Mit Test abgedeckt, damit es nicht verlorengeht
 - [x] 3.3 Passwort-Endpunkt lehnt Konten mit `local_login_allowed == False` ab — unabhängig davon, ob das Formular sichtbar war
 - [x] 3.4 Jede erfolgreiche lokale Anmeldung bei aktivem SSO als Audit-Ereignis festhalten
-- [ ] 3.5 Management-Command, um Konten auf `local_login_allowed = False` zu setzen (Umstellungsschritt)
+- [x] 3.5 Management-Command, um Konten auf `local_login_allowed = False` zu setzen (Umstellungsschritt)
 
 ## 4. Frontend
 
@@ -34,14 +34,14 @@
 - [x] 4.3 Technischer Fehlschlag blendet die lokale Anmeldung ein, mit Hinweis „Microsoft ist gerade nicht erreichbar"
 - [x] 4.4 Ablehnung durch Entra zeigt die Ablehnung — **ohne** Ausweichangebot
 - [x] 4.5 Fester Pfad `/login/local`, der unabhängig von der Erkennungslogik funktioniert
-- [ ] 4.6 Abmelden-Dialog mit der Wahl aus 3.1
+- [x] 4.6 Abmelden-Dialog mit der Wahl aus 3.1
 - [x] 4.7 Texte in `de.json` und `en.json`
 
 ## 5. Benutzerverwaltung
 
-- [ ] 5.1 In der Benutzerübersicht sichtbar machen, ob ein Konto mit dem Verzeichnis verknüpft ist
-- [ ] 5.2 Kennzeichnung der Notfallkonten (`local_login_allowed`)
-- [ ] 5.3 Verknüpfung durch einen Administrator lösbar (z. B. nach falscher Zuordnung)
+- [x] 5.1 In der Benutzerübersicht sichtbar machen, ob ein Konto mit dem Verzeichnis verknüpft ist
+- [x] 5.2 Kennzeichnung der Notfallkonten (`local_login_allowed`)
+- [x] 5.3 Verknüpfung durch einen Administrator lösbar (z. B. nach falscher Zuordnung)
 
 ## 6. Testaufbau
 

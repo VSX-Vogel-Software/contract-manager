@@ -30,6 +30,8 @@ import {
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth'
 import { FeedbackModal } from './FeedbackModal'
+import { SignOutDialog } from './SignOutDialog'
+import { isSsoSession } from '@/lib/ssoSession'
 
 const GLOBAL_SEARCH = gql`
   query GlobalSearch($query: String!, $limit: Int) {
@@ -145,6 +147,7 @@ export function Sidebar() {
   const [searchQuery, setSearchQuery] = useState('')
   const [showResults, setShowResults] = useState(false)
   const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const [signOutOpen, setSignOutOpen] = useState(false)
 
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const searchRef = useRef<HTMLDivElement>(null)
@@ -431,7 +434,8 @@ export function Sidebar() {
           </button>
         )}
         <button
-          onClick={logout}
+          onClick={() => (isSsoSession() ? setSignOutOpen(true) : logout())}
+          data-testid="sign-out"
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
         >
           <LogOut className="h-5 w-5" />
@@ -440,6 +444,7 @@ export function Sidebar() {
       </div>
 
       <FeedbackModal open={feedbackOpen} onOpenChange={setFeedbackOpen} />
+      <SignOutDialog open={signOutOpen} onOpenChange={setSignOutOpen} onSignOutHere={logout} />
     </aside>
   )
 }

@@ -282,3 +282,18 @@ class TestSsoAvailabilityQuery:
     def test_answers_without_authentication(self, db, sso_tenant):
         """Vor der Anmeldung gibt es keinen Benutzer - die Abfrage muss trotzdem gehen."""
         assert self._ask().errors is None
+
+
+class TestLogout:
+    def test_sends_the_browser_to_the_directory(self, db, sso_tenant, client):
+        response = client.get("/auth/entra/logout")
+
+        assert response["Location"].startswith(
+            f"https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/logout"
+        )
+        assert "post_logout_redirect_uri" in response["Location"]
+
+    def test_just_goes_back_when_no_sso_is_configured(self, db, tenant, client):
+        response = client.get("/auth/entra/logout")
+
+        assert response["Location"].endswith("/login")

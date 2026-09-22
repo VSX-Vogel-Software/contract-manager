@@ -19,6 +19,7 @@ from apps.core.entra_sso import (
     EntraUnavailable,
     build_login_url,
     complete_login,
+    end_session_url,
     get_sso_config,
 )
 from apps.tenants.models import Tenant
@@ -162,3 +163,23 @@ def _log_sso_login(user, result) -> None:
         )
     except Exception:
         logger.exception("Could not record the SSO sign-in for %s", user.email)
+
+
+@require_GET
+def entra_logout(request):
+    """Beendet zusaetzlich die Sitzung beim Verzeichnis.
+
+    Ohne diesen Weg bleibt der Benutzer bei Microsoft angemeldet - der
+    naechste Klick auf "Anmelden" fuehrt dann wortlos wieder hinein. Auf einem
+    geteilten Rechner ist das eine Ueberraschung.
+    """
+    back_to = f"{frontend_base(request)}/login"
+    try:
+        config = get_sso_config(resolve_tenant(request))
+    except EntraError:
+        # Kein SSO eingerichtet: dann gibt es auch nichts abzumelden.
+        return HttpResponseRedirect(back_to)
+
+    return HttpResponseRedirect(
+        f"{end_session_url(config)}?{urlencode({'post_logout_redirect_uri': back_to})}"
+    )

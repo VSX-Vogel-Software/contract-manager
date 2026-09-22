@@ -126,6 +126,12 @@
       "useLocalLogin": "Stattdessen mit Passwort anmelden",
       "unavailable": "Microsoft ist gerade nicht erreichbar. Du kannst dich vorübergehend mit Passwort anmelden.",
       "denied": "Die Anmeldung wurde abgelehnt. Wende dich an eine Administratorin oder einen Administrator."
+    },
+    "signOutDialog": {
+      "title": "Abmelden",
+      "description": "Du bist über Microsoft angemeldet. Wenn du dich nur hier abmeldest, bleibt deine Microsoft-Sitzung bestehen — auf einem geteilten Rechner käme die nächste Person ohne Passwort wieder hinein.",
+      "hereOnly": "Nur hier abmelden",
+      "everywhere": "Auch bei Microsoft abmelden"
     }
   },
   "dashboard": {
@@ -1343,7 +1349,11 @@
     "confirmRevoke": "Möchten Sie diese Einladung wirklich widerrufen?",
     "confirmDeactivate": "Möchten Sie diesen Benutzer wirklich deaktivieren?",
     "accessDenied": "Sie haben keine Berechtigung für diese Seite.",
-    "resetLinkCreated": "Link zum Zurücksetzen des Passworts erstellt"
+    "resetLinkCreated": "Link zum Zurücksetzen des Passworts erstellt",
+    "entraLinked": "Verknüpft",
+    "entraLinkedHint": "Mit dem Microsoft-Verzeichnis verknüpft — meldet sich über SSO an",
+    "ssoOnly": "Nur SSO",
+    "ssoOnlyHint": "Passwort-Anmeldung ist für dieses Konto abgeschaltet"
   },
   "settings": {
     "tabs": {

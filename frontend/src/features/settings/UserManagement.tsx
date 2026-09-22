@@ -21,6 +21,8 @@ interface User {
   lastName: string
   fullName: string
   isActive: boolean
+  entraLinked?: boolean
+  localLoginAllowed?: boolean
   isAdmin: boolean
   lastLogin: string | null
   roleNames: string[]
@@ -49,6 +51,8 @@ const USERS_QUERY = gql`
       isAdmin
       lastLogin
       roleNames
+      entraLinked
+      localLoginAllowed
     }
     pendingInvitations {
       id
@@ -405,6 +409,24 @@ export function UserManagement() {
                   ) : (
                     <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-800">
                       {t('users.inactive')}
+                    </span>
+                  )}
+                  {user.entraLinked && (
+                    <span
+                      data-testid={`user-linked-${user.id}`}
+                      title={t('users.entraLinkedHint')}
+                      className="ml-1 inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800"
+                    >
+                      {t('users.entraLinked')}
+                    </span>
+                  )}
+                  {user.localLoginAllowed === false && (
+                    <span
+                      data-testid={`user-sso-only-${user.id}`}
+                      title={t('users.ssoOnlyHint')}
+                      className="ml-1 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800"
+                    >
+                      {t('users.ssoOnly')}
                     </span>
                   )}
                 </td>

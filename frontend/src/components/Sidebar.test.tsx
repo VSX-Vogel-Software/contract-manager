@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 
@@ -100,5 +101,36 @@ describe('Sidebar', () => {
 
     const link = screen.getByText('nav.forecasts').closest('a')
     expect(link).toHaveAttribute('href', '/forecasts')
+  })
+})
+
+describe('Abmelden', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    localStorage.clear()
+  })
+
+  it('meldet eine Passwort-Sitzung ohne Rueckfrage ab', async () => {
+    const user = userEvent.setup()
+    mockAuth([])
+    renderSidebar()
+
+    await user.click(screen.getByTestId('sign-out'))
+
+    expect(screen.queryByTestId('sign-out-dialog')).not.toBeInTheDocument()
+  })
+
+  it('fragt bei einer SSO-Sitzung nach', async () => {
+    // Sonst bliebe die Microsoft-Sitzung stillschweigend bestehen.
+    const user = userEvent.setup()
+    localStorage.setItem('sso_session', '1')
+    mockAuth([])
+    renderSidebar()
+
+    await user.click(screen.getByTestId('sign-out'))
+
+    expect(screen.getByTestId('sign-out-dialog')).toBeInTheDocument()
+    expect(screen.getByTestId('sign-out-here')).toBeInTheDocument()
+    expect(screen.getByTestId('sign-out-everywhere')).toBeInTheDocument()
   })
 })

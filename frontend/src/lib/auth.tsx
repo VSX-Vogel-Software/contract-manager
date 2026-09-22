@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { useApolloClient, gql } from '@apollo/client'
+import { clearSsoSession } from './ssoSession'
 
 interface User {
   id: number
@@ -176,6 +177,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const logout = () => {
+    clearSsoSession()
     localStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem(REFRESH_TOKEN_KEY)
     setToken(null)

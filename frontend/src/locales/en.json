@@ -126,6 +126,12 @@
       "useLocalLogin": "Use password sign-in instead",
       "unavailable": "Microsoft is currently unreachable. You can sign in with your password for now.",
       "denied": "The sign-in was refused. Please contact an administrator."
+    },
+    "signOutDialog": {
+      "title": "Sign out",
+      "description": "You are signed in through Microsoft. Signing out here only keeps your Microsoft session alive — on a shared computer the next person would get back in without a password.",
+      "hereOnly": "Sign out here only",
+      "everywhere": "Also sign out of Microsoft"
     }
   },
   "dashboard": {
@@ -1343,7 +1349,11 @@
     "confirmRevoke": "Are you sure you want to revoke this invitation?",
     "confirmDeactivate": "Are you sure you want to deactivate this user?",
     "accessDenied": "You don't have permission to access this page.",
-    "resetLinkCreated": "Password reset link created"
+    "resetLinkCreated": "Password reset link created",
+    "entraLinked": "Linked",
+    "entraLinkedHint": "Linked to the Microsoft directory — signs in through SSO",
+    "ssoOnly": "SSO only",
+    "ssoOnlyHint": "Password sign-in is disabled for this account"
   },
   "settings": {
     "tabs": {

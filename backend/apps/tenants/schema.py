@@ -56,6 +56,16 @@ class UserType:
         return [r.name for r in self.roles.all()]
 
     @strawberry.field
+    def entra_linked(self) -> bool:
+        """Ob das Konto mit dem Verzeichnis verknuepft ist."""
+        return bool(self.entra_object_id)
+
+    @strawberry.field
+    def local_login_allowed(self) -> bool:
+        """Ob dieses Konto den Passwort-Weg noch gehen darf (Notfallkonto)."""
+        return self.local_login_allowed
+
+    @strawberry.field
     def two_factor_enabled(self) -> bool:
         """Whether 2FA is active for this user."""
         try:
@@ -1532,6 +1542,60 @@ class TenantMutation:
 
         target_user.is_active = False
         target_user.save(update_fields=["is_active"])
+        return OperationResult(success=True)
+
+    @strawberry.mutation
+    def unlink_entra_identity(
+        self, info: Info[Context, None], user_id: strawberry.ID
+    ) -> OperationResult:
+        """Loest die Verknuepfung mit dem Verzeichnis. Requires users.write.
+
+        Noetig, wenn die einmalige Zuordnung ueber die E-Mail-Adresse auf das
+        falsche Konto gelaufen ist - danach ordnet der naechste SSO-Login neu zu.
+        """
+        admin, err = check_perm(info, "users", "write")
+        if err:
+            return OperationResult(success=False, error=err)
+        if not admin.tenant:
+            return OperationResult(success=False, error="No tenant assigned")
+
+        try:
+            target_user = User.objects.get(id=user_id, tenant=admin.tenant)
+        except User.DoesNotExist:
+            return OperationResult(success=False, error="User not found")
+
+        if not target_user.entra_object_id:
+            return OperationResult(success=False, error="This account is not linked")
+
+        target_user.entra_object_id = ""
+        target_user.entra_tenant_id = ""
+        target_user.save(update_fields=["entra_object_id", "entra_tenant_id"])
+        return OperationResult(success=True)
+
+    @strawberry.mutation
+    def set_local_login_allowed(
+        self, info: Info[Context, None], user_id: strawberry.ID, allowed: bool
+    ) -> OperationResult:
+        """Kennzeichnet ein Notfallkonto. Requires users.write."""
+        admin, err = check_perm(info, "users", "write")
+        if err:
+            return OperationResult(success=False, error=err)
+        if not admin.tenant:
+            return OperationResult(success=False, error="No tenant assigned")
+
+        try:
+            target_user = User.objects.get(id=user_id, tenant=admin.tenant)
+        except User.DoesNotExist:
+            return OperationResult(success=False, error="User not found")
+
+        if not allowed and target_user.id == admin.id:
+            # Sonst sperrt man sich selbst aus, waehrend man die Umstellung macht.
+            return OperationResult(
+                success=False, error="You cannot take the password way from yourself"
+            )
+
+        target_user.local_login_allowed = allowed
+        target_user.save(update_fields=["local_login_allowed"])
         return OperationResult(success=True)
 
     @strawberry.mutation
