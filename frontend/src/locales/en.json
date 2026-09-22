@@ -120,7 +120,13 @@
     "verifySuccessDesc": "Your account has been activated. Redirecting to dashboard...",
     "verifyFailed": "Verification failed",
     "verifyFailedDesc": "The verification link is invalid or has expired.",
-    "signUpFailed": "Sign up failed. Please try again."
+    "signUpFailed": "Sign up failed. Please try again.",
+    "sso": {
+      "signInWithMicrosoft": "Sign in with Microsoft",
+      "useLocalLogin": "Use password sign-in instead",
+      "unavailable": "Microsoft is currently unreachable. You can sign in with your password for now.",
+      "denied": "The sign-in was refused. Please contact an administrator."
+    }
   },
   "dashboard": {
     "title": "Dashboard",

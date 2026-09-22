@@ -178,6 +178,21 @@ class CoreQuery:
         return settings.SIGNUP_ENABLED
 
     @strawberry.field
+    def entra_sso_enabled(self) -> bool:
+        """Ob die Anmeldemaske den Weg ueber Entra ID anbieten soll.
+
+        Oeffentlich abfragbar - vor der Anmeldung gibt es keinen Benutzer, aus
+        dem sich der Mandant ableiten liesse. Die Antwort verraet nur, dass es
+        SSO gibt, keine Konfigurationsdetails.
+        """
+        from apps.tenants.models import Tenant
+
+        return any(
+            (t.settings or {}).get("entra_sso", {}).get("enabled")
+            for t in Tenant.objects.filter(is_active=True)
+        )
+
+    @strawberry.field
     def latest_version(self) -> str | None:
         """Newest released version tag from the public GitHub repo.
 

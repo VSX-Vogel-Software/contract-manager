@@ -40,6 +40,8 @@ function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      {/* Notweg: funktioniert unabhaengig von der Ausfallerkennung */}
+      <Route path="/login/local" element={<Login />} />
       <Route path="/invite/:token" element={<AcceptInvitation />} />
       <Route path="/reset-password/:token" element={<ResetPassword />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />

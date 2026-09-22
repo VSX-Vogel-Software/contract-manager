@@ -29,13 +29,13 @@
 
 ## 4. Frontend
 
-- [ ] 4.1 SSO-Knopf auf der Anmeldemaske, sichtbar nur bei konfiguriertem und aktivem SSO für den Mandanten
-- [ ] 4.2 Rückkanal-Route: Token entgegennehmen, in die bestehende Sitzung übernehmen, weiterleiten
-- [ ] 4.3 Technischer Fehlschlag blendet die lokale Anmeldung ein, mit Hinweis „Microsoft ist gerade nicht erreichbar"
-- [ ] 4.4 Ablehnung durch Entra zeigt die Ablehnung — **ohne** Ausweichangebot
-- [ ] 4.5 Fester Pfad `/login/local`, der unabhängig von der Erkennungslogik funktioniert
+- [x] 4.1 SSO-Knopf auf der Anmeldemaske, sichtbar nur bei konfiguriertem und aktivem SSO für den Mandanten
+- [x] 4.2 Rückkanal-Route: Token entgegennehmen, in die bestehende Sitzung übernehmen, weiterleiten
+- [x] 4.3 Technischer Fehlschlag blendet die lokale Anmeldung ein, mit Hinweis „Microsoft ist gerade nicht erreichbar"
+- [x] 4.4 Ablehnung durch Entra zeigt die Ablehnung — **ohne** Ausweichangebot
+- [x] 4.5 Fester Pfad `/login/local`, der unabhängig von der Erkennungslogik funktioniert
 - [ ] 4.6 Abmelden-Dialog mit der Wahl aus 3.1
-- [ ] 4.7 Texte in `de.json` und `en.json`
+- [x] 4.7 Texte in `de.json` und `en.json`
 
 ## 5. Benutzerverwaltung
 
@@ -62,7 +62,7 @@
 - [x] 7.9 Ohne `mfa` in `amr` greift die App-2FA weiterhin
 - [x] 7.10 Passwort-Endpunkt lehnt `local_login_allowed == False` ab
 - [x] 7.11 Erneuern prüft `is_active`
-- [ ] 7.12 Frontend: SSO-Knopf nur bei aktivem SSO; lokale Anmeldung erscheint nach technischem Fehlschlag, **nicht** nach Ablehnung
+- [x] 7.12 Frontend: SSO-Knopf nur bei aktivem SSO; lokale Anmeldung erscheint nach technischem Fehlschlag, **nicht** nach Ablehnung
 - [ ] 7.13 E2E gegen den Mock-Anbieter, inklusive Notweg bei abgeschaltetem Anbieter
 
 ## 8. Rollout

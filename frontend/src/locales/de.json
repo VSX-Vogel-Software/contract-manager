@@ -120,7 +120,13 @@
     "verifySuccessDesc": "Ihr Konto wurde aktiviert. Weiterleitung zum Dashboard...",
     "verifyFailed": "Verifizierung fehlgeschlagen",
     "verifyFailedDesc": "Der Bestätigungslink ist ungültig oder abgelaufen.",
-    "signUpFailed": "Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut."
+    "signUpFailed": "Registrierung fehlgeschlagen. Bitte versuchen Sie es erneut.",
+    "sso": {
+      "signInWithMicrosoft": "Mit Microsoft anmelden",
+      "useLocalLogin": "Stattdessen mit Passwort anmelden",
+      "unavailable": "Microsoft ist gerade nicht erreichbar. Du kannst dich vorübergehend mit Passwort anmelden.",
+      "denied": "Die Anmeldung wurde abgelehnt. Wende dich an eine Administratorin oder einen Administrator."
+    }
   },
   "dashboard": {
     "title": "Dashboard",

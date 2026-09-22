@@ -252,3 +252,33 @@ class TestMalformedTokenIsARejection:
         response = client.get("/auth/entra/callback", {"code": "c", "state": state})
 
         assert fragment_of(response)["sso_error"] == "denied"
+
+
+class TestSsoAvailabilityQuery:
+    """Die Maske muss vor der Anmeldung wissen, ob es SSO gibt."""
+
+    def _ask(self):
+        from unittest.mock import Mock
+
+        from apps.core.context import Context
+        from config.schema import schema
+
+        return schema.execute_sync(
+            "{ entraSsoEnabled }", context_value=Context(request=Mock(), user=None)
+        )
+
+    def test_false_without_configuration(self, db, tenant):
+        assert self._ask().data["entraSsoEnabled"] is False
+
+    def test_true_once_configured(self, db, sso_tenant):
+        assert self._ask().data["entraSsoEnabled"] is True
+
+    def test_false_when_configured_but_switched_off(self, db, sso_tenant):
+        sso_tenant.settings["entra_sso"]["enabled"] = False
+        sso_tenant.save(update_fields=["settings"])
+
+        assert self._ask().data["entraSsoEnabled"] is False
+
+    def test_answers_without_authentication(self, db, sso_tenant):
+        """Vor der Anmeldung gibt es keinen Benutzer - die Abfrage muss trotzdem gehen."""
+        assert self._ask().errors is None

@@ -1,13 +1,21 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery, gql } from '@apollo/client'
 import { useAuth } from '../../lib/auth'
+import { MicrosoftLogo } from '@/components/MicrosoftLogo'
+import { clearFragment, readSsoFragment } from '@/lib/ssoFragment'
 import { TwoFactorVerify } from './TwoFactorVerify'
 
 const SIGNUP_ENABLED = gql`
   query SignupEnabled {
     signupEnabled
+  }
+`
+
+const SSO_ENABLED = gql`
+  query EntraSsoEnabled {
+    entraSsoEnabled
   }
 `
 
@@ -18,6 +26,17 @@ export function Login() {
   const { login, loginWithTokens, isLoading: authLoading } = useAuth()
   const { data: signupData } = useQuery(SIGNUP_ENABLED)
   const signupEnabled = signupData?.signupEnabled ?? false
+  const { data: ssoData } = useQuery(SSO_ENABLED)
+  const ssoEnabled = ssoData?.entraSsoEnabled ?? false
+
+  // Der Notweg ueber /login/local funktioniert unabhaengig davon, ob die
+  // Maske einen Ausfall erkannt hat - wenn die Erkennung klemmt, hilft sie
+  // niemandem.
+  const forceLocalLogin = location.pathname.startsWith('/login/local')
+  const [ssoOutage, setSsoOutage] = useState(false)
+  // Kein SSO eingerichtet -> normaler Weg. Sonst nur auf ausdruecklichen
+  // Wunsch oder wenn das Verzeichnis technisch ausgefallen ist.
+  const showLocalLogin = !ssoEnabled || forceLocalLogin || ssoOutage
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -27,6 +46,28 @@ export function Login() {
 
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/'
   const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+
+  // Der Rueckkanal des Backends landet als Fragment auf dieser Seite.
+  useEffect(() => {
+    const outcome = readSsoFragment(window.location.hash)
+    if (outcome.kind === 'none') return
+    clearFragment()
+
+    if (outcome.kind === 'tokens') {
+      loginWithTokens(outcome.accessToken, outcome.refreshToken).then(() =>
+        navigate(from, { replace: true })
+      )
+    } else if (outcome.kind === 'twoFactor') {
+      setTwoFactor({ challengeToken: outcome.challengeToken, method: outcome.method })
+    } else if (outcome.kind === 'unavailable') {
+      // Nur der technische Ausfall bietet den lokalen Weg an.
+      setSsoOutage(true)
+      setError(t('auth.sso.unavailable'))
+    } else {
+      setError(outcome.detail || t('auth.sso.denied'))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -100,12 +141,35 @@ export function Login() {
           </h2>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <p className="text-sm text-red-700">{error}</p>
-            </div>
-          )}
+        {error && (
+          <div className="rounded-md bg-red-50 p-4" data-testid="login-error">
+            <p className="text-sm text-red-700">{error}</p>
+          </div>
+        )}
+
+        {ssoEnabled && !forceLocalLogin && (
+          <div className="space-y-3">
+            <a
+              href="/auth/entra/start"
+              data-testid="sso-button"
+              className="w-full flex items-center justify-center gap-3 py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+            >
+              <MicrosoftLogo className="h-5 w-5" />
+              {t('auth.sso.signInWithMicrosoft')}
+            </a>
+
+            {!showLocalLogin && (
+              <p className="text-center text-sm text-gray-500">
+                <Link to="/login/local" className="font-medium text-blue-600 hover:text-blue-500">
+                  {t('auth.sso.useLocalLogin')}
+                </Link>
+              </p>
+            )}
+          </div>
+        )}
+
+        {showLocalLogin && (
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit} data-testid="local-login-form">
 
           <div className="space-y-4">
             <div>
@@ -174,6 +238,7 @@ export function Login() {
             </div>
           )}
         </form>
+        )}
 
         {signupEnabled && (
           <p className="text-center text-sm text-gray-600">
