@@ -125,6 +125,21 @@ When modifying Docker build for production, edit `Dockerfile.prod` files. CI (`.
 
 Tags have **no `v` prefix**: use `1.7.2`, not `v1.7.2`. The CI workflow triggers on `[0-9]*`.
 
+## OpenSpec
+
+Fähigkeiten werden spezifikationsgetrieben entwickelt. `openspec/specs/<capability>/spec.md` beschreibt, was die Anwendung **heute** kann; `openspec/changes/<change-id>/` enthält geplante Änderungen und wandert nach Abschluss in `changes/archive/`.
+
+Ein Change besteht aus:
+
+- `proposal.md` — `## Why`, `## What Changes`, `## Capabilities` (New / Modified)
+- `design.md` — `## Context`, `## Goals / Non-Goals`, `## Decisions` mit Begründung, Risiken, Migrationsplan
+- `tasks.md` — nummerierte, abhakbare Schritte
+- `specs/<capability>/spec.md` — das Delta, eingeleitet mit `## ADDED Requirements` bzw. `## MODIFIED Requirements`
+
+Anforderungen im Format `### Requirement: …` mit SHALL/MUST, darunter mindestens ein `#### Scenario:` mit **WHEN**/**THEN**. Sprache wie im übrigen Repo: Deutsch, die Schlüsselwörter englisch.
+
+**Wann was:** Eine neue oder geänderte Fähigkeit bekommt einen Change. Eine reine Fehlerbehebung, die nichts am zugesagten Verhalten ändert, braucht keinen — wohl aber eine Änderung, die das Verhalten der Anwendung für den Benutzer verschiebt. Ist eine Fähigkeit ausgeliefert, gehört ihr Stand nach `openspec/specs/`.
+
 ## Key Conventions
 
 - All development happens inside Docker containers
