@@ -38,11 +38,9 @@ Abräumen im Erfolgsfall nicht an einer Stelle vergessen wird.
 - [x] 4.2 Rechnungsdetail einbinden
 - [x] 4.3 Angebotsdetail einbinden
 - [x] 4.4 Mahnung: in `PaymentReminderList` je Eintrag
-- [ ] 4.5 AB-Detail einbinden - es gibt keine eigene AB-Detailseite. Die
-      Felder werden an der AB-Liste im Vertrag bereits mitgeladen, die
-      Anzeige dort fehlt noch
-- [ ] 4.6 Kennzeichnung in der Rechnungs- und Angebotsliste - in der
-      Mahnungsliste erledigt, die beiden grossen Listen fehlen noch
+- [x] 4.5 AB-Detail einbinden - es gibt keine eigene AB-Detailseite; die
+      Kennzeichnung sitzt an der AB-Zeile in der Vertragskopfzeile
+- [x] 4.6 Kennzeichnung in der Rechnungs- und Angebotsliste
 - [x] 4.7 Übersetzungen de/en
 
 ## 5. Tests
@@ -55,15 +53,15 @@ Abräumen im Erfolgsfall nicht an einer Stelle vergessen wird.
 - [x] 5.2 pytest: erfolgreicher Versand raeumt einen vorhandenen
       `email_error` ab (am Helfer; die vier Pfade rufen ihn nachweislich auf)
 - [x] 5.3 pytest: Kürzung auf 1000 Zeichen
-- [ ] 5.4 GraphQL-Test je Typ (offen) - die Felder sind freigegeben und
-      typgeprueft, ein Abfragetest je Typ fehlt
+- [x] 5.4 GraphQL-Test je Typ - Abfragetest an der Rechnung plus eine
+      Schemapruefung ueber alle vier Typen
 - [x] 5.5 Vitest für `EmailSendStatus`: mit Fehler, ohne Fehler, nie versucht
 - [x] 5.6 Volle Suite grün (pytest + vitest)
 
 ## 6. Abschluss
 
 - [x] 6.1 Changelog-Eintrag
-- [ ] 6.2 Spec nach `openspec/specs/email-sending/` übernehmen, Change
+- [x] 6.2 Spec nach `openspec/specs/email-sending/` übernehmen, Change
       archivieren
 - [ ] 6.3 techops-toolbox#401 schließen — Ebene 1 entfällt begründet, siehe
       proposal.md

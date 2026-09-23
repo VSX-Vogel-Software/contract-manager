@@ -11,6 +11,7 @@ import {
   ArrowUp,
   ArrowDown,
   AlertCircle,
+  AlertTriangle,
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -45,6 +46,7 @@ const OFFERS_QUERY = gql`
         validUntil
         totalGross
         status
+        emailError
       }
       totalCount
       hasNextPage
@@ -65,6 +67,7 @@ interface OfferItem {
   validUntil: string | null
   totalGross: string
   status: string
+  emailError: string
 }
 
 function StatusBadge({ status, isExpired }: { status: string; isExpired: boolean }) {
@@ -280,6 +283,16 @@ export function OfferList() {
                     <td className="px-4 py-3 text-sm text-right font-medium">{formatCurrency(offer.totalGross)}</td>
                     <td className="px-4 py-3">
                       <StatusBadge status={offer.status} isExpired={isExpired} />
+                      {offer.emailError && (
+                        <span
+                          className="mt-1 flex items-center gap-1 text-xs text-destructive"
+                          title={offer.emailError}
+                          data-testid={`offer-email-failed-${offer.id}`}
+                        >
+                          <AlertTriangle className="h-3 w-3" />
+                          {t('emailStatus.badge')}
+                        </span>
+                      )}
                     </td>
                   </tr>
                 )

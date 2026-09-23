@@ -116,3 +116,64 @@ class TestInvoiceTaskWritesFailure:
         assert "AADSTS7000222" in invoice.email_error
         assert invoice.email_last_attempt_at is not None
         assert invoice.email_sent_at is None
+
+
+class TestGraphQLExposesSendFailure:
+    """Was das Backend nicht ausliefert, kann die Oberflaeche nicht zeigen."""
+
+    def test_rechnung_liefert_fehler_und_zeitpunkt(self, db, tenant, user, invoice):
+        from unittest.mock import Mock
+
+        from apps.core.context import Context
+        from config.schema import schema
+
+        record_send_failure(invoice, M365Error("AADSTS7000222: client secret expired"))
+
+        result = schema.execute_sync(
+            """
+            query ($id: Int!) {
+              invoiceRecord(id: $id) {
+                id
+                emailError
+                emailLastAttemptAt
+                emailSentAt
+              }
+            }
+            """,
+            variable_values={"id": invoice.id},
+            context_value=Context(request=Mock(), user=user),
+        )
+
+        assert result.errors is None, result.errors
+        data = result.data["invoiceRecord"]
+        assert "AADSTS7000222" in data["emailError"]
+        assert data["emailLastAttemptAt"] is not None
+        assert data["emailSentAt"] is None
+
+    def test_frische_rechnung_liefert_leeren_fehler(self, db, tenant, user, invoice):
+        from unittest.mock import Mock
+
+        from apps.core.context import Context
+        from config.schema import schema
+
+        result = schema.execute_sync(
+            "query ($id: Int!) { invoiceRecord(id: $id) { emailError emailLastAttemptAt } }",
+            variable_values={"id": invoice.id},
+            context_value=Context(request=Mock(), user=user),
+        )
+
+        assert result.errors is None, result.errors
+        assert result.data["invoiceRecord"]["emailError"] == ""
+        assert result.data["invoiceRecord"]["emailLastAttemptAt"] is None
+
+    def test_felder_stehen_an_allen_vier_typen_im_schema(self):
+        """Der Durchstich oben deckt die Rechnung ab; hier die drei uebrigen."""
+        from config.schema import schema
+
+        sdl = schema.as_str()
+        for typ in ("InvoiceRecordType", "OfferRecordType",
+                    "PaymentReminderType", "OrderConfirmationType"):
+            start = sdl.index("type %s " % typ)
+            block = sdl[start:sdl.index("\n}", start)]
+            assert "emailError" in block, "%s ohne emailError" % typ
+            assert "emailLastAttemptAt" in block, "%s ohne emailLastAttemptAt" % typ

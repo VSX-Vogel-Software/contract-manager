@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Link as LinkIcon,
   AlertCircle,
+  AlertTriangle,
   ChevronLeft,
   ChevronRight,
   CreditCard,
@@ -292,6 +293,7 @@ const INVOICE_RECORDS = gql`
         isPaid
         emailSentAt
         emailSentTo
+        emailError
         documentType
         dueDate
         overdueDays
@@ -360,6 +362,7 @@ interface GeneratedInvoice {
   isPaid: boolean
   emailSentAt: string | null
   emailSentTo: string[]
+  emailError: string
   documentType: string
   dueDate: string | null
   overdueDays: number
@@ -1400,6 +1403,17 @@ export function InvoiceList() {
                             >
                               <Mail className="w-4 h-4" />
                             </Button>
+                          )}
+                          {/* Send failure indicator */}
+                          {row.generated.emailError && (
+                            <span
+                              className="flex items-center gap-1 text-xs text-destructive"
+                              title={row.generated.emailError}
+                              data-testid={`invoice-email-failed-${row.generated.id}`}
+                            >
+                              <AlertTriangle className="h-3 w-3" />
+                              {t('emailStatus.badge')}
+                            </span>
                           )}
                           {/* Sent indicator */}
                           {row.generated.emailSentAt && (

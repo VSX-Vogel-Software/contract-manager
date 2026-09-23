@@ -1224,6 +1224,16 @@ export function ContractDetail() {
               {t('orderConfirmation.sendAB')}
             </Button>
           )}
+          {!contract.orderConfirmationSentAt && contract.orderConfirmations?.[0]?.emailError && (
+            <span
+              className="flex items-center gap-1 text-xs text-destructive"
+              title={contract.orderConfirmations[0].emailError}
+              data-testid="order-confirmation-email-failed"
+            >
+              <AlertTriangle className="h-3 w-3" />
+              {t('emailStatus.badge')}
+            </span>
+          )}
           {contract.orderConfirmationSentAt && contract.orderConfirmations?.[0] && (
             <Link to={`/contracts/${id}/order-confirmation/${contract.orderConfirmations[0].id}`}>
               <Button variant="ghost" size="sm" className="text-green-600">
