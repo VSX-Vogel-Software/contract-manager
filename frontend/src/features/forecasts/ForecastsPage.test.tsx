@@ -8,7 +8,12 @@ vi.mock('@/features/forecast/RevenueForecast', () => ({
   RevenueForecast: () => <div data-testid="revenue-forecast">RevenueForecast</div>,
 }))
 
+// Der Mock ersetzt das ganze Modul, muss also alles bereitstellen, was daraus
+// importiert wird. Die Seite zeigt seit dem Umbau LiquidityAnalysis; solange der
+// Mock nur LiquidityForecast kannte, scheiterte jeder Test, der den Reiter
+// rendert -- und niemandem fiel es auf, weil die CI diese Tests nie ausfuehrte.
 vi.mock('@/features/liquidity', () => ({
+  LiquidityAnalysis: () => <div data-testid="liquidity-analysis">LiquidityAnalysis</div>,
   LiquidityForecast: () => <div data-testid="liquidity-forecast">LiquidityForecast</div>,
 }))
 
@@ -46,13 +51,17 @@ describe('ForecastsPage', () => {
     vi.clearAllMocks()
   })
 
-  it('renders only RevenueForecast without banking permission (no tabs)', () => {
+  // Frueher zeigte die Seite ohne banking.read gar keine Reiter. Inzwischen gibt
+  // es die Reiter goals und priceIncreases, die an keinem Recht haengen - an
+  // banking.read haengt nur die Liquiditaet. Genau das prueft der Test jetzt.
+  it('hides only the liquidity tab without banking permission', () => {
     mockAuth([])
     renderPage()
 
     expect(screen.getByTestId('revenue-forecast')).toBeInTheDocument()
-    expect(screen.queryByTestId('liquidity-forecast')).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /revenue/i })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /revenue/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /liquidity/i })).not.toBeInTheDocument()
+    expect(screen.queryByTestId('liquidity-analysis')).not.toBeInTheDocument()
   })
 
   it('renders tabs when user has banking.read permission', () => {
@@ -78,6 +87,6 @@ describe('ForecastsPage', () => {
 
     const liquidityTab = screen.getByRole('button', { name: /liquidity/i })
     expect(liquidityTab.className).toContain('border-blue-600')
-    expect(screen.getByTestId('liquidity-forecast')).toBeInTheDocument()
+    expect(screen.getByTestId('liquidity-analysis')).toBeInTheDocument()
   })
 })

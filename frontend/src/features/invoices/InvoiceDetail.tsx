@@ -774,7 +774,13 @@ function GeneratedInvoiceDetail({ id, fallbackToImported }: { id: number; fallba
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <PaymentReminderList reminders={record.paymentReminders} />
+              {/* ?? [] wie an den beiden anderen Aufrufstellen (ContractDetail,
+                  CustomerDetail): fehlt das Feld in der Antwort - Teilantwort bei
+                  einem GraphQL-Fehler, aelterer Backend-Stand -, stuerzte sonst
+                  die ganze Rechnungsansicht ab statt nur diese Karte leer zu
+                  lassen. Der Typ sagt PaymentReminder[], die Antwort haelt sich
+                  nicht immer daran. */}
+              <PaymentReminderList reminders={record.paymentReminders ?? []} />
             </CardContent>
           </Card>
 

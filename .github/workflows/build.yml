@@ -120,6 +120,14 @@ jobs:
         working-directory: ./frontend
         run: npx tsc --noEmit
 
+      # vitest ohne "run" bleibt im Watch-Modus haengen und der Job laeuft ins
+      # Timeout. Der Job hiess bis 23.09.2026 test-frontend, ohne je einen Test
+      # auszufuehren - 22 Dateien mit 181 Tests, von denen drei rot waren, ohne
+      # dass es jemand sah.
+      - name: Run tests
+        working-directory: ./frontend
+        run: npx vitest run
+
       - name: Build
         working-directory: ./frontend
         run: npm run build
