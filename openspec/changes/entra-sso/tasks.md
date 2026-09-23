@@ -67,10 +67,31 @@
 
 ## 8. Rollout
 
-- [ ] 8.1 App-Registrierung anlegen (nicht an einem persönlichen Konto, Zertifikat bevorzugt), Ablauf überwachen
+- [x] 8.1 App-Registrierung anlegen (nicht an einem persönlichen Konto, Zertifikat bevorzugt), Ablauf überwachen
   - [x] Zertifikats-Anmeldung im Code umgesetzt (Client-Assertion mit `x5t`), Geheimnis bleibt möglich
   - [x] Skript zum Anlegen der Registrierung vorbereitet
-- [ ] 8.2 Ausliefern mit SSO für keinen Mandanten aktiv
-- [ ] 8.3 Für einen Mandanten aktivieren, Verknüpfung der Benutzer beobachten
-- [ ] 8.4 Notfallkonten festlegen und den Notweg einmal bewusst durchspielen
+  - [x] Angelegt als *Contract Cora SSO*, Zertifikat bis 22.09.2028, zwei Eigentümer
+  - [x] Ablaufüberwachung steht (techops-toolbox#400): der Collector meldet dieses Zertifikat mit
+- [x] 8.2 Ausliefern mit SSO für keinen Mandanten aktiv
+- [x] 8.3 Für einen Mandanten aktivieren, Verknüpfung der Benutzer beobachten
+  - Seit 22.09.2026 aktiv für VSX-Vogel Software. **Keine Pilotgruppe** — der Knopf steht auf der
+    Anmeldeseite für alle, und das ist ungefährlich: es gibt kein Auto-Provisioning, ein Konto muss
+    in Cora existieren und die Adresse treffen, sonst endet die Anmeldung mit
+    „There is no account for …".
+  - Stand 23.09.2026: 2 von 10 aktiven Konten verknüpft. Die Verknüpfung entsteht bei der ersten
+    Anmeldung über Microsoft, niemand muss dafür etwas einrichten.
+- [x] 8.4 Notfallkonten festlegen und den Notweg einmal bewusst durchspielen
+  - Die Ausnahmeliste enthält zwei Sorten Konto, und das ist beim Nachbauen wichtig:
+    **Notwege** (zwei Administratoren, damit jemand hereinkommt, wenn das Verzeichnis ausfällt) und
+    **Dauerausnahmen** für externe Mitarbeitende, die **kein Objekt im Verzeichnis** haben, auch
+    kein Gastkonto. Die Registrierung ist auf einen einzelnen Mandanten gestellt (`AzureADMyOrg`),
+    für sie gibt es also gar keinen SSO-Weg — ohne die Ausnahme wären sie nach dem Abschalten
+    dauerhaft ausgesperrt. Beide Sorten stehen auf derselben `--emergency`-Liste; nur die erste
+    besteht aus Notfallkonten.
+  - Wer konkret darauf steht, gehört nicht in dieses Repo.
 - [ ] 8.5 Erst danach lokale Anmeldung für normale Konten abschalten
+  - **Blockiert**, solange der Trockenlauf noch unverknüpfte Konten meldet: am 23.09.2026 vier
+    reguläre Konten, denen je eine Anmeldung über Microsoft fehlt, plus ein Notfallkonto — ein
+    Notweg, der nur einen der beiden Wege kann, ist ein halber Notweg.
+  - Fortschritt prüfen mit `set_local_login --disable --emergency "<liste>" --dry-run`; der Lauf
+    ändert nichts. Erst wenn dessen Warnliste leer ist, darf es ohne `--dry-run` laufen.
