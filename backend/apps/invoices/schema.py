@@ -309,6 +309,8 @@ class InvoiceRecordType:
     email_sent_at: str | None
     email_sent_to: list[str]
     email_message_id: str
+    email_error: str
+    email_last_attempt_at: str | None
     # Storno support
     document_type: str
     storno_of_id: int | None
@@ -3129,6 +3131,10 @@ def _convert_record(record) -> InvoiceRecordType:
         email_sent_at=record.email_sent_at.isoformat() if record.email_sent_at else None,
         email_sent_to=record.email_sent_to or [],
         email_message_id=record.email_message_id or "",
+        email_error=record.email_error or "",
+        email_last_attempt_at=(
+            record.email_last_attempt_at.isoformat() if record.email_last_attempt_at else None
+        ),
         document_type=record.document_type or "invoice",
         storno_of_id=storno_of_id,
         storno_of_number=storno_of_number,

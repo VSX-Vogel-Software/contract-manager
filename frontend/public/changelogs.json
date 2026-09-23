@@ -1,5 +1,18 @@
 [
   {
+    "version": "2.38.0",
+    "date": "2026-09-23",
+    "title": "Fehlgeschlagener Mailversand ist jetzt sichtbar",
+    "description": "Geht eine Rechnung, ein Angebot, eine Mahnung oder eine Auftragsbestätigung nicht raus, steht der Grund künftig am Beleg selbst — auch Tage später. Bisher landete er nur im Protokoll, und der Beleg sah aus wie nie versendet.",
+    "type": "improvement",
+    "details": [
+      "Am Beleg stehen Grund und Zeitpunkt des letzten Versuchs",
+      "Ein gescheiterter Versand ist von einem nie angestoßenen unterscheidbar",
+      "Glückt ein späterer Versuch, verschwindet der alte Fehler wieder",
+      "Sichtbar in Rechnungs-, Angebots- und Mahnungsansicht sowie an den Auftragsbestätigungen im Vertrag"
+    ]
+  },
+  {
     "version": "2.37.0",
     "date": "2026-09-22",
     "title": "Anmeldung über Microsoft",

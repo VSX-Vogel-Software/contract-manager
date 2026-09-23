@@ -27,6 +27,8 @@ class OrderConfirmationType:
     sent_at: auto
     sent_to: auto
     email_message_id: auto
+    email_error: auto
+    email_last_attempt_at: auto
     created_at: auto
     updated_at: auto
 

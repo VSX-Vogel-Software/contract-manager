@@ -45,6 +45,8 @@ export interface PaymentReminder {
   pdfUrl: string | null
   sentAt: string | null
   sentTo: string[]
+  emailError: string
+  emailLastAttemptAt: string | null
   createdAt: string
 }
 
@@ -182,6 +184,8 @@ export const PAYMENT_REMINDER_FIELDS = `
   pdfUrl
   sentAt
   sentTo
+  emailError
+  emailLastAttemptAt
   createdAt
 `
 

@@ -2815,5 +2815,10 @@
     "placeholder": "Stelle eine Frage...",
     "newConversation": "Neues Gespräch",
     "emptyState": "Frag Cora nach Verträgen, Kunden oder Rechnungen."
+  },
+  "emailStatus": {
+    "failed": "Mailversand fehlgeschlagen",
+    "lastAttempt": "Letzter Versuch: {{when}}",
+    "badge": "Versand fehlgeschlagen"
   }
 }

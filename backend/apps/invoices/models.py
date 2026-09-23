@@ -419,6 +419,13 @@ class InvoiceRecord(TenantModel):
     email_sent_to = models.JSONField(default=list, blank=True)
     email_message_id = models.CharField(max_length=255, blank=True)
 
+    # Versandfehler: was schiefging und wann es zuletzt versucht wurde.
+    # email_sent_at bleibt der Zeitpunkt der letzten ERFOLGREICHEN Zustellung,
+    # email_last_attempt_at der des letzten Versuchs - sonst laesst sich
+    # "noch nie versucht" nicht von "versucht und geglueckt" unterscheiden.
+    email_error = models.TextField(blank=True)
+    email_last_attempt_at = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         ordering = ["-billing_date", "-generated_at"]
         constraints = [
@@ -826,6 +833,13 @@ class PaymentReminder(TenantModel):
     # Send tracking
     sent_at = models.DateTimeField(null=True, blank=True)
     sent_to = models.JSONField(default=list, blank=True)
+
+    # Versandfehler: was schiefging und wann es zuletzt versucht wurde.
+    # email_sent_at bleibt der Zeitpunkt der letzten ERFOLGREICHEN Zustellung,
+    # email_last_attempt_at der des letzten Versuchs - sonst laesst sich
+    # "noch nie versucht" nicht von "versucht und geglueckt" unterscheiden.
+    email_error = models.TextField(blank=True)
+    email_last_attempt_at = models.DateTimeField(null=True, blank=True)
     created_by = models.ForeignKey(
         "tenants.User",
         on_delete=models.SET_NULL,

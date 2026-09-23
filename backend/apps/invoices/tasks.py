@@ -8,6 +8,7 @@ from django.utils import timezone
 
 from apps.invoices.extraction import run_extraction
 from apps.invoices.models import ImportedInvoice, InvoiceRecord, PaymentReminder
+from apps.core.email_state import record_send_failure, record_send_success
 
 logger = logging.getLogger(__name__)
 
@@ -330,7 +331,12 @@ def send_invoice_email_task(self, record_id: int, user_id: int | None = None) ->
         record.email_sent_to = recipients
         record.email_message_id = message_id or ""
         record.status = InvoiceRecord.Status.SENT
-        record.save(update_fields=["email_sent_at", "email_sent_to", "email_message_id", "status"])
+        fields = record_send_success(
+            record,
+            extra_fields=["email_sent_at", "email_sent_to", "email_message_id", "status"],
+            save=False,
+        )
+        record.save(update_fields=fields)
 
         from apps.invoices.audit import log_invoice_email_sent
         from apps.tenants.models import User
@@ -342,7 +348,11 @@ def send_invoice_email_task(self, record_id: int, user_id: int | None = None) ->
         logger.info("Invoice email sent for record %s to %s", record_id, recipients)
         return True
     except M365Error as e:
+        # Der Grund gehoert an den Beleg, nicht nur ins Log: dieser Task laeuft
+        # lange nach der Antwort, es gibt niemanden mehr, dem man etwas zeigen
+        # koennte.
         logger.error("Failed to send invoice email for record %s: %s", record_id, e)
+        record_send_failure(record, e)
         return False
 
 
@@ -429,12 +439,15 @@ def send_dunning_email_task(self, reminder_id: int, user_id: int | None = None) 
         logger.error(
             "Failed to send dunning email for reminder %s: %s", reminder_id, e
         )
+        record_send_failure(reminder, e)
         return False
 
     # Success — mark as sent and set invoice status to DUNNING on first send.
     reminder.sent_at = timezone.now()
     reminder.sent_to = recipients
-    reminder.save(update_fields=["sent_at", "sent_to"])
+    reminder.save(update_fields=record_send_success(
+        reminder, extra_fields=["sent_at", "sent_to"], save=False,
+    ))
 
     if record.status in (InvoiceRecord.Status.FINALIZED, InvoiceRecord.Status.SENT):
         record.status = InvoiceRecord.Status.DUNNING

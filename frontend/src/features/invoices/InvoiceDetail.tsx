@@ -40,6 +40,7 @@ import { useDocumentTitle } from '@/lib/useDocumentTitle'
 import { ImportedInvoiceDetail } from './ImportedInvoiceDetail'
 import { InvoiceStatusStepper } from '@/components/InvoiceStatusBadge'
 import { PaymentReminderList } from '@/features/reminders/PaymentReminderList'
+import { EmailSendStatus } from '@/components/EmailSendStatus'
 import { PAYMENT_REMINDER_FIELDS, type PaymentReminder } from '@/features/reminders/dunning'
 
 const INVOICE_RECORD_QUERY = gql`
@@ -84,6 +85,8 @@ const INVOICE_RECORD_QUERY = gql`
       emailSentAt
       emailSentTo
       emailMessageId
+      emailError
+      emailLastAttemptAt
       documentType
       stornoOfId
       stornoOfNumber
@@ -200,6 +203,8 @@ interface InvoiceRecord {
   voidReason: string
   customerBillingEmails: string[]
   emailSentAt: string | null
+  emailError: string
+  emailLastAttemptAt: string | null
   emailSentTo: string[]
   emailMessageId: string
   documentType: string
@@ -736,6 +741,11 @@ function GeneratedInvoiceDetail({ id, fallbackToImported }: { id: number; fallba
               </CardTitle>
             </CardHeader>
             <CardContent>
+              <EmailSendStatus
+                emailError={record.emailError}
+                emailLastAttemptAt={record.emailLastAttemptAt}
+                className="mb-3"
+              />
               {record.emailSentAt ? (
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center justify-between">
@@ -758,9 +768,11 @@ function GeneratedInvoiceDetail({ id, fallbackToImported }: { id: number; fallba
                   )}
                 </div>
               ) : (
-                <div className="py-4 text-center text-sm text-muted-foreground">
-                  {t('invoiceDetail.notSent')}
-                </div>
+                !record.emailError && (
+                  <div className="py-4 text-center text-sm text-muted-foreground">
+                    {t('invoiceDetail.notSent')}
+                  </div>
+                )
               )}
             </CardContent>
           </Card>

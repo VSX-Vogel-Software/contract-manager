@@ -168,6 +168,13 @@ class OfferRecord(TenantModel):
     email_sent_to = models.JSONField(default=list, blank=True)
     email_message_id = models.CharField(max_length=255, blank=True)
 
+    # Versandfehler: was schiefging und wann es zuletzt versucht wurde.
+    # email_sent_at bleibt der Zeitpunkt der letzten ERFOLGREICHEN Zustellung,
+    # email_last_attempt_at der des letzten Versuchs - sonst laesst sich
+    # "noch nie versucht" nicht von "versucht und geglueckt" unterscheiden.
+    email_error = models.TextField(blank=True)
+    email_last_attempt_at = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         ordering = ["-offer_date", "-created_at"]
         constraints = [

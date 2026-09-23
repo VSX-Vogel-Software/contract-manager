@@ -30,6 +30,8 @@ function makeReminder(overrides: Partial<PaymentReminder> = {}): PaymentReminder
     interestDays: 30,
     pdfUrl: 'https://example.test/reminder.pdf',
     sentAt: '2026-05-20T10:15:00Z',
+    emailError: '',
+    emailLastAttemptAt: null,
     sentTo: ['billing@acme.test'],
     createdAt: '2026-05-20T10:14:00Z',
     ...overrides,

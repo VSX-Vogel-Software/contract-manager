@@ -6,6 +6,7 @@ from typing import Literal
 
 from django.template.loader import render_to_string
 from django.utils import timezone
+from apps.core.email_state import record_send_failure, record_send_success
 
 logger = logging.getLogger(__name__)
 
@@ -517,10 +518,15 @@ class OrderConfirmationService:
             ab.sent_to = recipients
             ab.email_message_id = message_id or ""
             ab.status = ab.Status.SENT
-            ab.save(update_fields=["sent_at", "sent_to", "email_message_id", "status"])
+            ab.save(update_fields=record_send_success(
+                ab,
+                extra_fields=["sent_at", "sent_to", "email_message_id", "status"],
+                save=False,
+            ))
 
             logger.info("AB email sent for %s to %s", ab.id, recipients)
             return True
         except M365Error as e:
             logger.error("Failed to send AB email for %s: %s", ab.id, e)
+            record_send_failure(ab, e)
             return False

@@ -2815,5 +2815,10 @@
     "placeholder": "Ask a question...",
     "newConversation": "New conversation",
     "emptyState": "Ask Cora anything about your contracts, customers, or invoices."
+  },
+  "emailStatus": {
+    "failed": "Email delivery failed",
+    "lastAttempt": "Last attempt: {{when}}",
+    "badge": "Delivery failed"
   }
 }

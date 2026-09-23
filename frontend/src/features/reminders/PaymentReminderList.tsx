@@ -4,6 +4,7 @@ import { FileText } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { formatDateTime } from '@/lib/utils'
 import { stageLabelKey, type PaymentReminder } from './dunning'
+import { EmailSendStatus } from '@/components/EmailSendStatus'
 
 interface PaymentReminderListProps {
   reminders: PaymentReminder[]
@@ -45,9 +46,18 @@ export function PaymentReminderList({ reminders, showInvoice = false }: PaymentR
               {t(stageLabelKey(reminder.stage))}
             </Badge>
             <span className="text-xs text-muted-foreground" data-testid={`reminder-sent-at-${reminder.id}`}>
-              {reminder.sentAt ? formatDateTime(reminder.sentAt) : t('reminders.notSent')}
+              {reminder.sentAt
+                ? formatDateTime(reminder.sentAt)
+                : reminder.emailError
+                ? t('emailStatus.badge')
+                : t('reminders.notSent')}
             </span>
           </div>
+          <EmailSendStatus
+            emailError={reminder.emailError}
+            emailLastAttemptAt={reminder.emailLastAttemptAt}
+            className="mt-2"
+          />
           {showInvoice && (
             <div className="mt-1 text-xs text-muted-foreground">
               {t('reminders.forInvoice')}:{' '}

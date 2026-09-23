@@ -3,6 +3,7 @@ import logging
 
 from celery import shared_task
 from django.utils import timezone
+from apps.core.email_state import record_send_failure, record_send_success
 
 logger = logging.getLogger(__name__)
 
@@ -128,6 +129,7 @@ def send_offer_email_task(
     except M365Error as e:
         # Send failed — leave the offer fully editable so the user can retry.
         logger.error("Failed to send offer email for record %s: %s", offer_id, e)
+        record_send_failure(record, e)
         return False
 
     # Send succeeded. Persist email metadata + transition draft → sent
@@ -159,10 +161,14 @@ def send_offer_email_task(
             locked.email_sent_to = recipients
             locked.email_message_id = message_id or ""
             locked.status = OfferRecord.Status.SENT
-            locked.save(update_fields=[
-                "email_sent_at", "email_sent_to", "email_message_id",
-                "status", "updated_at",
-            ])
+            locked.save(update_fields=record_send_success(
+                locked,
+                extra_fields=[
+                    "email_sent_at", "email_sent_to", "email_message_id",
+                    "status", "updated_at",
+                ],
+                save=False,
+            ))
 
             # Copy the PDF onto the contract as an attachment. Idempotent
             # if the offer was already attached by a previous run.

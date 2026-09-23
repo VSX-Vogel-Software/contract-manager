@@ -257,6 +257,8 @@ const CONTRACT_DETAIL_QUERY = gql`
         id
         orderConfirmationNumber
         sentAt
+        emailError
+        emailLastAttemptAt
         createdAt
       }
       timeTrackingMappingsCount
@@ -774,7 +776,7 @@ interface Contract {
   links: ContractLink[]
   todos: TodoItem[]
   orderConfirmationSentAt: string | null
-  orderConfirmations: { id: string; orderConfirmationNumber: string; sentAt: string | null; createdAt: string }[]
+  orderConfirmations: { id: string; orderConfirmationNumber: string; sentAt: string | null; createdAt: string; emailError: string; emailLastAttemptAt: string | null }[]
   timeTrackingMappingsCount: number
   hasInvoices: boolean
   invoicedItemIds: number[]

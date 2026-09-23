@@ -43,6 +43,8 @@ class PaymentReminderType:
     pdf_url: Optional[str]
     sent_at: Optional[str]
     sent_to: List[str]
+    email_error: str
+    email_last_attempt_at: Optional[str]
     created_at: str
 
 
@@ -130,6 +132,10 @@ def _convert_reminder(reminder: PaymentReminder) -> PaymentReminderType:
         pdf_url=reminder.pdf_file.url if reminder.pdf_file else None,
         sent_at=reminder.sent_at.isoformat() if reminder.sent_at else None,
         sent_to=reminder.sent_to or [],
+        email_error=reminder.email_error or "",
+        email_last_attempt_at=(
+            reminder.email_last_attempt_at.isoformat() if reminder.email_last_attempt_at else None
+        ),
         created_at=reminder.created_at.isoformat(),
     )
 

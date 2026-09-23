@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/dialog'
 import { cn, formatCurrency, formatDate } from '@/lib/utils'
 import { getToken } from '@/lib/auth'
+import { EmailSendStatus } from '@/components/EmailSendStatus'
 import { SendOfferDialog } from './SendOfferDialog'
 
 // ----------------------------------------------------------------------------
@@ -62,6 +63,8 @@ const OFFER_QUERY = gql`
       vatSentence
       customerBillingEmails
       emailSentAt
+      emailError
+      emailLastAttemptAt
       emailSentTo
       emailMessageId
       freeTextAfterItems
@@ -623,6 +626,11 @@ export function OfferDetail() {
           )}
         </div>
       </div>
+
+      <EmailSendStatus
+        emailError={offer.emailError}
+        emailLastAttemptAt={offer.emailLastAttemptAt}
+      />
 
       {/* Locked banner */}
       {isLocked && (

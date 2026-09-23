@@ -46,6 +46,8 @@ class OfferRecordType:
     email_sent_at: str | None
     email_sent_to: list[str]
     email_message_id: str
+    email_error: str
+    email_last_attempt_at: str | None
     scoped_item_ids: list[int] | None = None
     # New editable surface (offer-edit-and-finalize change)
     free_text_after_items: str = ""
@@ -184,6 +186,10 @@ def _convert_offer_record(record) -> OfferRecordType:
         email_sent_at=record.email_sent_at.isoformat() if record.email_sent_at else None,
         email_sent_to=record.email_sent_to or [],
         email_message_id=record.email_message_id or "",
+        email_error=record.email_error or "",
+        email_last_attempt_at=(
+            record.email_last_attempt_at.isoformat() if record.email_last_attempt_at else None
+        ),
         scoped_item_ids=record.scoped_item_ids,
         free_text_after_items=record.free_text_after_items or "",
         free_text_before_terms=record.free_text_before_terms or "",
