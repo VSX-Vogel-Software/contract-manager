@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Search, Sparkles, Bug, Zap, Shield, Loader2, ExternalLink, Github, Scale } from 'lucide-react'
+import { Search, Sparkles, Bug, Zap, Shield, Loader2, ExternalLink, Code, Scale } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { formatDateTime, formatDate as formatDateUtil } from '@/lib/utils'
@@ -191,7 +191,7 @@ export function AboutPage() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <h3 className="mb-2 text-sm font-medium text-gray-500 flex items-center gap-1.5">
-                  <Github className="h-4 w-4" />
+                  <Code className="h-4 w-4" />
                   {t('about.sourceCode')}
                 </h3>
                 <a
