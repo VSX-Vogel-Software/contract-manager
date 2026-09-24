@@ -1,5 +1,19 @@
 [
   {
+    "version": "2.39.0",
+    "date": "2026-09-24",
+    "title": "Verlässliche Links in E-Mails, und das Auditlog blättert selbst weiter",
+    "description": "Die Adresse in Links aus E-Mails — etwa zum Zurücksetzen des Passworts oder für eine Einladung — stammt jetzt aus der Konfiguration der Anwendung. Bisher übernahm sie die Anwendung aus dem Aufruf, der sie ausgelöst hat, und liess sich dadurch von aussen beeinflussen. Ausserdem verlinkt die Nachricht über einen neu übernommenen HubSpot-Deal endlich den Vertrag, und im Auditlog muss man sich nicht mehr durch die Seiten klicken.",
+    "type": "security",
+    "details": [
+      "Links zum Zurücksetzen des Passworts und zu Einladungen führen verlässlich nach contract-cora.com",
+      "Die Nachricht zu einem neuen Deal aus HubSpot verlinkt den angelegten Vertrag",
+      "Auch Nachrichten aus nächtlichen Läufen tragen jetzt Links — dort fehlten sie ganz",
+      "Auditlog: am Listenende wird nach zwei Sekunden von selbst nachgeladen; ein Klick auf den Knopf hält das an, nach fünf Runden stoppt es ohnehin",
+      "Aufgefrischte Symbole in der Oberfläche und ein neues Symbol im Browser-Reiter"
+    ]
+  },
+  {
     "version": "2.38.0",
     "date": "2026-09-23",
     "title": "Fehlgeschlagener Mailversand ist jetzt sichtbar",
