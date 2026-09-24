@@ -221,6 +221,11 @@ TODOIST_PROJECT_ID = env("TODOIST_PROJECT_ID", default="")
 GITHUB_FEEDBACK_REPO = env("GITHUB_FEEDBACK_REPO", default="")  # "owner/repo"
 GITHUB_FEEDBACK_TOKEN = env("GITHUB_FEEDBACK_TOKEN", default="")
 
+# Adresse, unter der das Frontend erreichbar ist. Einzige Quelle fuer Links
+# in Mails und fuer Rueckleitungen - bewusst nicht aus dem Request
+# abgeleitet, siehe apps/core/frontend.py.
+FRONTEND_URL = env("FRONTEND_URL", default="")
+
 # Public signup
 SIGNUP_ENABLED = env.bool("SIGNUP_ENABLED", default=True)
 

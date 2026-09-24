@@ -1397,6 +1397,7 @@ class HubSpotService:
         self._update_contract_billing_interval_from_items(contract)
 
         # Notify all active tenant users about the new contract
+        from apps.core.frontend import frontend_base_url
         from apps.core.notifications import notify
         from apps.tenants.models import User
         active_users = list(User.objects.filter(tenant=self.tenant, is_active=True))
@@ -1406,6 +1407,8 @@ class HubSpotService:
             recipients=active_users,
             contract_name=contract.name,
             customer_name=customer.name,
+            contract_id=contract.id,
+            base_url=frontend_base_url(),
         )
 
         return "created"

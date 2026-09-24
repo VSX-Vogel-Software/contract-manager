@@ -6,6 +6,8 @@ Uses send_notification() from apps/core/smtp.py for delivery.
 
 import logging
 
+from django.utils.html import escape
+
 from apps.core.smtp import SmtpError, send_notification
 
 logger = logging.getLogger(__name__)
@@ -38,15 +40,15 @@ def _build_todo_assigned_email(*, todo, assigner, base_url="", **kwargs):
     subject = f"Todo assigned to you: {todo.text[:60]}"
 
     lines = [
-        f"<p><strong>{assigner_name}</strong> assigned a todo to you:</p>",
-        f"<p style='padding: 12px; background: #f5f5f5; border-radius: 4px;'>{todo.text}</p>",
+        f"<p><strong>{escape(assigner_name)}</strong> assigned a todo to you:</p>",
+        f"<p style='padding: 12px; background: #f5f5f5; border-radius: 4px;'>{escape(todo.text)}</p>",
     ]
 
     if base_url:
         entity_url = _todo_entity_url(todo, base_url)
         if entity_url and todo.entity_name:
             lines.append(
-                f"<p>Related: <a href=\"{entity_url}\">{todo.entity_name}</a></p>"
+                f"<p>Related: <a href=\"{entity_url}\">{escape(todo.entity_name)}</a></p>"
             )
         todo_url = f"{base_url}/todos"
         lines.append(f"<p><a href=\"{todo_url}\">Open Todos</a></p>")
@@ -61,9 +63,9 @@ def _build_todo_mention_email(*, todo, mentioner, comment_text, base_url="", **k
     subject = f"{mentioner_name} mentioned you in a todo"
 
     lines = [
-        f"<p><strong>{mentioner_name}</strong> mentioned you in a comment:</p>",
-        f"<p style='padding: 12px; background: #f5f5f5; border-radius: 4px;'>{comment_text}</p>",
-        f"<p>On todo: <em>{todo.text}</em></p>",
+        f"<p><strong>{escape(mentioner_name)}</strong> mentioned you in a comment:</p>",
+        f"<p style='padding: 12px; background: #f5f5f5; border-radius: 4px;'>{escape(comment_text)}</p>",
+        f"<p>On todo: <em>{escape(todo.text)}</em></p>",
     ]
 
     if base_url:
@@ -74,14 +76,25 @@ def _build_todo_mention_email(*, todo, mentioner, comment_text, base_url="", **k
     return subject, body_html
 
 
-def _build_hubspot_new_contract_email(*, contract_name, customer_name, **kwargs):
+def _build_hubspot_new_contract_email(
+    *, contract_name, customer_name, contract_id=None, base_url="", **kwargs
+):
     """Build subject and body for new HubSpot contract notification."""
     subject = f"New contract from HubSpot: {contract_name}"
-    body_html = (
-        f"<p>A new contract has arrived via HubSpot deal sync:</p>"
-        f"<p><strong>{contract_name}</strong> for <strong>{customer_name}</strong></p>"
-    )
-    return subject, body_html
+
+    lines = [
+        "<p>A new contract has arrived via HubSpot deal sync:</p>",
+        f"<p><strong>{escape(contract_name)}</strong> for "
+        f"<strong>{escape(customer_name)}</strong></p>",
+    ]
+
+    # Ohne konfigurierte Frontend-Adresse bleibt die Mail linklos - besser als
+    # ein Verweis ohne Adressteil.
+    if base_url and contract_id:
+        contract_url = f"{base_url}/contracts/{contract_id}"
+        lines.append(f"<p><a href=\"{contract_url}\">Open contract</a></p>")
+
+    return subject, "\n".join(lines)
 
 
 def _build_hubspot_sync_completed_email(*, results, errors=None, **kwargs):
@@ -100,7 +113,8 @@ def _build_hubspot_sync_completed_email(*, results, errors=None, **kwargs):
         for sync_type, error_msg in errors.items():
             label = sync_type.replace("_", " ").title()
             lines.append(
-                f"<p style='color: #b45309;'>&#9888; {label} sync failed: {error_msg}</p>"
+                f"<p style='color: #b45309;'>&#9888; {label} sync failed: "
+                f"{escape(str(error_msg))}</p>"
             )
 
     body_html = "\n".join(lines)
