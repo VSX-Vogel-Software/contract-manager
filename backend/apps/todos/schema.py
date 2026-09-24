@@ -8,6 +8,7 @@ from strawberry import UNSET
 from strawberry.types import Info
 from django.db.models import Q, F
 
+from apps.core.frontend import frontend_base_url
 from apps.core.permissions import check_perm, get_current_user, require_perm
 from apps.core.schema import DeleteResult
 from .models import TodoItem, TodoComment
@@ -139,6 +140,7 @@ def _notify_mentioned_users(comment, author, todo):
             todo=todo,
             mentioner=author,
             comment_text=comment.text,
+            base_url=frontend_base_url(),
         )
     except Exception:
         import logging
@@ -467,11 +469,9 @@ class TodoMutation:
 
             # Notify if assigned to someone else
             if todo.assigned_to_id and todo.assigned_to_id != user.id:
+                from apps.core.frontend import frontend_base_url
                 from apps.core.notifications import notify
-                from django.conf import settings
-                request = info.context.request
-                origin = request.headers.get("Origin") or request.headers.get("Referer", "").rstrip("/")
-                base_url = origin or getattr(settings, "FRONTEND_URL", "")
+                base_url = frontend_base_url()
                 notify(
                     user.tenant,
                     "todo_assigned",
@@ -606,11 +606,9 @@ class TodoMutation:
                     todo.assigned_to_id
                     and todo.assigned_to_id != user.id
                 ):
+                    from apps.core.frontend import frontend_base_url
                     from apps.core.notifications import notify
-                    from django.conf import settings
-                    request = info.context.request
-                    origin = request.headers.get("Origin") or request.headers.get("Referer", "").rstrip("/")
-                    base_url = origin or getattr(settings, "FRONTEND_URL", "")
+                    base_url = frontend_base_url()
                     notify(
                         user.tenant,
                         "todo_assigned",

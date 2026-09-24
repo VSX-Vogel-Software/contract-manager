@@ -21,5 +21,8 @@ INSTALLED_APPS += [  # noqa: F405
     "django_extensions",
 ]
 
+# Frontend der Entwicklungsumgebung (Port aus docker-compose.yml)
+FRONTEND_URL = env("FRONTEND_URL", default="http://localhost:4000")  # noqa: F405
+
 # Email backend for development
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"

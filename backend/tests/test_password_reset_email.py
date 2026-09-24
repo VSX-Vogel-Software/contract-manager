@@ -17,8 +17,8 @@ MUTATION_REQUEST = """
 """
 
 MUTATION_ADMIN_RESET = """
-    mutation CreatePasswordReset($userId: ID!, $baseUrl: String) {
-        createPasswordReset(userId: $userId, baseUrl: $baseUrl) {
+    mutation CreatePasswordReset($userId: ID!) {
+        createPasswordReset(userId: $userId) {
             success
             resetUrl
             error
@@ -116,7 +116,7 @@ class TestAdminResetSendsEmail:
 
         result = run_graphql(
             MUTATION_ADMIN_RESET,
-            {"userId": str(other_user.id), "baseUrl": "http://localhost:5173"},
+            {"userId": str(other_user.id)},
             ctx,
         )
         assert result.errors is None
@@ -133,7 +133,7 @@ class TestAdminResetSendsEmail:
 
         result = run_graphql(
             MUTATION_ADMIN_RESET,
-            {"userId": str(other_user.id), "baseUrl": "http://localhost:5173"},
+            {"userId": str(other_user.id)},
             ctx,
         )
         assert result.errors is None

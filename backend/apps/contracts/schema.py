@@ -5793,11 +5793,9 @@ class ContractMutation:
                 if create_ab:
                     try:
                         from apps.contracts.services.order_confirmation import OrderConfirmationService
-                        from django.conf import settings as django_settings
+                        from apps.core.frontend import frontend_base_url
 
-                        request = info.context.request
-                        origin = request.headers.get("Origin") or request.headers.get("Referer", "").rstrip("/")
-                        base_url = origin or getattr(django_settings, "FRONTEND_URL", "")
+                        base_url = frontend_base_url()
 
                         service = OrderConfirmationService(user.tenant)
                         ab = service.create_order_confirmation(

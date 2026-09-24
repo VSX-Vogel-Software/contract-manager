@@ -220,10 +220,8 @@ class OrderConfirmationMutation:
                 additional_emails=additional_emails,
             )
             # Set contract OC number and create link
-            from django.conf import settings as django_settings
-            request = info.context.request
-            origin = request.headers.get("Origin") or request.headers.get("Referer", "").rstrip("/")
-            base_url = origin or getattr(django_settings, "FRONTEND_URL", "")
+            from apps.core.frontend import frontend_base_url
+            base_url = frontend_base_url()
             OrderConfirmationService.link_to_contract(ab, user, base_url)
             return OrderConfirmationResult(order_confirmation=ab, success=True)
         except Exception as e:

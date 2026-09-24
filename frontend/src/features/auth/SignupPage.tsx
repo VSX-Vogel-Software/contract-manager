@@ -5,8 +5,8 @@ import { useMutation, gql } from '@apollo/client'
 import { Loader2, CheckCircle2, ArrowLeft } from 'lucide-react'
 
 const SIGN_UP = gql`
-  mutation SignUp($companyName: String!, $email: String!, $firstName: String!, $lastName: String!, $password: String!, $baseUrl: String) {
-    signUp(companyName: $companyName, email: $email, firstName: $firstName, lastName: $lastName, password: $password, baseUrl: $baseUrl) {
+  mutation SignUp($companyName: String!, $email: String!, $firstName: String!, $lastName: String!, $password: String!) {
+    signUp(companyName: $companyName, email: $email, firstName: $firstName, lastName: $lastName, password: $password) {
       success
       error
     }
@@ -35,9 +35,8 @@ export function SignupPage() {
     }
 
     try {
-      const baseUrl = window.location.origin
       const result = await signUp({
-        variables: { companyName, email, firstName, lastName, password, baseUrl },
+        variables: { companyName, email, firstName, lastName, password },
       })
 
       if (result.data?.signUp?.success) {

@@ -8,7 +8,6 @@ Zugriffsprotokolle, anders als ein Query-Parameter.
 import logging
 from urllib.parse import urlencode
 
-from django.conf import settings
 from django.http import HttpResponseRedirect
 from django.utils import timezone
 from django.views.decorators.http import require_GET
@@ -22,17 +21,21 @@ from apps.core.entra_sso import (
     end_session_url,
     get_sso_config,
 )
+from apps.core.frontend import frontend_base_url
 from apps.tenants.models import Tenant
 
 logger = logging.getLogger(__name__)
 
 
 def frontend_base(request) -> str:
-    return (
-        request.headers.get("Origin")
-        or getattr(settings, "FRONTEND_URL", "")
-        or request.build_absolute_uri("/").rstrip("/")
-    )
+    """Wohin nach der Anmeldung zurueckgeleitet wird.
+
+    Die konfigurierte Adresse gilt. Der ``Origin``-Kopf kommt beim Rueckruf aus
+    dem Verzeichnis und darf nicht bestimmen, wohin die Sitzungsmerkmale im
+    Fragment gehen. Nur wenn nichts konfiguriert ist, bleibt die eigene Adresse
+    als Notnagel.
+    """
+    return frontend_base_url() or request.build_absolute_uri("/").rstrip("/")
 
 
 def callback_uri(request, config: dict | None = None) -> str:

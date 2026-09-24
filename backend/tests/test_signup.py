@@ -18,8 +18,8 @@ def run_graphql(query, variables=None, context=None):
 
 
 SIGN_UP_MUTATION = """
-mutation SignUp($companyName: String!, $email: String!, $firstName: String!, $lastName: String!, $password: String!, $baseUrl: String) {
-    signUp(companyName: $companyName, email: $email, firstName: $firstName, lastName: $lastName, password: $password, baseUrl: $baseUrl) {
+mutation SignUp($companyName: String!, $email: String!, $firstName: String!, $lastName: String!, $password: String!) {
+    signUp(companyName: $companyName, email: $email, firstName: $firstName, lastName: $lastName, password: $password) {
         success
         error
     }
@@ -42,15 +42,15 @@ class TestSignUp:
     """Tests for the signUp mutation."""
 
     @patch("apps.tenants.tasks.send_signup_verification_email.delay")
-    def test_signup_happy_path(self, mock_email, db):
+    def test_signup_happy_path(self, mock_email, db, settings):
         """Successful signup creates inactive tenant, user, roles, and verification token."""
+        settings.FRONTEND_URL = "http://localhost:4000"
         result = run_graphql(SIGN_UP_MUTATION, {
             "companyName": "New Corp",
             "email": "new@example.com",
             "firstName": "John",
             "lastName": "Doe",
             "password": "secure123",
-            "baseUrl": "http://localhost:4000",
         })
 
         assert result.errors is None
@@ -81,6 +81,7 @@ class TestSignUp:
         assert verification.is_valid
 
         # Email task called
+        # Die Adresse stammt aus der Einstellung, nicht mehr vom Aufrufer.
         mock_email.assert_called_once_with(verification.id, "http://localhost:4000")
 
     @patch("apps.tenants.tasks.send_signup_verification_email.delay")

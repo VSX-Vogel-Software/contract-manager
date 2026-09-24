@@ -7,11 +7,11 @@ from strawberry import auto
 import strawberry_django
 from strawberry.types import Info
 
-from django.conf import settings
 from django.contrib.auth.hashers import check_password
 
 from apps.core.auth import create_access_token, create_refresh_token
 from apps.core.context import Context
+from apps.core.frontend import frontend_base_url
 from apps.core.permissions import (
     ADMIN_PROTECTED_PERMISSIONS,
     ALL_PERMISSIONS,
@@ -104,10 +104,7 @@ class InvitationType:
     @strawberry.field
     def invite_url(self, info: Info) -> str:
         """Return the full invite URL."""
-        request = info.context.request
-        origin = request.headers.get("Origin") or request.headers.get("Referer", "").rstrip("/")
-        base_url = origin or getattr(settings, "FRONTEND_URL", "http://localhost:5173")
-        return f"{base_url}/invite/{self.token}"
+        return f"{frontend_base_url()}/invite/{self.token}"
 
 
 from apps.core.schema import OperationResult  # noqa: E402 - re-exported for backward compat
@@ -1625,7 +1622,6 @@ class TenantMutation:
         self,
         info: Info[Context, None],
         email: str,
-        base_url: str | None = None,
         role_ids: list[strawberry.ID] | None = None,
     ) -> InvitationResult:
         """Create an invitation for a new user. Requires users.write."""
@@ -1668,10 +1664,7 @@ class TenantMutation:
         invitation.role_ids = stored_role_ids
         invitation.save(update_fields=["role_ids"])
 
-        request = info.context.request
-        origin = request.headers.get("Origin") or request.headers.get("Referer", "").rstrip("/")
-        url_base = base_url or origin or getattr(settings, "FRONTEND_URL", "http://localhost:5173")
-        invite_url = f"{url_base}/invite/{invitation.token}"
+        invite_url = f"{frontend_base_url()}/invite/{invitation.token}"
 
         # Send invitation email asynchronously
         from apps.tenants.tasks import send_invitation_email
@@ -1806,7 +1799,7 @@ class TenantMutation:
 
     @strawberry.mutation
     def create_password_reset(
-        self, info: Info[Context, None], user_id: strawberry.ID, base_url: str | None = None
+        self, info: Info[Context, None], user_id: strawberry.ID
     ) -> ResetLinkResult:
         """Create a password reset link for a user. Requires users.write."""
         admin, err = check_perm(info, "users", "write")
@@ -1821,10 +1814,7 @@ class TenantMutation:
             return ResetLinkResult(success=False, error="User not found")
 
         reset_token = PasswordResetToken.create_token(target_user)
-        request = info.context.request
-        origin = request.headers.get("Origin") or request.headers.get("Referer", "").rstrip("/")
-        url_base = base_url or origin or getattr(settings, "FRONTEND_URL", "http://localhost:5173")
-        reset_url = f"{url_base}/reset-password/{reset_token.token}"
+        reset_url = f"{frontend_base_url()}/reset-password/{reset_token.token}"
 
         # Also send email if SMTP is configured (non-blocking)
         try:
@@ -1855,10 +1845,7 @@ class TenantMutation:
             return OperationResult(success=True)  # Prevent enumeration
 
         reset_token = PasswordResetToken.create_token(user)
-        request = info.context.request
-        origin = request.headers.get("Origin") or request.headers.get("Referer", "").rstrip("/")
-        url_base = origin or getattr(settings, "FRONTEND_URL", "http://localhost:5173")
-        reset_url = f"{url_base}/reset-password/{reset_token.token}"
+        reset_url = f"{frontend_base_url()}/reset-password/{reset_token.token}"
 
         send_password_reset_email.delay(user.id, reset_url)
         return OperationResult(success=True)
@@ -2696,7 +2683,6 @@ class TenantMutation:
         first_name: str,
         last_name: str,
         password: str,
-        base_url: str = "",
     ) -> OperationResult:
         """Create a new tenant and user, send verification email."""
         from django.conf import settings as django_settings
@@ -2764,7 +2750,7 @@ class TenantMutation:
 
             # Send verification email (outside transaction)
             from apps.tenants.tasks import send_signup_verification_email
-            send_signup_verification_email.delay(verification.id, base_url or "")
+            send_signup_verification_email.delay(verification.id, frontend_base_url())
 
             return OperationResult(success=True)
         except Exception as e:

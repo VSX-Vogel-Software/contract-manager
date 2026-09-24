@@ -17,6 +17,15 @@ class SmtpError(Exception):
     """Error communicating via SMTP."""
 
 
+def _single_line(subject: str) -> str:
+    """Betreff ohne Zeilenumbrueche.
+
+    Betreffe tragen Namen aus HubSpot und Text von Benutzern. Ein Umbruch darin
+    waere der Anfang einer weiteren Kopfzeile.
+    """
+    return " ".join(subject.splitlines())
+
+
 def _get_config(tenant) -> dict:
     """Extract and validate SMTP config from tenant settings."""
     config = (tenant.settings or {}).get("smtp", {})
@@ -82,7 +91,7 @@ def send_system_notification(*, to: list[str], subject: str, body_html: str) -> 
         raise SmtpError("System SMTP not configured")
 
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
+    msg["Subject"] = _single_line(subject)
     from_name = config.get("from_name", "")
     msg["From"] = formataddr((from_name, config["from_address"])) if from_name else config["from_address"]
     msg["To"] = ", ".join(to)
@@ -114,7 +123,7 @@ def send_notification(tenant, *, to: list[str], subject: str, body_html: str) ->
     config = _get_config(tenant)
 
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
+    msg["Subject"] = _single_line(subject)
     from_name = config.get("from_name", "")
     msg["From"] = formataddr((from_name, config["from_address"])) if from_name else config["from_address"]
     msg["To"] = ", ".join(to)
