@@ -42,7 +42,7 @@ The system SHALL send a test email to the current user's email address via SMTP 
 - **THEN** the system returns an error with the SMTP server's error message
 
 ### Requirement: Send notification API
-The system SHALL provide a `send_notification(tenant, *, to, subject, body_html)` function that sends an email via SMTP using the tenant's configuration.
+The system SHALL provide a `send_notification(tenant, *, to, subject, body_html)` function that sends an email via SMTP using the tenant's configuration. Der Betreff MUST vor dem Versand auf eine Zeile gebracht werden, damit eingesetzte Namen keine weitere Kopfzeile anhaengen koennen.
 
 #### Scenario: Successful notification send
 - **WHEN** a caller invokes `send_notification` with a configured tenant, recipient list, subject, and HTML body
@@ -56,6 +56,9 @@ The system SHALL provide a `send_notification(tenant, *, to, subject, body_html)
 - **WHEN** a caller invokes `send_notification` but the SMTP server returns an error
 - **THEN** the system raises `SmtpError` with the server's error details
 
+#### Scenario: Umbruch im Betreff
+- **WHEN** ein Betreff einen Zeilenumbruch enthaelt
+- **THEN** traegt die Nachricht einen einzeiligen Betreff, in dem der Umbruch durch ein Leerzeichen ersetzt ist
 ### Requirement: SMTP settings query
 The system SHALL expose SMTP configuration via a GraphQL query that masks the password.
 

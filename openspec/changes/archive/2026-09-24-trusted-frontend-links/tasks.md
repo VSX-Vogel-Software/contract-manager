@@ -42,6 +42,6 @@
 ## 4. Deployment
 
 - [x] 4.1 `FRONTEND_URL` ins ConfigMap in `k8s-infra`
-- [ ] 4.2 Release-Tag im Fork, danach Abbild-Bump
-- [ ] 4.3 Nach dem Ausrollen einmal eine Einladung an die eigene Adresse
-      schicken und den Link pruefen
+- [x] 4.2 Release-Tag im Fork, danach Abbild-Bump (2.39.0)
+- [x] 4.3 Nach dem Ausrollen geprueft: frontend_base_url() liefert im
+      laufenden Backend-Pod https://contract-cora.com
