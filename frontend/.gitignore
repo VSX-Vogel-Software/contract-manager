@@ -1,0 +1,5 @@
+
+# Ausgaben von "tsc -b" - gehoeren nicht ins Repo
+*.tsbuildinfo
+vite.config.d.ts
+vite.config.js
