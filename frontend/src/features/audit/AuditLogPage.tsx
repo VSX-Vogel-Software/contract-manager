@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { useQuery, gql } from '@apollo/client'
 import { Loader2, Filter, ChevronDown, Search } from 'lucide-react'
 import { AuditLogTable, AuditLogEntry } from './AuditLogTable'
+import { useAutoLoadMore } from './useAutoLoadMore'
 import { HelpVideoButton } from '@/components/HelpVideoButton'
 
 const AUDIT_LOGS_QUERY = gql`
@@ -134,6 +135,12 @@ export function AuditLogPage() {
   const hasNextPage = data?.auditLogs.pageInfo.hasNextPage || false
   const endCursor = data?.auditLogs.pageInfo.endCursor
 
+  // Beim Filterwechsel ist die Liste wieder kurz - die Rundenzaehlung der
+  // Automatik beginnt dann von vorn.
+  const filterSignatur = [
+    entityTypeFilter, actionFilter, userFilter, dateFrom, dateTo, searchQuery,
+  ].join('|')
+
   const handleLoadMore = () => {
     if (hasNextPage && endCursor) {
       fetchMore({
@@ -152,6 +159,12 @@ export function AuditLogPage() {
       })
     }
   }
+
+  const autoLoad = useAutoLoadMore({
+    enabled: hasNextPage && !loading,
+    onLoadMore: handleLoadMore,
+    resetKey: filterSignatur,
+  })
 
   return (
     <div data-testid="audit-log-page">
@@ -256,17 +269,45 @@ export function AuditLogPage() {
           <>
             <AuditLogTable entries={entries} loading={loading && entries.length === 0} />
 
-            {/* Load More */}
+            {/* Load More - laeuft die Wartezeit, haelt derselbe Knopf sie an */}
             {hasNextPage && (
-              <div className="mt-4 flex justify-center">
+              <div ref={autoLoad.sentinelRef} className="mt-4 flex flex-col items-center gap-1">
                 <button
-                  onClick={handleLoadMore}
+                  onClick={autoLoad.status === 'armed' ? autoLoad.pause : handleLoadMore}
                   disabled={loading}
-                  className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  data-testid="audit-load-more"
+                  className="inline-flex flex-col items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {t('audit.loadMore')}
+                  {autoLoad.status === 'armed' ? (
+                    <>
+                      <span className="inline-flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        {t('audit.autoLoading')}
+                      </span>
+                      <span className="text-xs font-normal text-gray-500">
+                        {t('audit.clickToPause')}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="inline-flex items-center gap-2">
+                      {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+                      {t('audit.loadMore')}
+                    </span>
+                  )}
                 </button>
+
+                {autoLoad.status === 'paused' && (
+                  <p className="text-xs text-gray-500">
+                    {t('audit.autoPaused')}{' '}
+                    <button
+                      onClick={autoLoad.resume}
+                      data-testid="audit-resume-auto"
+                      className="underline hover:text-gray-700"
+                    >
+                      {t('audit.resumeAuto')}
+                    </button>
+                  </p>
+                )}
               </div>
             )}
 
