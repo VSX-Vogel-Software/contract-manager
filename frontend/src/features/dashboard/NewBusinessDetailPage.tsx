@@ -132,8 +132,8 @@ export function NewBusinessDetailPage() {
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
       ) : (
-        <div className="rounded-lg border bg-card">
-          <table className="min-w-full text-sm">
+        <div className="overflow-x-auto rounded-lg border bg-card">
+          <table className="table-sticky-first min-w-full text-sm">
             <thead>
               <tr className="border-b text-left text-gray-500">
                 <SortHeader label={t('contracts.customer')} field="customerName" />
