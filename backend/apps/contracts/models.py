@@ -185,6 +185,13 @@ class Contract(TenantModel):
     class Meta:
         ordering = ["-created_at"]
         unique_together = ["tenant", "hubspot_deal_id"]
+        indexes = [
+            # Dashboard/Forecast filtern je Tenant nach Status, die Vertragsliste
+            # sortiert nach updated_at, New Business filtert nach deal_won_date
+            models.Index(fields=["tenant", "status"], name="contract_tenant_status_idx"),
+            models.Index(fields=["tenant", "updated_at"], name="contract_tenant_updated_idx"),
+            models.Index(fields=["tenant", "deal_won_date"], name="contract_tenant_dealwon_idx"),
+        ]
 
     def __str__(self):
         if self.name:
@@ -1292,6 +1299,27 @@ class ContractItem(TenantModel):
         from decimal import Decimal
         return self.unit_price / Decimal(self.price_period_months)
 
+    def _find_price_period(self, target_date):
+        """Preisperiode, die target_date abdeckt (juengstes valid_from gewinnt).
+
+        Sind die price_periods per prefetch_related vorgeladen, wird im Speicher
+        gesucht, sonst per Query. So bleiben Listen-Resolver ohne N+1.
+        """
+        prefetched = getattr(self, "_prefetched_objects_cache", {}).get("price_periods")
+        if prefetched is not None:
+            matching = None
+            for pp in prefetched:
+                if pp.valid_from <= target_date and (pp.valid_to is None or pp.valid_to >= target_date):
+                    if matching is None or pp.valid_from > matching.valid_from:
+                        matching = pp
+            return matching
+
+        return self.price_periods.filter(
+            valid_from__lte=target_date,
+        ).filter(
+            models.Q(valid_to__gte=target_date) | models.Q(valid_to__isnull=True)
+        ).order_by("-valid_from").first()
+
     def get_price_at(self, target_date, normalize_to_monthly: bool = True):
         """
         Get the price for this item at a specific date.
@@ -1310,11 +1338,7 @@ class ContractItem(TenantModel):
         from decimal import Decimal
 
         # Check for a price period that covers this date
-        price_period_record = self.price_periods.filter(
-            valid_from__lte=target_date,
-        ).filter(
-            models.Q(valid_to__gte=target_date) | models.Q(valid_to__isnull=True)
-        ).order_by("-valid_from").first()
+        price_period_record = self._find_price_period(target_date)
 
         if price_period_record:
             price = price_period_record.unit_price
@@ -1384,11 +1408,7 @@ class ContractItem(TenantModel):
             tuple: (price: Decimal, period: str) - The effective price and its period
         """
         # Check for a price period that covers this date
-        price_period_record = self.price_periods.filter(
-            valid_from__lte=target_date,
-        ).filter(
-            models.Q(valid_to__gte=target_date) | models.Q(valid_to__isnull=True)
-        ).order_by("-valid_from").first()
+        price_period_record = self._find_price_period(target_date)
 
         if price_period_record:
             return price_period_record.unit_price, price_period_record.price_period

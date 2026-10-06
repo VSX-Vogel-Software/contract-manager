@@ -25,6 +25,7 @@ from django.db.models import Prefetch, Q
 from django.utils import timezone
 
 from apps.contracts.forecast_cache import (
+    DASHBOARD_KPIS_PREFIX,
     KPI_TRENDS_PREFIX,
     get_cached_forecast,
     set_cached_forecast,
@@ -62,6 +63,34 @@ def _month_end(month_first: date) -> date:
 
 def _point(month_first: date, value) -> dict:
     return {"month": month_label(month_first), "value": float(value)}
+
+
+# ----------------------------------------------------------------
+# Kacheln (dashboardKpis), gecacht
+# ----------------------------------------------------------------
+
+
+def get_dashboard_kpis(tenant) -> tuple[dict, dict]:
+    """calculate_dashboard_kpis mit Forecast-Cache (Praefix dashboard_kpis).
+
+    Liefert (kpis, ytd_by_month). Die Kacheln und der laufende Monat der
+    Verlaeufe lesen dasselbe Ergebnis, damit der letzte Trendpunkt exakt dem
+    Kachelwert entspricht und die Berechnung je Dashboard nur einmal laeuft.
+    Der Tag ist Teil des Schluessels (YTD und Forecast haengen an heute).
+    """
+    from apps.contracts.schema import calculate_dashboard_kpis
+
+    params = {"as_of": date.today().isoformat()}
+    cached = get_cached_forecast(DASHBOARD_KPIS_PREFIX, tenant.id, **params)
+    if cached is not None:
+        return dict(cached["kpis"]), dict(cached["ytd_by_month"])
+
+    ytd_by_month: dict = {}
+    kpis = calculate_dashboard_kpis(tenant, ytd_by_month=ytd_by_month)
+    set_cached_forecast(
+        DASHBOARD_KPIS_PREFIX, tenant, {"kpis": kpis, "ytd_by_month": ytd_by_month}, **params
+    )
+    return dict(kpis), dict(ytd_by_month)
 
 
 # ----------------------------------------------------------------
@@ -276,7 +305,6 @@ def calculate_kpi_trends(tenant, year: int, months: int = 12) -> dict:
     """Alle Verlaeufe als JSON-faehiges dict (Feldnamen wie DashboardKpiTrends)."""
     from apps.contracts.models import DashboardKpiSnapshot
     from apps.contracts.schema import (
-        calculate_dashboard_kpis,
         calculate_new_business_metrics,
         calculate_revenue_by_stream,
     )
@@ -297,11 +325,10 @@ def calculate_kpi_trends(tenant, year: int, months: int = 12) -> dict:
 
     result: dict = {}
 
-    # Laufender Monat = heutiger Kachelwert; liefert zugleich den YTD-Umsatz je Monat
-    ytd_buckets: dict = {}
-    kpis = calculate_dashboard_kpis(
-        tenant, ytd_by_month=ytd_buckets if year == today.year else None
-    )
+    # Laufender Monat = heutiger Kachelwert (dasselbe, ggf. gecachte Ergebnis
+    # wie dashboardKpis); liefert zugleich den YTD-Umsatz je Monat
+    kpis, kpi_ytd_by_month = get_dashboard_kpis(tenant)
+    ytd_buckets: dict = kpi_ytd_by_month if year == today.year else {}
 
     # --- Rollierend: aktive Vertraege, ARR ---
     past_months = window[:-1]

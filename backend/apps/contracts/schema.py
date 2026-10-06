@@ -63,8 +63,14 @@ def _calculate_item_value_over_duration(
     """
     from dateutil.relativedelta import relativedelta
 
-    # Get all price periods for this item, sorted by valid_from
-    price_periods = list(item.price_periods.order_by("valid_from"))
+    # Get all price periods for this item, sorted by valid_from.
+    # Vorgeladene Perioden (prefetch_related) im Speicher sortieren, statt per
+    # order_by am Prefetch vorbei je Position neu abzufragen.
+    prefetched = getattr(item, "_prefetched_objects_cache", {}).get("price_periods")
+    if prefetched is not None:
+        price_periods = sorted(prefetched, key=lambda pp: pp.valid_from)
+    else:
+        price_periods = list(item.price_periods.order_by("valid_from"))
 
     if not price_periods:
         # No specific periods: use base price for entire duration
@@ -125,8 +131,12 @@ def calculate_contract_total_value(contract: "Contract") -> Decimal:
         # Fallback if no end date determinable
         contract_end = contract_start + relativedelta(months=12)
 
-    # Get items with prefetched price_periods
-    items = ContractItem.objects.filter(contract=contract).prefetch_related("price_periods")
+    # Get items with prefetched price_periods; vom Aufrufer vorgeladene
+    # Positionen (prefetch_related("items__price_periods")) wiederverwenden
+    if "items" in getattr(contract, "_prefetched_objects_cache", {}):
+        items = contract.items.all()
+    else:
+        items = ContractItem.objects.filter(contract=contract).prefetch_related("price_periods")
 
     recurring_total = Decimal("0")
     one_off_total = Decimal("0")
@@ -433,10 +443,10 @@ class ContractType:
         """Get all contract items."""
         items = ContractItem.objects.filter(contract=self).select_related(
             "product", "contract", "depends_on", "depends_on__product",
-            "moved_to", "moved_to__contract",
+            "moved_to", "moved_to__contract", "moved_from", "moved_from__contract",
         ).prefetch_related("price_periods", "dependent_items", "dependent_items__product")
-        # Reverse moved_from is a OneToOne — use select_related via prefetch
-        # We'll handle it by catching DoesNotExist below
+        # Reverse moved_from (OneToOne) per select_related: fehlt es, wirft der
+        # Zugriff in _moved_fields DoesNotExist ohne weitere Query
         result = []
         today = date.today()
         for item in items:
@@ -2716,7 +2726,10 @@ class ContractQuery:
                 next_year_discounts=Decimal("0"),
             )
 
-        kpis = calculate_dashboard_kpis(user.tenant)
+        from .kpi_trends import get_dashboard_kpis
+
+        # Gecacht wie der Forecast; dashboardKpiTrends nutzt dasselbe Ergebnis
+        kpis, _ = get_dashboard_kpis(user.tenant)
         return DashboardKPIsType(
             total_active_contracts=kpis["total_active_contracts"],
             total_contract_value=kpis["total_contract_value"],
@@ -3105,8 +3118,10 @@ class ContractQuery:
         }
 
         for contract in contracts:
-            # Optionally filter out one-off items for ARR-only view
-            items_arg = None
+            # Optionally filter out one-off items for ARR-only view.
+            # Immer die vorgeladenen Positionen uebergeben, sonst fragt der
+            # Zeitplan je Vertrag Positionen und Preise neu ab.
+            items_arg = list(contract.items.all())
             if exclude_one_off:
                 items = list(
                     item for item in contract.items.all()
@@ -3398,8 +3413,10 @@ class ContractQuery:
         }
 
         for contract in contracts:
-            # Optionally filter out one-off items for ARR-only view
-            items_arg = None
+            # Optionally filter out one-off items for ARR-only view.
+            # Immer die vorgeladenen Positionen uebergeben, sonst fragt der
+            # Zeitplan je Vertrag Positionen und Preise neu ab.
+            items_arg = list(contract.items.all())
             if exclude_one_off:
                 items = list(
                     item for item in contract.items.all()
@@ -3688,7 +3705,12 @@ class ContractQuery:
         """Get a single contract by ID."""
         user = require_perm(info, "contracts", "read")
         if user.tenant:
-            return Contract.objects.filter(tenant=user.tenant, id=id).first()
+            # Positionen + Preisperioden fuer totalValue/monthlyRecurringValue/arr vorladen
+            return (
+                Contract.objects.filter(tenant=user.tenant, id=id)
+                .prefetch_related("items__price_periods")
+                .first()
+            )
         return None
 
     @strawberry.field
