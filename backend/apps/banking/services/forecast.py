@@ -372,10 +372,13 @@ def get_liquidity_analysis(
     billing_end = year_end - timedelta(days=payment_delay_days)
 
     for contract in contracts:
+        # Vorgeladene Positionen uebergeben, sonst fragt get_billing_schedule
+        # je Vertrag Positionen und Preise erneut ab.
         schedule = contract.get_billing_schedule(
             from_date=billing_start,
             to_date=billing_end,
             include_history=True,
+            items=list(contract.items.all()),
         )
         for event in schedule:
             # Skip if any invoice already exists for this billing event

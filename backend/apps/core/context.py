@@ -8,7 +8,7 @@ from django.http import HttpRequest
 from django.utils import timezone
 from strawberry.django.views import AsyncGraphQLView
 
-from apps.core.auth import decode_token, get_user_from_token
+from apps.core.auth import decode_token, get_user_from_request
 from apps.tenants.models import User
 
 if TYPE_CHECKING:
@@ -44,7 +44,8 @@ def get_context(request: HttpRequest) -> Context:
     auth_header = request.headers.get("Authorization", "")
     if auth_header.startswith("Bearer "):
         token = auth_header[7:]
-        user = get_user_from_token(token)
+        # Bereits von der AuditUserMiddleware geladen -> kein zweiter DB-Load
+        user = get_user_from_request(request)
         if user:
             payload = decode_token(token)
             if payload:

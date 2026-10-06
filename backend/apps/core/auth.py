@@ -99,3 +99,30 @@ def get_user_from_token(token: str) -> User | None:
         return User.objects.select_related("tenant", "role").prefetch_related("roles").get(id=int(user_id), is_active=True)
     except (User.DoesNotExist, ValueError):
         return None
+
+
+# Attribut am Request, unter dem der aus dem Bearer-Token geladene User
+# zwischengespeichert wird (Middleware und GraphQL-Kontext teilen sich so
+# einen einzigen DB-Load je Anfrage).
+_REQUEST_USER_CACHE_ATTR = "_bearer_user_cache"
+
+
+def get_user_from_request(request) -> User | None:
+    """User aus dem Bearer-Token der Anfrage, je Anfrage nur einmal geladen.
+
+    Das Ergebnis (auch None) wird zusammen mit dem Token am Request abgelegt.
+    Ein weiterer Aufruf mit demselben Token liefert das gespeicherte Ergebnis,
+    ein anderes Token (oder keins) fuehrt zu einer neuen Auswertung.
+    """
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return None
+    token = auth_header[7:]
+
+    cached = getattr(request, _REQUEST_USER_CACHE_ATTR, None)
+    if cached is not None and cached[0] == token:
+        return cached[1]
+
+    user = get_user_from_token(token)
+    setattr(request, _REQUEST_USER_CACHE_ATTR, (token, user))
+    return user

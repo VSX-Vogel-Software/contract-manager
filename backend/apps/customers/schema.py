@@ -53,6 +53,31 @@ class CustomerLinkType:
     created_by_name: str | None
 
 
+def annotate_contract_counts(queryset):
+    """Vertragszaehler je Kunde als Annotation statt zwei COUNTs je Zeile.
+
+    Gleiche Bedingungen wie CustomerType.contract_count bzw.
+    active_contract_count, die Resolver lesen die Annotation bevorzugt.
+    """
+    from datetime import date
+    from django.db.models import Count
+    from apps.contracts.models import Contract
+
+    return queryset.annotate(
+        annotated_contract_count=Count(
+            "contracts",
+            filter=~Q(contracts__status=Contract.Status.DELETED),
+            distinct=True,
+        ),
+        annotated_active_contract_count=Count(
+            "contracts",
+            filter=Q(contracts__status=Contract.Status.ACTIVE)
+            & (Q(contracts__end_date__isnull=True) | Q(contracts__end_date__gte=date.today())),
+            distinct=True,
+        ),
+    )
+
+
 @strawberry_django.type(Customer)
 class CustomerType:
     id: auto
@@ -120,6 +145,10 @@ class CustomerType:
         """Get the total number of contracts for this customer."""
         from apps.contracts.models import Contract
 
+        # In der Liste per annotate_contract_counts() vorberechnet
+        annotated = getattr(self, "annotated_contract_count", None)
+        if annotated is not None:
+            return annotated
         return Contract.objects.filter(customer=self).exclude(
             status=Contract.Status.DELETED,
         ).count()
@@ -131,6 +160,10 @@ class CustomerType:
         from django.db.models import Q
         from apps.contracts.models import Contract
 
+        # In der Liste per annotate_contract_counts() vorberechnet
+        annotated = getattr(self, "annotated_active_contract_count", None)
+        if annotated is not None:
+            return annotated
         return Contract.objects.filter(
             Q(end_date__isnull=True) | Q(end_date__gte=date.today()),
             customer=self,
@@ -190,9 +223,9 @@ class CustomerType:
 
         # Get todos: direct customer todos OR todos from customer's contracts
         # Filtered by visibility: user's own todos OR public todos
-        todos = TodoItem.objects.filter(
+        todos = TodoItem.with_comment_count(TodoItem.objects.filter(
             Q(customer=self) | Q(contract_id__in=contract_ids)
-        ).filter(
+        )).filter(
             Q(created_by=user) | Q(is_public=True)
         ).select_related(
             "created_by", "assigned_to", "contract", "contract__customer",
@@ -583,7 +616,7 @@ class CustomerQuery:
 
         # Calculate pagination
         offset = (page - 1) * page_size
-        items = list(queryset[offset : offset + page_size])
+        items = list(annotate_contract_counts(queryset)[offset : offset + page_size])
 
         return CustomerConnection(
             items=items,

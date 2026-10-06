@@ -434,6 +434,18 @@ class InvoiceRecord(TenantModel):
                 name="unique_invoice_number_per_tenant",
             ),
         ]
+        indexes = [
+            # Standardsortierung der Rechnungsliste (invoiceRecords)
+            models.Index(
+                fields=["tenant", "-invoice_date", "-generated_at"],
+                name="idx_invrec_tenant_invdate",
+            ),
+            # Abgleich "Periode schon abgerechnet?" je Vertrag
+            models.Index(
+                fields=["contract", "period_start", "period_end"],
+                name="idx_invrec_contract_period",
+            ),
+        ]
 
     def __str__(self):
         return f"Invoice {self.invoice_number} - {self.customer_name}"

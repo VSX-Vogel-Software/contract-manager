@@ -52,10 +52,21 @@ class CounterpartyType:
     name: str
     iban: str
     bic: str
-    transaction_count: int
     customer_id: int | None = None
     customer_name: str | None = None
     default_cost_center: CostCenterType | None = None
+    # Vorberechneter Zaehler (Annotation txn_count) bzw. das Modell fuer den
+    # Fallback - gezaehlt wird nur, wenn transactionCount angefragt wird.
+    _txn_count: strawberry.Private[int | None] = None
+    _counterparty: strawberry.Private[object | None] = None
+
+    @strawberry.field
+    def transaction_count(self) -> int:
+        if self._txn_count is not None:
+            return self._txn_count
+        if self._counterparty is None:
+            return 0
+        return self._counterparty.transactions.count()
 
 
 @strawberry.type
@@ -486,10 +497,13 @@ def _make_counterparty_type(cp) -> CounterpartyType:
         name=cp.name,
         iban=cp.iban,
         bic=cp.bic,
-        transaction_count=getattr(cp, "txn_count", cp.transactions.count()),
         customer_id=cp.customer_id,
         customer_name=cp.customer.name if cp.customer_id and hasattr(cp, "customer") and cp.customer else None,
         default_cost_center=_make_cost_center_type(dcc),
+        # Frueher getattr(cp, "txn_count", cp.transactions.count()) - der
+        # Default wurde immer ausgewertet, also ein COUNT je Buchung.
+        _txn_count=getattr(cp, "txn_count", None),
+        _counterparty=cp,
     )
 
 

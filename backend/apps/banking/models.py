@@ -163,7 +163,8 @@ class BankTransaction(TenantModel):
                 name="idx_txn_tenant_account_date",
             ),
             models.Index(fields=["amount"], name="idx_txn_amount"),
-            models.Index(fields=["counterparty"], name="idx_txn_counterparty"),
+            # Kein eigener Index auf counterparty: der ForeignKey bringt mit
+            # db_index bereits banking_banktransaction_counterparty_id_* mit.
         ]
         ordering = ["-entry_date", "-id"]
 

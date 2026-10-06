@@ -262,7 +262,7 @@ class TodoQuery:
         if is_completed is not None:
             queryset = queryset.filter(is_completed=is_completed)
 
-        todos = queryset.select_related(
+        todos = TodoItem.with_comment_count(queryset).select_related(
             "created_by", "assigned_to", "contract__customer", "contract_item__product", "contract_item__contract__customer", "customer"
         ).order_by(
             # Null reminder dates last
@@ -280,10 +280,10 @@ class TodoQuery:
             return []
 
         todos = (
-            TodoItem.objects.filter(
+            TodoItem.with_comment_count(TodoItem.objects.filter(
                 tenant=user.tenant,
                 is_public=True,
-            )
+            ))
             .exclude(
                 Q(assigned_to=user) | Q(assigned_to__isnull=True, created_by=user)
             )
@@ -317,7 +317,7 @@ class TodoQuery:
         if not include_completed:
             base_query = base_query.filter(is_completed=False)
 
-        todos = base_query.select_related(
+        todos = TodoItem.with_comment_count(base_query).select_related(
             "created_by", "assigned_to", "contract__customer", "contract_item__product", "contract_item__contract__customer", "customer"
         ).order_by(
             F("reminder_date").asc(nulls_last=True),

@@ -124,7 +124,18 @@ class TodoItem(TenantModel):
     @property
     def comment_count(self):
         """Return the number of comments on this todo."""
+        # In Listen per with_comment_count() vorberechnet, sonst ein COUNT
+        annotated = getattr(self, "annotated_comment_count", None)
+        if annotated is not None:
+            return annotated
         return self.comments.count()
+
+    @staticmethod
+    def with_comment_count(queryset):
+        """Kommentarzahl je Todo als Annotation statt einem COUNT je Zeile."""
+        return queryset.annotate(
+            annotated_comment_count=models.Count("comments", distinct=True)
+        )
 
 
 class TodoComment(TenantModel):

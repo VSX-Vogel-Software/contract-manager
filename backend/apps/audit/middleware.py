@@ -1,7 +1,7 @@
 """Middleware for audit logging."""
 
 from apps.audit.services import clear_current_user, set_current_user
-from apps.core.auth import get_user_from_token
+from apps.core.auth import get_user_from_request
 
 
 class AuditUserMiddleware:
@@ -11,12 +11,9 @@ class AuditUserMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        # Try to get user from Authorization header (JWT)
-        user = None
-        auth_header = request.headers.get("Authorization", "")
-        if auth_header.startswith("Bearer "):
-            token = auth_header[7:]
-            user = get_user_from_token(token)
+        # User aus dem Authorization-Header (JWT); das Ergebnis bleibt am
+        # Request haengen und wird im GraphQL-Kontext wiederverwendet.
+        user = get_user_from_request(request)
 
         # Set the user in thread-local storage
         if user:

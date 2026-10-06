@@ -11,7 +11,7 @@ import strawberry
 import strawberry_django
 from django.conf import settings
 from django.core.files.base import ContentFile
-from django.db.models import Q
+from django.db.models import Prefetch, Q, prefetch_related_objects
 from strawberry.types import Info
 
 from apps.core.context import Context
@@ -658,10 +658,7 @@ class InvoiceQuery:
             record = InvoiceRecord.objects.select_related(
                 "customer", "storno_of",
             ).prefetch_related(
-                "payment_matches__transaction__counterparty",
-                "payment_matches__transaction__account",
-                "payment_matches__matched_by",
-                "storno_records",
+                *_record_prefetches()
             ).get(id=id, tenant=user.tenant)
         except InvoiceRecord.DoesNotExist:
             return None
@@ -675,6 +672,8 @@ class InvoiceQuery:
         user = require_perm(info, "invoices", "read")
         service = InvoiceService(user.tenant)
         records = service.get_persisted_invoices(year, month, status=status)
+        # Kunde, Zahlungen und Mahnungen fuer alle Datensaetze auf einmal laden
+        prefetch_related_objects(records, "customer", "storno_of", *_record_prefetches())
         return [_convert_record(r) for r in records]
 
     @strawberry.field
@@ -694,14 +693,15 @@ class InvoiceQuery:
 
         user = require_perm(info, "invoices", "read")
 
+        # select_related/prefetch decken alles ab, was _convert_record liest -
+        # die Anzahl der Queries haengt so nicht von der Seitengroesse ab.
         qs = InvoiceRecord.objects.filter(
             tenant=user.tenant,
         ).select_related(
+            "customer",
             "storno_of",
         ).prefetch_related(
-            "payment_matches__transaction__counterparty",
-            "payment_matches__matched_by",
-            "storno_records",
+            *_record_prefetches()
         ).exclude(status=InvoiceRecord.Status.DRAFT)
 
         if contract_id:
@@ -3076,6 +3076,26 @@ def _convert_legal_data(ld) -> CompanyLegalDataType:
     )
 
 
+def _record_prefetches() -> tuple:
+    """Prefetches fuer alles, was _convert_record ueber Relationen liest.
+
+    Mahnungen kommen bereits sortiert aus dem Prefetch, damit der Converter
+    kein eigenes order_by() absetzen muss (das wuerde den Prefetch umgehen).
+    """
+    from apps.invoices.models import PaymentReminder
+
+    return (
+        "payment_matches__transaction__counterparty",
+        "payment_matches__transaction__account",
+        "payment_matches__matched_by",
+        "storno_records",
+        Prefetch(
+            "payment_reminders",
+            queryset=PaymentReminder.objects.order_by("-created_at"),
+        ),
+    )
+
+
 def _convert_record(record) -> InvoiceRecordType:
     # Payment matches - use prefetched data if available, otherwise query
     payment_matches = list(record.payment_matches.all())
@@ -3142,11 +3162,19 @@ def _convert_record(record) -> InvoiceRecordType:
         storno_record_number=storno_record_number,
         due_date=record.due_date,
         overdue_days=record.overdue_days,
-        payment_reminders=[
-            _convert_reminder(r)
-            for r in record.payment_reminders.all().order_by("-created_at")
-        ],
+        payment_reminders=[_convert_reminder(r) for r in _sorted_reminders(record)],
     )
+
+
+def _sorted_reminders(record) -> list:
+    """Mahnungen einer Rechnung, neueste zuerst.
+
+    Mit _record_prefetches() sind sie schon sortiert vorgeladen; ohne Prefetch
+    (z.B. frisch erzeugte Datensaetze) wird einmal sortiert abgefragt.
+    """
+    if "payment_reminders" in getattr(record, "_prefetched_objects_cache", {}):
+        return list(record.payment_reminders.all())
+    return list(record.payment_reminders.order_by("-created_at"))
 
 
 def _get_template_type(tenant) -> InvoiceTemplateType:
