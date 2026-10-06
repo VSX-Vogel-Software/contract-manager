@@ -10,6 +10,12 @@ requires-python = ">=3.12"
 dependencies = [
     "django~=6.0.2",
     "strawberry-graphql-django~=0.75.1",
+    # graphql-core 3.3 benennt collect_sub_fields um - strawberry-graphql-django
+    # 0.75.x importiert noch den alten Namen (ImportError beim Start). Ohne
+    # Lock-Datei zog die CI am 06.10.2026 frisch 3.3.0. Pins erst loesen, wenn
+    # strawberry-graphql-django 3.3 unterstuetzt.
+    "graphql-core~=3.2.12",
+    "strawberry-graphql~=0.327.7",
     "psycopg[binary]~=3.3.2",
     "django-environ~=0.13.0",
     "django-auditlog~=3.4.1",
