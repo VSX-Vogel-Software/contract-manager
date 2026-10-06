@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, gql } from '@apollo/client'
 import { Loader2, Palette, Upload, Trash2, FileText, Eye, Sparkles, CheckCircle2, XCircle, ChevronDown, ChevronUp } from 'lucide-react'
 import { ExtractionReviewPanel } from './ExtractionReviewPanel'
+import { PdfPreview } from '@/components/PdfPreview'
 
 const TEMPLATE_QUERY = gql`
   query InvoiceTemplate {
@@ -379,11 +380,11 @@ export function TemplateSettings({ showHeader = true }: TemplateSettingsProps) {
 
                 return (
                   <div key={ref.id} className="rounded-lg border">
-                    <div className="flex items-center justify-between px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <FileText className="h-5 w-5 text-gray-400" />
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">{ref.originalFilename}</p>
+                    <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <FileText className="h-5 w-5 shrink-0 text-gray-400" />
+                        <div className="min-w-0">
+                          <p className="[overflow-wrap:anywhere] text-sm font-medium text-gray-900">{ref.originalFilename}</p>
                           <p className="text-xs text-gray-500">{formatFileSize(ref.fileSize)}</p>
                         </div>
                         {/* Extraction status indicator */}
@@ -479,10 +480,11 @@ export function TemplateSettings({ showHeader = true }: TemplateSettingsProps) {
           </button>
           {previewUrl && (
             <div className="mt-4 rounded-lg border overflow-hidden">
-              <iframe
+              {/* Touch: Knopf "PDF oeffnen" statt iframe (Android/iOS zeigen eingebettete PDFs nicht vollstaendig) */}
+              <PdfPreview
                 src={previewUrl}
                 title="Invoice Preview"
-                className="h-[800px] w-full"
+                className="h-[800px] rounded-none border-0"
               />
             </div>
           )}

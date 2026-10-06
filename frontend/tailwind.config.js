@@ -48,5 +48,25 @@ export default {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    // Mobilunterstuetzung: `touch:` fuer Geraete ohne Mauszeiger, Safe-Area-
+    // Abstaende fuer Notch/Home-Indikator, Scrollleiste ausblenden.
+    // Achtung: `pb-safe` & Co. stehen im CSS nach den Core-Utilities und
+    // ueberschreiben ein gleichzeitig gesetztes `p-3`/`px-2`. Fuer
+    // "Abstand, mindestens Safe Area" stattdessen pb-[max(0.75rem,env(...))].
+    function ({ addVariant, addUtilities }) {
+      addVariant("touch", "@media (hover: none) and (pointer: coarse)")
+      addUtilities({
+        ".pt-safe": { paddingTop: "env(safe-area-inset-top)" },
+        ".pb-safe": { paddingBottom: "env(safe-area-inset-bottom)" },
+        ".pl-safe": { paddingLeft: "env(safe-area-inset-left)" },
+        ".pr-safe": { paddingRight: "env(safe-area-inset-right)" },
+        ".scrollbar-none": {
+          scrollbarWidth: "none",
+          "&::-webkit-scrollbar": { display: "none" },
+        },
+      })
+    },
+  ],
 }

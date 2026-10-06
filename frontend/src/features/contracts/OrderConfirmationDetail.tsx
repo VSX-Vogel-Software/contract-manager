@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatDateTime } from '@/lib/utils'
 import { useDocumentTitle } from '@/lib/useDocumentTitle'
+import { PdfPreview } from '@/components/PdfPreview'
 
 const ORDER_CONFIRMATION_QUERY = gql`
   query OrderConfirmation($id: ID!) {
@@ -146,7 +147,7 @@ export function OrderConfirmationDetail() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <button
             onClick={() => navigate(`/contracts/${id}`)}
@@ -155,12 +156,12 @@ export function OrderConfirmationDetail() {
             <ArrowLeft className="mr-1 h-4 w-4" />
             {t('common.back')}
           </button>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
+          <h1 className="text-2xl font-bold flex items-center gap-2 break-words">
             <FileText className="h-6 w-6" />
             {t('orderConfirmation.detail.title')} {ab.orderConfirmationNumber}
           </h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
             onClick={handleRegenerate}
@@ -213,7 +214,7 @@ export function OrderConfirmationDetail() {
       )}
 
       {/* Metadata Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-500 flex items-center gap-1">
@@ -289,9 +290,9 @@ export function OrderConfirmationDetail() {
       {ab.pdfUrl && (
         <Card>
           <CardContent className="p-0">
-            <iframe
+            <PdfPreview
               src={ab.pdfUrl}
-              className="h-[700px] w-full rounded-b-lg"
+              className="h-[700px] rounded-none rounded-b-lg border-0"
               title="Order Confirmation PDF"
             />
           </CardContent>

@@ -32,6 +32,8 @@ import { cn, formatCurrency, formatDate } from '@/lib/utils'
 import { getToken } from '@/lib/auth'
 import { EmailSendStatus } from '@/components/EmailSendStatus'
 import { SendOfferDialog } from './SendOfferDialog'
+import { PdfPreview } from '@/components/PdfPreview'
+import { useIsTouch } from '@/lib/useMediaQuery'
 
 // ----------------------------------------------------------------------------
 // GraphQL
@@ -215,6 +217,7 @@ export function OfferDetail() {
   const navigate = useNavigate()
   const [showSendDialog, setShowSendDialog] = useState(false)
   const [showRecreateDialog, setShowRecreateDialog] = useState(false)
+  const isTouch = useIsTouch()
   const [toast, setToast] = useState<
     { kind: 'success' | 'error'; text: string } | null
   >(null)
@@ -485,7 +488,7 @@ export function OfferDetail() {
       {toast && (
         <div
           className={cn(
-            'fixed right-4 top-4 z-50 rounded-lg px-4 py-3 text-sm font-medium shadow-lg',
+            'fixed inset-x-2 top-2 z-50 rounded-lg px-4 py-3 text-sm font-medium shadow-lg sm:inset-x-auto sm:right-4 sm:top-4 sm:max-w-md lg:max-w-none',
             toast.kind === 'success'
               ? 'bg-green-100 text-green-800'
               : 'bg-red-100 text-red-800',
@@ -495,15 +498,15 @@ export function OfferDetail() {
         </div>
       )}
 
-      {/* Back + Title */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      {/* Back + Title (unter lg gestapelt, Knoepfe brechen um) */}
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-4">
           <Button variant="ghost" size="sm" onClick={() => navigate('/offers')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             {t('common.back')}
           </Button>
-          <div>
-            <h1 className="flex items-center gap-3 text-2xl font-semibold">
+          <div className="min-w-0">
+            <h1 className="flex flex-wrap items-center gap-3 break-words text-2xl font-semibold">
               {t('offers.detail.title')} {offer.offerNumber}
               <span
                 className={cn(
@@ -531,7 +534,7 @@ export function OfferDetail() {
             </h1>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {pdfBlobUrl && (
             <Button variant="outline" size="sm" asChild>
               <a
@@ -809,8 +812,8 @@ export function OfferDetail() {
           />
 
           {/* Line Items */}
-          <div className="rounded-lg border bg-white">
-            <table className="w-full">
+          <div className="overflow-x-auto rounded-lg border bg-white">
+            <table style={{ ['--sticky-col1' as string]: '3.5rem' }} className="table-sticky-first-two w-full">
               <thead>
                 <tr className="border-b bg-gray-50">
                   <th className="px-4 py-2 text-left text-xs font-medium uppercase text-gray-500">
@@ -921,7 +924,10 @@ export function OfferDetail() {
               })}
             </p>
           )}
-          {pdfBlobUrl ? (
+          {pdfBlobUrl && isTouch ? (
+            // Touch: eingebettete PDFs zeigen Android gar nicht, iOS nur Seite 1
+            <PdfPreview src={pdfBlobUrl} title={`Offer ${offer.offerNumber}`} fileName={`${offer.offerNumber}.pdf`} />
+          ) : pdfBlobUrl ? (
             <div
               className="overflow-hidden rounded-lg border bg-white"
               style={{ height: '80vh' }}

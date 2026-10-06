@@ -20,6 +20,8 @@ import { usePersistedState } from '@/lib/usePersistedState'
 import { useAuth } from '@/lib/auth'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { HelpVideoButton } from '@/components/HelpVideoButton'
+import { MobileCard, MobileCardList } from '@/components/MobileCard'
+import { MobileSortControl } from '@/components/MobileSortControl'
 
 const CONTRACT_PRICE_INCREASES_QUERY = gql`
   query ContractPriceIncreases($year: Int!) {
@@ -308,14 +310,15 @@ export function ContractList() {
   return (
     <div>
       {tableOverflows && (
-        <div className="mb-4 flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+        // Unter md zeigen Karten statt Tabelle - der Hinweis gilt dort nicht
+        <div className="mb-4 hidden items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800 md:flex">
           <AlertTriangle className="h-4 w-4 flex-shrink-0" />
           {t('contracts.tableOverflowWarning')}
         </div>
       )}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">{t('contracts.title')}</h1>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4">
           {!loading && (
             <span className="text-sm text-gray-500">
               {totalCount} {t('contracts.total')}
@@ -350,7 +353,7 @@ export function ContractList() {
 
       {/* Search and Filter */}
       <div className="mt-4 flex flex-wrap items-center gap-4">
-        <form onSubmit={handleSearch} className="flex-1">
+        <form onSubmit={handleSearch} className="w-full flex-1 sm:w-auto">
           <div className="relative max-w-md">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <input
@@ -363,12 +366,12 @@ export function ContractList() {
           </div>
         </form>
 
-        <div className="flex items-center gap-2">
+        <div className="flex w-full items-center gap-2 sm:w-auto">
           <Filter className="h-4 w-4 text-gray-400" />
           <select
             value={statusFilter}
             onChange={(e) => handleStatusFilter(e.target.value)}
-            className="rounded-md border border-gray-300 py-2 pl-3 pr-8 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="min-w-0 flex-1 rounded-md border border-gray-300 py-2 pl-3 pr-8 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:flex-none"
           >
             <option value="">{t('contracts.allStatuses')}</option>
             {CONTRACT_STATUSES.map((status) => (
@@ -425,8 +428,102 @@ export function ContractList() {
         </div>
       ) : (
         <>
-          <div ref={tableRef} className="mt-4 overflow-hidden rounded-lg border">
-            <table className="min-w-full divide-y divide-gray-200">
+          {isPriceIncreaseFilter ? (
+            <MobileSortControl<typeof piSortField>
+              className="mt-4"
+              options={[
+                { value: 'contractName', label: t('contracts.form.name') },
+                { value: 'customerName', label: t('contracts.customer') },
+                { value: 'currentArr', label: t('contracts.arr') },
+                { value: 'previousArr', label: t('contracts.previousArr') },
+                { value: 'arrDiff', label: t('contracts.arrDiff') },
+              ]}
+              sortBy={piSortField}
+              sortOrder={piSortOrder}
+              onSortByChange={setPiSortField}
+              onSortOrderChange={setPiSortOrder}
+            />
+          ) : (
+            <MobileSortControl<SortField>
+              className="mt-4"
+              options={[
+                { value: 'name', label: t('contracts.form.name') },
+                { value: 'customer_name', label: t('contracts.customer') },
+                { value: 'status', label: t('contracts.statusLabel') },
+                { value: 'start_date', label: t('contracts.startDate') },
+                { value: 'end_date', label: t('contracts.endDate') },
+                { value: 'arr', label: t('contracts.arr') },
+                { value: 'updated_at', label: t('contracts.updatedAt') },
+              ]}
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              onSortByChange={(field) => {
+                setSortBy(field)
+                setPage(1)
+              }}
+              onSortOrderChange={(order) => {
+                setSortOrder(order)
+                setPage(1)
+              }}
+            />
+          )}
+          <MobileCardList className="mt-4" data-testid="contracts-cards">
+            {isPriceIncreaseFilter
+              ? priceIncreaseContracts.map((pi) => (
+                  <MobileCard
+                    key={pi.contractId}
+                    to={`/contracts/${pi.contractId}`}
+                    data-testid={`contract-card-${pi.contractId}`}
+                    title={pi.contractName || '-'}
+                    subtitle={pi.customerName}
+                    meta={`${t('contracts.previousArr')}: ${formatCurrency(pi.previousArr)}`}
+                    amount={
+                      <span>
+                        {formatCurrency(pi.currentArr)}{' '}
+                        <span className="text-emerald-600">+{formatCurrency(pi.arrDiff)}</span>
+                      </span>
+                    }
+                  />
+                ))
+              : displayContracts.map((contract) => (
+                  <MobileCard
+                    key={contract.id}
+                    to={`/contracts/${contract.id}`}
+                    data-testid={`contract-card-${contract.id}`}
+                    title={contract.name || '-'}
+                    badge={
+                      <span
+                        className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${getStatusBadgeClass(
+                          contract.status
+                        )}`}
+                      >
+                        {t(`contracts.status.${contract.status}`)}
+                      </span>
+                    }
+                    meta={
+                      showDates
+                        ? `${formatDate(contract.startDate)} – ${formatDate(contract.endDate)}`
+                        : `${t('contracts.updatedAt')}: ${formatDate(contract.updatedAt)}`
+                    }
+                    amount={
+                      <span className={contract.arr && parseFloat(contract.arr) < 0 ? 'text-red-600' : undefined}>
+                        {formatCurrency(contract.arr)}
+                      </span>
+                    }
+                    actions={
+                      <Link
+                        to={`/customers/${contract.customer.id}`}
+                        className="text-sm text-blue-600 hover:text-blue-800"
+                        data-testid={`contract-card-customer-link-${contract.id}`}
+                      >
+                        {t('contracts.customer')}: {contract.customer.name}
+                      </Link>
+                    }
+                  />
+                ))}
+          </MobileCardList>
+          <div ref={tableRef} className="mt-4 hidden overflow-x-auto rounded-lg border md:block">
+            <table className="table-sticky-first min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 {isPriceIncreaseFilter ? (
                   <tr>
@@ -614,7 +711,7 @@ export function ContractList() {
 
           {/* Pagination */}
           {!isPriceIncreaseFilter && totalPages > 1 && (
-            <div className="mt-4 flex items-center justify-between">
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-gray-500">
                 {t('common.pagination.showing', {
                   from: (page - 1) * PAGE_SIZE + 1,

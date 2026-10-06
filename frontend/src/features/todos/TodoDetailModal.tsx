@@ -290,7 +290,7 @@ export function TodoDetailModal({ todoId, open, onOpenChange, canEdit, canReassi
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           </div>
         ) : todo && (
-          <div className="flex gap-6">
+          <div className="flex flex-col gap-6 sm:flex-row">
             {/* Left: text + comments */}
             <div className="flex-1 min-w-0 space-y-4">
               {/* Todo text */}
@@ -368,7 +368,7 @@ export function TodoDetailModal({ todoId, open, onOpenChange, canEdit, canReassi
             </div>
 
             {/* Right sidebar: metadata */}
-            <div className="w-48 shrink-0 space-y-4 text-sm">
+            <div className="w-full shrink-0 space-y-4 text-sm sm:w-48">
               {/* Entity link */}
               <div>
                 <p className="text-xs text-muted-foreground mb-1">{t('todos.linkedTo')}</p>

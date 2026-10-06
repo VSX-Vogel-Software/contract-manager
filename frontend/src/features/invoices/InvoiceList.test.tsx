@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { InvoiceList } from './InvoiceList'
+import { setViewportWidth } from '@/test/setup'
 
 // --- Helpers to build mock data ---
 
@@ -255,5 +256,23 @@ describe('InvoiceList pagination', () => {
     // Should show all 20 server-returned items (no client slicing)
     expect(screen.getByText('INV-0001')).toBeInTheDocument()
     expect(screen.getByText('INV-0020')).toBeInTheDocument()
+  })
+  it('renders cards instead of the table on phones, with the same rows', () => {
+    setViewportWidth(375)
+    setupEmptyQueries()
+    const items = Array.from({ length: 3 }, (_, i) => makeInvoice(i + 1))
+    setQueryData('query Invoices', {
+      invoices: { items, totalCount: 3, hasNextPage: false },
+    })
+    setQueryData('query InvoiceRecords', {
+      invoiceRecords: { items: [], totalCount: 0, hasNextPage: false },
+    })
+
+    renderInvoiceList()
+
+    expect(screen.getByTestId('invoice-cards')).toBeInTheDocument()
+    expect(document.querySelector('table')).toBeNull()
+    expect(screen.getByTestId('invoice-card-imp-1')).toHaveTextContent('INV-0001')
+    expect(screen.getByText('INV-0003').closest('a')).toHaveAttribute('href', '/invoices/3?type=imported')
   })
 })

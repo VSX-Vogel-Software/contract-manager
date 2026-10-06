@@ -83,7 +83,8 @@ import {
   DndContext,
   closestCenter,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -97,6 +98,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { HelpVideoButton } from '@/components/HelpVideoButton'
+import { ScrollTabs } from '@/components/ScrollTabs'
 import { OrderConfirmationDialog } from './OrderConfirmationDialog'
 import { CommentsSection } from '@/components/CommentsSection'
 import { FileDropZone } from '@/components/FileDropZone'
@@ -912,7 +914,9 @@ export function ContractDetail() {
   const contract = data?.contract as Contract | undefined
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    // Maus wie bisher; Touch erst nach kurzem Halten, damit Wischen weiter scrollt
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
@@ -1121,8 +1125,8 @@ export function ContractDetail() {
   return (
     <div>
       {/* Header */}
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4 min-w-0">
+      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-4">
           <button
             onClick={() => navigate('/contracts')}
             className="inline-flex items-center text-gray-600 hover:text-gray-900"
@@ -1130,8 +1134,8 @@ export function ContractDetail() {
             <ArrowLeft className="mr-1 h-4 w-4" />
             {t('common.back')}
           </button>
-          <div>
-            <h1 className="text-2xl font-bold">
+          <div className="min-w-0 lg:min-w-[auto]">
+            <h1 className="text-2xl font-bold break-words">
               {contract.name || contract.customer.name} <span className="text-base font-normal text-gray-400">[{contract.id}]</span>
             </h1>
             <Link to={`/customers/${contract.customer.id}`} className="text-sm text-blue-600 hover:text-blue-800 hover:underline">
@@ -1317,7 +1321,7 @@ export function ContractDetail() {
       </Dialog>
 
       {/* Overview Cards */}
-      <div className="mb-6 grid gap-4 md:grid-cols-5">
+      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
         <div className="rounded-lg border bg-white p-4">
           <p className="text-sm text-gray-500">{t('contracts.startDate')}</p>
           <p className="text-lg font-semibold">{formatDate(contract.startDate)}</p>
@@ -1401,9 +1405,11 @@ export function ContractDetail() {
 
       {/* Tabs */}
       <div className="mb-4 border-b">
-        <nav className="-mb-px flex gap-4">
+        <ScrollTabs className="-mb-px gap-4" activeKey={activeTab} data-testid="contract-detail-tabs">
           <button
             onClick={() => setActiveTab('items')}
+            aria-current={activeTab === 'items' ? 'page' : undefined}
+            data-testid="contract-tab-items"
             className={`inline-flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium ${
               activeTab === 'items'
                 ? 'border-blue-500 text-blue-600'
@@ -1415,6 +1421,8 @@ export function ContractDetail() {
           </button>
           <button
             onClick={() => setActiveTab('invoices')}
+            aria-current={activeTab === 'invoices' ? 'page' : undefined}
+            data-testid="contract-tab-invoices"
             className={`inline-flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium ${
               activeTab === 'invoices'
                 ? 'border-blue-500 text-blue-600'
@@ -1426,6 +1434,8 @@ export function ContractDetail() {
           </button>
           <button
             onClick={() => setActiveTab('amendments')}
+            aria-current={activeTab === 'amendments' ? 'page' : undefined}
+            data-testid="contract-tab-amendments"
             className={`inline-flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium ${
               activeTab === 'amendments'
                 ? 'border-blue-500 text-blue-600'
@@ -1437,6 +1447,8 @@ export function ContractDetail() {
           </button>
           <button
             onClick={() => setActiveTab('forecast')}
+            aria-current={activeTab === 'forecast' ? 'page' : undefined}
+            data-testid="contract-tab-forecast"
             className={`inline-flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium ${
               activeTab === 'forecast'
                 ? 'border-blue-500 text-blue-600'
@@ -1448,6 +1460,8 @@ export function ContractDetail() {
           </button>
           <button
             onClick={() => setActiveTab('attachments')}
+            aria-current={activeTab === 'attachments' ? 'page' : undefined}
+            data-testid="contract-tab-attachments"
             className={`inline-flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium ${
               activeTab === 'attachments'
                 ? 'border-blue-500 text-blue-600'
@@ -1459,6 +1473,8 @@ export function ContractDetail() {
           </button>
           <button
             onClick={() => setActiveTab('todos')}
+            aria-current={activeTab === 'todos' ? 'page' : undefined}
+            data-testid="contract-tab-todos"
             className={`inline-flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium ${
               activeTab === 'todos'
                 ? 'border-blue-500 text-blue-600'
@@ -1474,6 +1490,8 @@ export function ContractDetail() {
           </button>
           <button
             onClick={() => setActiveTab('timeTracking')}
+            aria-current={activeTab === 'timeTracking' ? 'page' : undefined}
+            data-testid="contract-tab-timeTracking"
             className={`inline-flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium ${
               activeTab === 'timeTracking'
                 ? 'border-blue-500 text-blue-600'
@@ -1492,6 +1510,8 @@ export function ContractDetail() {
           </button>
           <button
             onClick={() => setActiveTab('activity')}
+            aria-current={activeTab === 'activity' ? 'page' : undefined}
+            data-testid="contract-tab-activity"
             className={`inline-flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium ${
               activeTab === 'activity'
                 ? 'border-blue-500 text-blue-600'
@@ -1501,21 +1521,21 @@ export function ContractDetail() {
             <History className="h-4 w-4" />
             {t('audit.activity')}
           </button>
-        </nav>
+        </ScrollTabs>
       </div>
 
       {/* Items Tab */}
       {activeTab === 'items' && (
         <div>
           {canEdit && (
-            <div className="mb-4 flex items-center gap-3">
+            <div className="mb-4 flex flex-wrap items-center gap-3">
               {contract.hasInvoices && (
-                <div className="flex flex-1 items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                <div className="flex flex-1 basis-full items-start gap-3 sm:basis-0 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
                   <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                   <span>{t('contracts.detail.invoiceWarning')}</span>
                 </div>
               )}
-              <div className="ml-auto flex shrink-0 gap-2">
+              <div className="ml-auto flex flex-wrap shrink-0 gap-2">
                 {recurringItems.length > 0 && (
                   <button
                     onClick={() => setShowPriceIncreaseModal(true)}
@@ -1550,8 +1570,8 @@ export function ContractDetail() {
                   collisionDetection={closestCenter}
                   onDragEnd={(event) => handleDragEnd(event, false)}
                 >
-                  <div className="overflow-hidden rounded-lg border">
-                    <table className="min-w-full divide-y divide-gray-200">
+                  <div className="overflow-x-auto rounded-lg border">
+                    <table style={{ ['--sticky-col1' as string]: '2rem' }} className={`${canEdit ? 'table-sticky-first-two' : 'table-sticky-first'} table-sticky-capped min-w-[800px] lg:min-w-full divide-y divide-gray-200`}>
                       <thead className="bg-gray-50">
                         <tr>
                           {canEdit && (
@@ -1599,13 +1619,13 @@ export function ContractDetail() {
                                   <tr ref={ref} style={style}>
                                     {canEdit && (
                                       <td className="w-8 px-2 py-4">
-                                        <span {...dragHandleProps} className="text-gray-400 hover:text-gray-600">
+                                        <span {...dragHandleProps} className="text-gray-400 hover:text-gray-600 touch:inline-flex touch:p-2">
                                           <GripVertical className="h-4 w-4" />
                                         </span>
                                       </td>
                                     )}
                                     <td className="px-6 py-4">
-                                      <div className="flex items-center gap-2">
+                                      <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
                                         <span className="font-medium text-gray-900">{itemName}</span>
                                         {item.deliveryStatus === 'pending' && (
                                           <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
@@ -1763,8 +1783,8 @@ export function ContractDetail() {
                     <h3 className="mb-2 text-sm font-medium text-gray-700">
                       {t('contracts.detail.oneOffItems')}
                     </h3>
-                    <div className="overflow-hidden rounded-lg border">
-                      <table className="min-w-full divide-y divide-gray-200">
+                    <div className="overflow-x-auto rounded-lg border">
+                      <table style={{ ['--sticky-col1' as string]: '2rem' }} className={`${canEdit ? 'table-sticky-first-two' : 'table-sticky-first'} table-sticky-capped min-w-[640px] md:min-w-full divide-y divide-gray-200`}>
                         <thead className="bg-gray-50">
                           <tr>
                             {canEdit && (
@@ -1800,13 +1820,13 @@ export function ContractDetail() {
                                     <tr ref={ref} style={style}>
                                       {canEdit && (
                                         <td className="w-8 px-2 py-4">
-                                          <span {...dragHandleProps} className="text-gray-400 hover:text-gray-600">
+                                          <span {...dragHandleProps} className="text-gray-400 hover:text-gray-600 touch:inline-flex touch:p-2">
                                             <GripVertical className="h-4 w-4" />
                                           </span>
                                         </td>
                                       )}
                                       <td className="px-6 py-4">
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
                                           <span className="font-medium text-gray-900">{itemName}</span>
                                           {item.deliveryStatus === 'pending' && (
                                             <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
@@ -2016,8 +2036,8 @@ export function ContractDetail() {
               <p className="text-gray-500">{t('contracts.noInvoices')}</p>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-lg border">
-              <table className="min-w-full divide-y divide-gray-200">
+            <div className="overflow-x-auto rounded-lg border">
+              <table className="table-sticky-first min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
@@ -2807,7 +2827,7 @@ function AddItemModal({
 
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[700px] max-h-[85vh] flex flex-col">
+      <DialogContent className="sm:max-w-[700px] max-h-[85dvh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{t('contracts.detail.addItem')}</DialogTitle>
         </DialogHeader>
@@ -2820,7 +2840,7 @@ function AddItemModal({
 
         <div className="space-y-4 py-4 overflow-y-auto flex-1">
           {/* Product + Description - 2 columns */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">{t('contracts.item.product')}</label>
               <Popover open={productSearchOpen} onOpenChange={setProductSearchOpen}>
@@ -2906,7 +2926,7 @@ function AddItemModal({
           </div>
 
           {/* Quantity, Unit Price, Price Period, Price Source - 4 columns */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">{t('contracts.item.quantity')} *</label>
               <Input
@@ -3021,7 +3041,7 @@ function AddItemModal({
               </div>
 
               {/* Delivery Tracking + Depends On */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex items-center space-x-2">
                   <Switch
                     id="delivery-tracking"
@@ -3074,7 +3094,7 @@ function AddItemModal({
               )}
 
               {/* Start Date + Billing Start Date - 2 columns */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">
                     {t('contracts.item.startDate')}{' '}
@@ -3397,7 +3417,7 @@ function EditItemModal({
 
   return (
     <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[900px] max-h-[85vh] flex flex-col">
+      <DialogContent className="sm:max-w-[900px] max-h-[85dvh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{t('common.edit')}: {itemDisplayName}</DialogTitle>
         </DialogHeader>
@@ -3412,7 +3432,7 @@ function EditItemModal({
 
         <div className="space-y-4 py-4 overflow-y-auto flex-1">
           {/* Product + Description - 2 columns */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">{t('contracts.item.product')}</label>
               <Popover open={productSearchOpen} onOpenChange={setProductSearchOpen}>
@@ -3498,7 +3518,7 @@ function EditItemModal({
           </div>
 
           {/* Quantity, Unit Price, Price Period, Price Source - 4 columns */}
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">{t('contracts.item.quantity')} *</label>
               <Input
@@ -3610,7 +3630,7 @@ function EditItemModal({
                         {editingPeriodId === period.id ? (
                           /* Edit Mode */
                           <div className="space-y-2">
-                            <div className="grid grid-cols-5 gap-2">
+                            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                               <div>
                                 <label className="text-xs text-gray-500">{t('contracts.item.periodFrom')}</label>
                                 <Input
@@ -3743,7 +3763,7 @@ function EditItemModal({
                 )}
 
                 {/* Add New Price Period */}
-                <div className="grid grid-cols-5 gap-2 pt-2 border-t">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-2 border-t">
                   <div>
                     <label className="text-xs text-gray-500">{t('contracts.item.periodFrom')}</label>
                     <Input
@@ -3954,7 +3974,7 @@ function EditItemModal({
               </div>
 
               {/* Start Date + Billing Start Date - 2 columns */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">
                     {t('contracts.item.startDate')}{' '}
@@ -3996,7 +4016,7 @@ function EditItemModal({
               </div>
 
               {/* Billing End Date + Align to Contract At - 2 columns */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">{t('contracts.item.billingEndDate')}</label>
                   <div className="flex gap-1">
@@ -4344,7 +4364,7 @@ function ForecastTab({ contractId }: { contractId: string }) {
   return (
     <div>
       {/* Controls */}
-      <div className="mb-4 flex items-center gap-4">
+      <div className="mb-4 flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2">
           <label className="text-sm font-medium">{t('contracts.forecast.months')}:</label>
           <Select value={months} onValueChange={setMonths}>
@@ -4382,8 +4402,8 @@ function ForecastTab({ contractId }: { contractId: string }) {
       ) : (
         <div className="space-y-4">
           {/* Billing Events Table */}
-          <div className="overflow-hidden rounded-lg border">
-            <table className="min-w-full divide-y divide-gray-200">
+          <div className="overflow-x-auto rounded-lg border">
+            <table className="table-sticky-first min-w-[560px] md:min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
@@ -4470,7 +4490,7 @@ function ForecastTab({ contractId }: { contractId: string }) {
                         <button
                           onClick={() => handleInvoiceUpload(event.date)}
                           disabled={uploadingForDate !== null}
-                          className="inline-flex items-center gap-1 rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:opacity-50"
+                          className="inline-flex items-center gap-1 rounded p-1 touch:p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:opacity-50"
                           title={t('contracts.forecast.importInvoice')}
                         >
                           {uploadingForDate === event.date ? (
@@ -4501,7 +4521,7 @@ function ForecastTab({ contractId }: { contractId: string }) {
                           <button
                             onClick={() => handleCreateOffer(event.date)}
                             disabled={creatingForDate !== null}
-                            className="inline-flex items-center gap-1 rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:opacity-50"
+                            className="inline-flex items-center gap-1 rounded p-1 touch:p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:opacity-50"
                             title={t('offers.forecast.createOffer')}
                           >
                             {creatingForDate === event.date ? (
@@ -4982,7 +5002,7 @@ function AttachmentsTab({
           </div>
         )
       ) : (
-        <div className="overflow-hidden rounded-lg border">
+        <div className="overflow-x-auto rounded-lg border">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -5205,7 +5225,7 @@ function AttachmentsTab({
         {/* Add Link Form */}
         {showAddLink && (
           <div className="mb-4 rounded-lg border bg-white p-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">{t('links.name')}</label>
                 <Input
@@ -5255,7 +5275,7 @@ function AttachmentsTab({
             <p className="mt-2 text-gray-600">{t('links.noLinks')}</p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-lg border">
+          <div className="overflow-x-auto rounded-lg border">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>

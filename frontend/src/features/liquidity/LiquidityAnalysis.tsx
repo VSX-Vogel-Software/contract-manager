@@ -151,9 +151,9 @@ export function LiquidityAnalysis() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-lg font-medium">{t('forecasts.liquidity.title', { year: currentYear })}</h2>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <div className="flex items-center gap-2 text-sm text-gray-500">
             <span>{t('forecasts.liquidity.paymentDelay')}:</span>
             <Input
@@ -185,7 +185,7 @@ export function LiquidityAnalysis() {
       </div>
 
       {/* Chart */}
-      <div className="rounded-lg border bg-white p-6">
+      <div className="rounded-lg border bg-white p-2 sm:p-6">
         <ResponsiveContainer width="100%" height={350}>
           <ComposedChart data={chartData} stackOffset="sign">
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
@@ -239,7 +239,7 @@ export function LiquidityAnalysis() {
       {/* Summary Table */}
       <div className="rounded-lg border bg-white overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
+          <table className="table-sticky-first min-w-full divide-y divide-gray-200 text-sm">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-4 py-3 text-left font-medium text-gray-500">

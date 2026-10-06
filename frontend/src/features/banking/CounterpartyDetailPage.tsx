@@ -43,6 +43,7 @@ import { Button } from '@/components/ui/button'
 import { TransactionMatchSheet } from './TransactionMatchSheet'
 import { IncomingInvoiceDetail } from '../incoming-invoices/IncomingInvoiceDetail'
 import { Badge } from '@/components/ui/badge'
+import { ScrollTabs } from '@/components/ScrollTabs'
 import { Link2, FileText, Receipt, AlertTriangle } from 'lucide-react'
 
 const COUNTERPARTY_DETAIL = gql`
@@ -703,9 +704,9 @@ export function CounterpartyDetailPage() {
       </button>
 
       {/* Page Title with Edit and Merge */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 lg:flex-nowrap">
         {isEditing ? (
-          <div className="flex items-center gap-2">
+          <div className="flex w-full items-center gap-2 sm:w-auto">
             <input
               ref={editInputRef}
               type="text"
@@ -715,7 +716,7 @@ export function CounterpartyDetailPage() {
                 if (e.key === 'Enter') handleSaveRename()
                 if (e.key === 'Escape') setIsEditing(false)
               }}
-              className="rounded-md border border-blue-500 px-3 py-1.5 text-2xl font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="min-w-0 flex-1 rounded-md border border-blue-500 px-3 py-1.5 text-2xl font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 sm:flex-none"
             />
             <button
               onClick={handleSaveRename}
@@ -733,7 +734,7 @@ export function CounterpartyDetailPage() {
           </div>
         ) : (
           <>
-            <h1 className="text-2xl font-bold text-gray-900">{summary?.name}</h1>
+            <h1 className="min-w-0 break-words text-2xl font-bold text-gray-900 lg:min-w-[auto]">{summary?.name}</h1>
             <Badge
               variant="secondary"
               className={accountType === 'debtor' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}
@@ -743,14 +744,14 @@ export function CounterpartyDetailPage() {
             </Badge>
             <button
               onClick={handleStartEdit}
-              className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 touch:p-2.5"
               title={t('common.rename')}
             >
               <Pencil className="h-4 w-4" />
             </button>
             <button
               onClick={() => setMergeDialogOpen(true)}
-              className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 touch:p-2.5"
               title={t('banking.mergeCounterparty')}
             >
               <GitMerge className="h-4 w-4" />
@@ -763,7 +764,7 @@ export function CounterpartyDetailPage() {
                 setCustomerLinkDialogOpen(true)
                 setCustomerPopoverOpen(true)
               }}
-              className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              className="rounded-md p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 touch:p-2.5"
               title={t('banking.linkToCustomer')}
             >
               <LinkIcon className="h-4 w-4" />
@@ -785,7 +786,7 @@ export function CounterpartyDetailPage() {
           <button
             onClick={handleUnlinkCustomer}
             disabled={unlinking}
-            className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-red-600"
+            className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-red-600 touch:p-2"
             title={t('banking.unlinkCustomer')}
           >
             {unlinking ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Unlink className="h-3.5 w-3.5" />}
@@ -795,7 +796,7 @@ export function CounterpartyDetailPage() {
 
       {/* IBAN/BIC if available */}
       {(summary?.iban || summary?.bic) && (
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-gray-500 [overflow-wrap:anywhere]">
           {summary?.iban && <span>{summary.iban}</span>}
           {summary?.iban && summary?.bic && <span> / </span>}
           {summary?.bic && <span>{summary.bic}</span>}
@@ -803,14 +804,14 @@ export function CounterpartyDetailPage() {
       )}
 
       {/* Default Cost Center */}
-      <div className="mt-2 flex items-center gap-2">
+      <div className="mt-2 flex flex-wrap items-center gap-2">
         <span className="text-sm text-gray-500">{t('costCenters.defaultCostCenter')}:</span>
         <select
           value={summary?.defaultCostCenter?.id || ''}
           onChange={async (e) => {
             await updateCounterparty({ variables: { input: { id, defaultCostCenterId: e.target.value || null } } })
           }}
-          className="rounded-md border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="w-full min-w-0 rounded-md border border-gray-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:w-auto sm:max-w-full"
         >
           <option value="">{t('costCenters.noCostCenter')}</option>
           {(costCentersData?.costCenters || []).map((cc: { id: string; code: string; name: string }) => (
@@ -842,7 +843,7 @@ export function CounterpartyDetailPage() {
                   {mergeTargetName || t('banking.selectCounterparty')}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[400px] p-0" align="start">
+              <PopoverContent className="w-[400px] max-w-[calc(100vw-1rem)] p-0" align="start">
                 <Command shouldFilter={false}>
                   <CommandInput
                     placeholder={t('common.search')}
@@ -919,7 +920,7 @@ export function CounterpartyDetailPage() {
                   {t('banking.searchCustomers')}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[400px] p-0" align="start"
+              <PopoverContent className="w-[400px] max-w-[calc(100vw-1rem)] p-0" align="start"
                 onOpenAutoFocus={(e) => {
                   e.preventDefault()
                   setTimeout(() => customerSearchInputRef.current?.focus(), 0)
@@ -1119,9 +1120,10 @@ export function CounterpartyDetailPage() {
 
       {/* Tabs */}
       <div className="mt-6">
-        <div className="flex gap-1 border-b mb-4">
+        <ScrollTabs className="gap-1 border-b mb-4" activeKey={activeTab} data-testid="counterparty-tabs">
           <button
             onClick={() => setActiveTab('account')}
+            aria-current={activeTab === 'account' ? 'page' : undefined}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
               activeTab === 'account'
                 ? 'border-blue-600 text-blue-600'
@@ -1132,6 +1134,7 @@ export function CounterpartyDetailPage() {
           </button>
           <button
             onClick={() => setActiveTab('transactions')}
+            aria-current={activeTab === 'transactions' ? 'page' : undefined}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
               activeTab === 'transactions'
                 ? 'border-blue-600 text-blue-600'
@@ -1145,6 +1148,7 @@ export function CounterpartyDetailPage() {
           </button>
           <button
             onClick={() => setActiveTab('invoices')}
+            aria-current={activeTab === 'invoices' ? 'page' : undefined}
             className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
               activeTab === 'invoices'
                 ? 'border-blue-600 text-blue-600'
@@ -1159,6 +1163,7 @@ export function CounterpartyDetailPage() {
           {linkedCustomerId && (
             <button
               onClick={() => setActiveTab('outgoing')}
+              aria-current={activeTab === 'outgoing' ? 'page' : undefined}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === 'outgoing'
                   ? 'border-blue-600 text-blue-600'
@@ -1171,7 +1176,7 @@ export function CounterpartyDetailPage() {
               )}
             </button>
           )}
-        </div>
+        </ScrollTabs>
       </div>
 
       {/* Account Tab — type-aware ledger */}
@@ -1340,7 +1345,7 @@ export function CounterpartyDetailPage() {
             </div>
           ) : (
             <div className="overflow-x-auto rounded-lg border bg-white">
-              <table className="w-full table-fixed text-sm">
+              <table className="table-sticky-first w-full min-w-[720px] table-fixed text-sm">
                 <thead>
                   <tr className="border-b bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
                     <th className="w-[12%] cursor-pointer whitespace-nowrap px-4 py-3" onClick={() => setLedgerSortOrder(ledgerSortOrder === 'asc' ? 'desc' : 'asc')}>
@@ -1395,7 +1400,7 @@ export function CounterpartyDetailPage() {
       <div className="space-y-4">
         {/* Transaction Table */}
         <div className="overflow-x-auto rounded-lg border bg-white">
-          <table className="w-full table-fixed text-sm">
+          <table className="table-sticky-first w-full min-w-[720px] table-fixed text-sm">
             <thead>
               <tr className="border-b bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
                 <th
@@ -1639,7 +1644,7 @@ export function CounterpartyDetailPage() {
           ) : (
             <>
               <div className="overflow-x-auto rounded-lg border bg-white">
-                <table className="w-full table-fixed text-sm">
+                <table className="table-sticky-first w-full min-w-[720px] table-fixed text-sm">
                   <thead>
                     <tr className="border-b bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
                       <th className="w-[12%] cursor-pointer whitespace-nowrap px-4 py-3" onClick={() => handleInvSort('invoice_date')}>
@@ -1760,7 +1765,7 @@ export function CounterpartyDetailPage() {
           ) : (
             <>
               <div className="overflow-x-auto rounded-lg border bg-white">
-                <table className="w-full table-fixed text-sm">
+                <table className="table-sticky-first w-full min-w-[720px] table-fixed text-sm">
                   <thead>
                     <tr className="border-b bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
                       <th className="w-[12%] cursor-pointer px-4 py-3" onClick={() => { setOutSortBy('invoiceDate'); setOutSortOrder(outSortBy === 'invoiceDate' && outSortOrder === 'desc' ? 'asc' : 'desc') }}>

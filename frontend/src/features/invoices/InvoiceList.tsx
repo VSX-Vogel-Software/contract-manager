@@ -43,6 +43,9 @@ import { Badge } from '@/components/ui/badge'
 import { cn, formatCurrency, formatDate } from '@/lib/utils'
 import { useAuth } from '@/lib/auth'
 import { HelpVideoButton } from '@/components/HelpVideoButton'
+import { MobileCard, MobileCardList } from '@/components/MobileCard'
+import { MobileSortControl } from '@/components/MobileSortControl'
+import { useMediaQuery } from '@/lib/useMediaQuery'
 import { CustomerPickerDialog } from '@/components/CustomerPickerDialog'
 import { PaymentMatchModal } from './PaymentMatchModal'
 import { InvoiceStatusBadge } from '@/components/InvoiceStatusBadge'
@@ -903,16 +906,207 @@ export function InvoiceList() {
   }
 
   const canWrite = hasPermission('invoices', 'generate')
+  // Unter md Karten, darueber die Tabelle - nie beide (doppelte Test-IDs, Abfragen)
+  const isMdUp = useMediaQuery('(min-width: 768px)')
+
+  // Zahlungsstatus und Zeilenaktionen teilen sich Tabelle und Karten (Telefon)
+  const renderPaymentStatus = (row: UnifiedRow) => (
+    row.source === 'imported' && row.imported ? (
+      <div className="flex items-center gap-2">
+        <InvoiceStatusBadge isPaid={row.imported.isPaid} />
+        {row.imported.isPaid && row.imported.paymentMatches.length > 0 && (
+          <button
+            onClick={() => openPaymentMatchModal(row.imported!)}
+            className="text-xs text-blue-600 hover:text-blue-800"
+            title={t('invoices.import.viewPaymentMatch')}
+          >
+            ({row.imported.paymentMatches.length})
+          </button>
+        )}
+      </div>
+    ) : row.source === 'generated' && row.generated ? (
+      <div className="flex items-center gap-2">
+        <InvoiceStatusBadge status={row.generated.status} isPaid={row.generated.isPaid} />
+        {row.generated.isPaid && row.generated.paymentMatches.length > 0 && (
+          <button
+            onClick={() => openPaymentMatchRecordModal(row.generated!)}
+            className="text-xs text-blue-600 hover:text-blue-800"
+            title={t('invoices.import.viewPaymentMatch')}
+          >
+            ({row.generated.paymentMatches.length})
+          </button>
+        )}
+      </div>
+    ) : (
+      <span className="text-gray-400">—</span>
+    )
+  )
+
+  const renderRowActions = (row: UnifiedRow) => (
+    row.source === 'imported' && row.imported ? (
+      <>
+        {!row.imported.isPaid && row.imported.extractionStatus !== 'pending' && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => openPaymentMatchModal(row.imported!)}
+            title={t('invoices.import.matchPayment')}
+            className="text-gray-400 hover:text-blue-600 hover:bg-blue-50"
+          >
+            <CreditCard className="w-4 h-4" />
+          </Button>
+        )}
+        {row.imported.extractionStatus === 'pending' && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleExtract(row.imported!.id)}
+            title={t('invoices.import.extract')}
+            className="text-gray-400 hover:text-foreground"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </Button>
+        )}
+        {row.imported.extractionStatus === 'extraction_failed' && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleReExtract(row.imported!.id)}
+            title={t('invoices.import.reExtract')}
+            className="text-gray-400 hover:text-foreground"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </Button>
+        )}
+        {row.imported.pdfUrl && (
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="text-gray-400 hover:text-foreground"
+          >
+            <a href={row.imported.pdfUrl} target="_blank" rel="noopener noreferrer" title={t('invoices.import.viewPdf')}>
+              <Eye className="w-4 h-4" />
+            </a>
+          </Button>
+        )}
+        {canWrite && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setDeleteId(row.imported!.id)}
+            className="text-gray-400 hover:text-red-600 hover:bg-red-50"
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        )}
+      </>
+    ) : row.generated ? (
+      <>
+        {/* Send email button */}
+        {m365Data?.m365Settings?.isConfigured &&
+         row.generated.status === 'finalized' &&
+         !row.generated.emailSentAt &&
+         row.generated.pdfUrl && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleSendEmail(row.generated!)}
+            disabled={sendingEmail}
+            title={t('invoices.sendEmail')}
+            className="text-gray-400 hover:text-blue-600 hover:bg-blue-50"
+          >
+            <Mail className="w-4 h-4" />
+          </Button>
+        )}
+        {/* Send failure indicator */}
+        {row.generated.emailError && (
+          <span
+            className="flex items-center gap-1 text-xs text-destructive"
+            title={row.generated.emailError}
+            data-testid={`invoice-email-failed-${row.generated.id}`}
+          >
+            <AlertTriangle className="h-3 w-3" />
+            {t('emailStatus.badge')}
+          </span>
+        )}
+        {/* Sent indicator */}
+        {row.generated.emailSentAt && (
+          <span className="text-xs text-green-600 flex items-center gap-1" title={row.generated.emailSentTo.join(', ')}>
+            <Mail className="w-3 h-3" />
+            {formatDate(row.generated.emailSentAt)}
+          </span>
+        )}
+        {!row.generated.isPaid && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => openPaymentMatchRecordModal(row.generated!)}
+            title={t('invoices.import.matchPayment')}
+            className="text-gray-400 hover:text-blue-600 hover:bg-blue-50"
+          >
+            <CreditCard className="w-4 h-4" />
+          </Button>
+        )}
+        {/* Mahnen / send payment reminder */}
+        {!row.generated.isPaid &&
+          row.generated.status !== 'voided' &&
+          hasPermission('reminders', 'send') &&
+          dunningSettings &&
+          row.overdueDays >= dunningSettings.mahnfaehigThresholdDays && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setReminderInvoiceId(row.generated!.id)}
+              title={t('reminders.dunButton')}
+              className="text-gray-400 hover:text-orange-600 hover:bg-orange-50"
+              data-testid={`invoice-dun-${row.generated.id}`}
+            >
+              <Bell className="w-4 h-4" />
+            </Button>
+          )}
+        {row.generated.pdfUrl ? (
+          <Button variant="ghost" size="sm" asChild className="text-gray-400 hover:text-foreground">
+            <a href={row.generated.pdfUrl} target="_blank" rel="noopener noreferrer" title={t('invoices.import.viewPdf')}>
+              <Eye className="w-4 h-4" />
+            </a>
+          </Button>
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-gray-400 hover:text-foreground"
+            onClick={() => openPdfWithAuth(`/api/invoices/${row.generated!.id}/pdf/`)}
+            title={t('invoices.import.viewPdf')}
+          >
+            <Eye className="w-4 h-4" />
+          </Button>
+        )}
+        {row.contractId && (
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="text-gray-400 hover:text-foreground"
+          >
+            <Link to={`/contracts/${row.contractId}`} title={t('invoices.import.contractLink')}>
+              <LinkIcon className="w-4 h-4" />
+            </Link>
+          </Button>
+        )}
+      </>
+    ) : null
+  )
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-semibold">{t('invoices.import.title')}</h1>
           <p className="text-sm text-gray-500">{t('invoices.import.subtitle')}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="ghost"
             size="icon"
@@ -1018,7 +1212,7 @@ export function InvoiceList() {
 
       {/* Filters */}
       <div className="flex gap-4 flex-wrap">
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative w-full sm:w-auto sm:flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <Input
             value={search}
@@ -1097,9 +1291,108 @@ export function InvoiceList() {
         )}
       </div>
 
+      {/* Telefon: Karten statt Tabelle (gleiche Zeilen, gleiche Aktionen) */}
+      {!isMdUp && (
+        <MobileCardList data-testid="invoice-cards">
+          <MobileSortControl<string>
+            options={[
+              { value: '', label: t('mobile.sortDefault') },
+              { value: 'invoiceNumber', label: t('invoices.import.colInvoiceNumber') },
+              { value: 'invoiceDate', label: t('invoices.import.colDate') },
+              { value: 'customerName', label: t('invoices.import.colCustomer') },
+              { value: sourceFilter === 'GENERATED' ? 'totalGross' : 'totalAmount', label: t('invoices.import.colAmount') },
+              { value: 'overdueDays', label: t('reminders.overdueColumn') },
+            ]}
+            sortBy={sortField ?? ''}
+            sortOrder={sortOrder as 'asc' | 'desc'}
+            onSortByChange={(field) => {
+              setSortField(field || null)
+              setPage(1)
+            }}
+            onSortOrderChange={(order) => {
+              setSortOrder(order)
+              setPage(1)
+            }}
+          />
+          {isLoading && displayRows.length === 0 ? (
+            <div className="py-8 text-center text-gray-500">
+              <Loader2 className="w-6 h-6 mx-auto animate-spin" />
+            </div>
+          ) : displayRows.length === 0 ? (
+            <div className="rounded-lg border bg-white px-4 py-8 text-center text-gray-500">
+              {t('invoices.import.noInvoicesUnified')}
+            </div>
+          ) : (
+            displayRows.map((row) => (
+              <MobileCard
+                key={row.key}
+                data-testid={`invoice-card-${row.key}`}
+                to={row.generated ? `/invoices/${row.generated.id}` : row.imported ? `/invoices/${row.imported.id}?type=imported` : undefined}
+                title={
+                  <span className="flex flex-wrap items-center gap-2">
+                    {row.invoiceNumber || <span className="text-gray-400 italic">{t('invoices.import.noNumber')}</span>}
+                    {row.generated?.documentType === 'storno' && (
+                      <Badge variant="outline" className="text-orange-600 border-orange-300 text-xs">{t('invoices.stornoBadge')}</Badge>
+                    )}
+                    {row.imported && getUploadStatusBadge(row.imported)}
+                  </span>
+                }
+                badge={
+                  sourceFilter === 'ALL' ? (
+                    row.source === 'imported' ? (
+                      <Badge variant="outline" className="text-xs">{t('invoices.import.sourceImported')}</Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">{t('invoices.import.sourceGenerated')}</Badge>
+                    )
+                  ) : undefined
+                }
+                subtitle={
+                  <>
+                    {row.customerName || <span className="text-gray-400 italic">{t('invoices.import.noCustomer')}</span>}
+                    {row.contractName && <div className="text-xs text-gray-500">{row.contractName}</div>}
+                    {row.imported && !row.contractName && (
+                      <div className="truncate text-xs text-gray-500">{row.imported.originalFilename}</div>
+                    )}
+                  </>
+                }
+                meta={
+                  <>
+                    {row.date ? formatDate(row.date) : '-'}
+                    {row.overdueDays > 0 && (
+                      <span
+                        className={cn(
+                          'ml-2',
+                          dunningSettings && row.overdueDays >= dunningSettings.overdueRedThresholdDays
+                            ? 'font-semibold text-red-600'
+                            : 'text-gray-700'
+                        )}
+                      >
+                        {t('reminders.overdueDaysInfo', { days: row.overdueDays })}
+                      </span>
+                    )}
+                  </>
+                }
+                amount={
+                  row.amount != null
+                    ? `${formatCurrency(row.amount)} ${row.currency !== 'EUR' ? row.currency : ''}`
+                    : '-'
+                }
+                actions={
+                  <div className="flex w-full flex-wrap items-center justify-between gap-2">
+                    {renderPaymentStatus(row)}
+                    <div className="flex flex-wrap items-center justify-end gap-1">{renderRowActions(row)}</div>
+                  </div>
+                }
+              />
+            ))
+          )}
+        </MobileCardList>
+      )}
+
       {/* Table */}
-      <div className="rounded-lg border bg-white">
-        <table className="w-full">
+      {isMdUp && (
+      <div className="rounded-lg border bg-white overflow-x-auto">
+        <table className="table-sticky-first w-full">
           <thead>
             <tr className="border-b bg-gray-50 text-left text-sm font-medium text-gray-600">
               <th
@@ -1295,192 +1588,12 @@ export function InvoiceList() {
                   )}
                   {/* Payment */}
                   <td className="px-4 py-3">
-                    {row.source === 'imported' && row.imported ? (
-                      <div className="flex items-center gap-2">
-                        <InvoiceStatusBadge isPaid={row.imported.isPaid} />
-                        {row.imported.isPaid && row.imported.paymentMatches.length > 0 && (
-                          <button
-                            onClick={() => openPaymentMatchModal(row.imported!)}
-                            className="text-xs text-blue-600 hover:text-blue-800"
-                            title={t('invoices.import.viewPaymentMatch')}
-                          >
-                            ({row.imported.paymentMatches.length})
-                          </button>
-                        )}
-                      </div>
-                    ) : row.source === 'generated' && row.generated ? (
-                      <div className="flex items-center gap-2">
-                        <InvoiceStatusBadge status={row.generated.status} isPaid={row.generated.isPaid} />
-                        {row.generated.isPaid && row.generated.paymentMatches.length > 0 && (
-                          <button
-                            onClick={() => openPaymentMatchRecordModal(row.generated!)}
-                            className="text-xs text-blue-600 hover:text-blue-800"
-                            title={t('invoices.import.viewPaymentMatch')}
-                          >
-                            ({row.generated.paymentMatches.length})
-                          </button>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-gray-400">—</span>
-                    )}
+                    {renderPaymentStatus(row)}
                   </td>
                   {/* Actions */}
                   <td className="px-4 py-3">
                     <div className="flex justify-end gap-2">
-                      {row.source === 'imported' && row.imported ? (
-                        <>
-                          {!row.imported.isPaid && row.imported.extractionStatus !== 'pending' && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openPaymentMatchModal(row.imported!)}
-                              title={t('invoices.import.matchPayment')}
-                              className="text-gray-400 hover:text-blue-600 hover:bg-blue-50"
-                            >
-                              <CreditCard className="w-4 h-4" />
-                            </Button>
-                          )}
-                          {row.imported.extractionStatus === 'pending' && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleExtract(row.imported!.id)}
-                              title={t('invoices.import.extract')}
-                              className="text-gray-400 hover:text-foreground"
-                            >
-                              <RefreshCw className="w-4 h-4" />
-                            </Button>
-                          )}
-                          {row.imported.extractionStatus === 'extraction_failed' && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleReExtract(row.imported!.id)}
-                              title={t('invoices.import.reExtract')}
-                              className="text-gray-400 hover:text-foreground"
-                            >
-                              <RefreshCw className="w-4 h-4" />
-                            </Button>
-                          )}
-                          {row.imported.pdfUrl && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              asChild
-                              className="text-gray-400 hover:text-foreground"
-                            >
-                              <a href={row.imported.pdfUrl} target="_blank" rel="noopener noreferrer" title={t('invoices.import.viewPdf')}>
-                                <Eye className="w-4 h-4" />
-                              </a>
-                            </Button>
-                          )}
-                          {canWrite && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setDeleteId(row.imported!.id)}
-                              className="text-gray-400 hover:text-red-600 hover:bg-red-50"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </>
-                      ) : row.generated ? (
-                        <>
-                          {/* Send email button */}
-                          {m365Data?.m365Settings?.isConfigured &&
-                           row.generated.status === 'finalized' &&
-                           !row.generated.emailSentAt &&
-                           row.generated.pdfUrl && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleSendEmail(row.generated!)}
-                              disabled={sendingEmail}
-                              title={t('invoices.sendEmail')}
-                              className="text-gray-400 hover:text-blue-600 hover:bg-blue-50"
-                            >
-                              <Mail className="w-4 h-4" />
-                            </Button>
-                          )}
-                          {/* Send failure indicator */}
-                          {row.generated.emailError && (
-                            <span
-                              className="flex items-center gap-1 text-xs text-destructive"
-                              title={row.generated.emailError}
-                              data-testid={`invoice-email-failed-${row.generated.id}`}
-                            >
-                              <AlertTriangle className="h-3 w-3" />
-                              {t('emailStatus.badge')}
-                            </span>
-                          )}
-                          {/* Sent indicator */}
-                          {row.generated.emailSentAt && (
-                            <span className="text-xs text-green-600 flex items-center gap-1" title={row.generated.emailSentTo.join(', ')}>
-                              <Mail className="w-3 h-3" />
-                              {formatDate(row.generated.emailSentAt)}
-                            </span>
-                          )}
-                          {!row.generated.isPaid && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => openPaymentMatchRecordModal(row.generated!)}
-                              title={t('invoices.import.matchPayment')}
-                              className="text-gray-400 hover:text-blue-600 hover:bg-blue-50"
-                            >
-                              <CreditCard className="w-4 h-4" />
-                            </Button>
-                          )}
-                          {/* Mahnen / send payment reminder */}
-                          {!row.generated.isPaid &&
-                            row.generated.status !== 'voided' &&
-                            hasPermission('reminders', 'send') &&
-                            dunningSettings &&
-                            row.overdueDays >= dunningSettings.mahnfaehigThresholdDays && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setReminderInvoiceId(row.generated!.id)}
-                                title={t('reminders.dunButton')}
-                                className="text-gray-400 hover:text-orange-600 hover:bg-orange-50"
-                                data-testid={`invoice-dun-${row.generated.id}`}
-                              >
-                                <Bell className="w-4 h-4" />
-                              </Button>
-                            )}
-                          {row.generated.pdfUrl ? (
-                            <Button variant="ghost" size="sm" asChild className="text-gray-400 hover:text-foreground">
-                              <a href={row.generated.pdfUrl} target="_blank" rel="noopener noreferrer" title={t('invoices.import.viewPdf')}>
-                                <Eye className="w-4 h-4" />
-                              </a>
-                            </Button>
-                          ) : (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-gray-400 hover:text-foreground"
-                              onClick={() => openPdfWithAuth(`/api/invoices/${row.generated!.id}/pdf/`)}
-                              title={t('invoices.import.viewPdf')}
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                          )}
-                          {row.contractId && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              asChild
-                              className="text-gray-400 hover:text-foreground"
-                            >
-                              <Link to={`/contracts/${row.contractId}`} title={t('invoices.import.contractLink')}>
-                                <LinkIcon className="w-4 h-4" />
-                              </Link>
-                            </Button>
-                          )}
-                        </>
-                      ) : null}
+                      {renderRowActions(row)}
                     </div>
                   </td>
                 </tr>
@@ -1489,10 +1602,11 @@ export function InvoiceList() {
           </tbody>
         </table>
       </div>
+      )}
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-gray-500">
             {t('common.pagination.showing', {
               from: (page - 1) * pageSize + 1,
@@ -1723,7 +1837,7 @@ export function InvoiceList() {
 
       {/* Info Modal */}
       <Dialog open={showInfoModal} onOpenChange={setShowInfoModal}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[80dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t('invoices.import.infoTitle')}</DialogTitle>
             <DialogDescription className="sr-only">{t('invoices.import.infoTitle')}</DialogDescription>

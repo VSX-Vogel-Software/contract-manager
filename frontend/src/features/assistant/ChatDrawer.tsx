@@ -56,8 +56,8 @@ export function ChatDrawer({ open, onClose }: ChatDrawerProps) {
       {/* Drawer */}
       <div
         className={cn(
-          'fixed right-0 top-0 z-50 flex h-full w-[400px] flex-col bg-white shadow-xl transition-transform duration-200',
-          open ? 'translate-x-0' : 'translate-x-full'
+          'fixed right-0 top-0 z-50 flex h-full w-full flex-col bg-white pt-safe pb-safe shadow-xl transition-[transform,visibility] duration-200 sm:w-[400px]',
+          open ? 'translate-x-0' : 'invisible translate-x-full'
         )}
         data-testid="chat-drawer"
       >
@@ -68,7 +68,7 @@ export function ChatDrawer({ open, onClose }: ChatDrawerProps) {
             {messages.length > 0 && (
               <button
                 onClick={clearMessages}
-                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 touch:p-2.5"
                 title={t('assistant.newConversation')}
                 data-testid="chat-clear"
               >
@@ -77,7 +77,7 @@ export function ChatDrawer({ open, onClose }: ChatDrawerProps) {
             )}
             <button
               onClick={onClose}
-              className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 touch:p-2.5"
               data-testid="chat-close"
             >
               <X className="h-5 w-5" />

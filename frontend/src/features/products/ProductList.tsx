@@ -6,6 +6,8 @@ import { usePersistedState } from '@/lib/usePersistedState'
 import { useAuth } from '@/lib/auth'
 import { formatDateTime, formatCurrency } from '@/lib/utils'
 import { HelpVideoButton } from '@/components/HelpVideoButton'
+import { MobileCard, MobileCardList } from '@/components/MobileCard'
+import { MobileSortControl } from '@/components/MobileSortControl'
 
 const PRODUCTS_QUERY = gql`
   query Products($search: String, $isActive: Boolean, $revenueType: String, $page: Int, $pageSize: Int, $sortBy: String, $sortOrder: String) {
@@ -97,6 +99,16 @@ type SortOrder = 'asc' | 'desc'
 
 const PAGE_SIZE = 20
 
+/** Etikett der Umsatzart; bearbeitbar als echter Knopf (Tastatur, Screenreader, Touch). */
+function RevenueTypeBadge({ onEdit, className, children }: { onEdit?: () => void; className: string; children: React.ReactNode }) {
+  if (!onEdit) return <span className={className}>{children}</span>
+  return (
+    <button type="button" onClick={onEdit} className={className}>
+      {children}
+    </button>
+  )
+}
+
 export function ProductList() {
   const { t } = useTranslation()
   const { hasPermission } = useAuth()
@@ -164,6 +176,43 @@ export function ProductList() {
     })
   }
 
+  // Umsatzart als Badge, fuer Berechtigte per Antippen editierbar - in Tabelle und Karte gleich
+  const renderRevenueType = (product: Product) =>
+    editingProductId === product.id ? (
+      <select
+        autoFocus
+        defaultValue={product.revenueType || ''}
+        onChange={(e) => handleRevenueTypeChange(product.id, e.target.value)}
+        onBlur={() => setEditingProductId(null)}
+        className="rounded-md border border-blue-400 py-1 px-2 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+      >
+        <option value="" disabled>{t('products.revenueTypes.unclassified')}</option>
+        {REVENUE_TYPE_OPTIONS.map((opt) => (
+          <option key={opt.value} value={opt.value}>{t(opt.i18nKey)}</option>
+        ))}
+      </select>
+    ) : product.revenueType ? (
+      <RevenueTypeBadge
+        onEdit={canEditProducts ? () => setEditingProductId(product.id) : undefined}
+        className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
+          product.revenueType === 'recurring'
+            ? 'bg-green-100 text-green-800'
+            : product.revenueType === 'advanced_development'
+            ? 'bg-orange-100 text-orange-800'
+            : 'bg-cyan-100 text-cyan-800'
+        } ${canEditProducts ? 'cursor-pointer hover:ring-2 hover:ring-blue-300' : ''}`}
+      >
+        {t(`products.revenueTypes.${product.revenueType === 'advanced_development' ? 'advancedDevelopment' : product.revenueType === 'training_implementation' ? 'trainingImplementation' : 'recurring'}`)}
+      </RevenueTypeBadge>
+    ) : (
+      <RevenueTypeBadge
+        onEdit={canEditProducts ? () => setEditingProductId(product.id) : undefined}
+        className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 bg-yellow-100 text-yellow-800 ${canEditProducts ? 'cursor-pointer hover:ring-2 hover:ring-blue-300' : ''}`}
+      >
+        {t('products.revenueTypes.unclassified')}
+      </RevenueTypeBadge>
+    )
+
   const productsData = data?.products
   const products = productsData?.items || []
   const totalCount = productsData?.totalCount || 0
@@ -182,8 +231,8 @@ export function ProductList() {
       </div>
 
       {/* Search and Filters */}
-      <div className="mt-4 flex items-center gap-6">
-        <form onSubmit={handleSearch} className="flex-1 max-w-md">
+      <div className="mt-4 flex flex-wrap items-center gap-4 sm:gap-6">
+        <form onSubmit={handleSearch} className="w-full flex-1 sm:w-auto max-w-md">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <input
@@ -201,7 +250,7 @@ export function ProductList() {
             setRevenueTypeFilter(e.target.value)
             setPage(1)
           }}
-          className="rounded-md border border-gray-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="w-full rounded-md border border-gray-300 py-2 px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:w-auto"
         >
           <option value="">{t('products.allRevenueTypes')}</option>
           <option value="recurring">{t('products.revenueTypes.recurring')}</option>
@@ -235,8 +284,63 @@ export function ProductList() {
         <p className="mt-4 text-gray-600">{t('products.noProducts')}</p>
       ) : (
         <>
-          <div className="mt-4 overflow-hidden rounded-lg border">
-            <table className="min-w-full divide-y divide-gray-200">
+          <MobileSortControl<SortField>
+            className="mt-4"
+            options={[
+              { value: 'name', label: t('products.name') },
+              { value: 'sku', label: t('products.sku') },
+              { value: 'revenueType', label: t('products.revenueType') },
+              { value: 'price', label: t('products.price') },
+              { value: 'isActive', label: t('products.status') },
+              { value: 'syncedAt', label: t('products.syncedAt') },
+            ]}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onSortByChange={(field) => {
+              setSortBy(field)
+              setPage(1)
+            }}
+            onSortOrderChange={(order) => {
+              setSortOrder(order)
+              setPage(1)
+            }}
+          />
+          <MobileCardList className="mt-4" data-testid="products-cards">
+            {products.map((product) => (
+              <MobileCard
+                key={product.id}
+                data-testid={`product-card-${product.id}`}
+                title={product.name}
+                badge={
+                  <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
+                    product.isActive
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {product.isActive ? t('products.active') : t('products.inactive')}
+                  </span>
+                }
+                subtitle={product.description ? <span className="line-clamp-2">{product.description}</span> : undefined}
+                meta={[product.sku, product.category?.name].filter(Boolean).join(' · ') || undefined}
+                amount={formatCurrency(product.currentPrice?.price)}
+                actions={
+                  <>
+                    <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
+                      product.type === 'subscription'
+                        ? 'bg-blue-100 text-blue-800'
+                        : 'bg-purple-100 text-purple-800'
+                    }`}>
+                      {product.type === 'subscription' ? t('products.subscription') : t('products.oneOff')}
+                    </span>
+                    {renderRevenueType(product)}
+                    <span className="ml-auto text-xs text-gray-400">{formatDateTime(product.syncedAt)}</span>
+                  </>
+                }
+              />
+            ))}
+          </MobileCardList>
+          <div className="mt-4 hidden overflow-x-auto rounded-lg border md:block">
+            <table className="table-sticky-first min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th
@@ -326,40 +430,7 @@ export function ProductList() {
                       </span>
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
-                      {editingProductId === product.id ? (
-                        <select
-                          autoFocus
-                          defaultValue={product.revenueType || ''}
-                          onChange={(e) => handleRevenueTypeChange(product.id, e.target.value)}
-                          onBlur={() => setEditingProductId(null)}
-                          className="rounded-md border border-blue-400 py-1 px-2 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        >
-                          <option value="" disabled>{t('products.revenueTypes.unclassified')}</option>
-                          {REVENUE_TYPE_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>{t(opt.i18nKey)}</option>
-                          ))}
-                        </select>
-                      ) : product.revenueType ? (
-                        <span
-                          onClick={canEditProducts ? () => setEditingProductId(product.id) : undefined}
-                          className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
-                            product.revenueType === 'recurring'
-                              ? 'bg-green-100 text-green-800'
-                              : product.revenueType === 'advanced_development'
-                              ? 'bg-orange-100 text-orange-800'
-                              : 'bg-cyan-100 text-cyan-800'
-                          } ${canEditProducts ? 'cursor-pointer hover:ring-2 hover:ring-blue-300' : ''}`}
-                        >
-                          {t(`products.revenueTypes.${product.revenueType === 'advanced_development' ? 'advancedDevelopment' : product.revenueType === 'training_implementation' ? 'trainingImplementation' : 'recurring'}`)}
-                        </span>
-                      ) : (
-                        <span
-                          onClick={canEditProducts ? () => setEditingProductId(product.id) : undefined}
-                          className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 bg-yellow-100 text-yellow-800 ${canEditProducts ? 'cursor-pointer hover:ring-2 hover:ring-blue-300' : ''}`}
-                        >
-                          {t('products.revenueTypes.unclassified')}
-                        </span>
-                      )}
+                      {renderRevenueType(product)}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
                       {formatCurrency(product.currentPrice?.price)}
@@ -384,7 +455,7 @@ export function ProductList() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="mt-4 flex items-center justify-between">
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-gray-500">
                 {t('common.pagination.showing', {
                   from: (page - 1) * PAGE_SIZE + 1,

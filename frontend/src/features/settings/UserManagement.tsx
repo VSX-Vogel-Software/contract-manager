@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, gql } from '@apollo/client'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
   Loader2,
   UserPlus,
@@ -292,7 +293,7 @@ export function UserManagement() {
     <div className="space-y-6">
       {/* Users Section */}
       <div className="rounded-lg border bg-white">
-        <div className="flex items-center justify-between border-b px-6 py-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-4 sm:px-6">
           <h2 className="text-lg font-medium">{t('users.title')}</h2>
           <button
             onClick={() => {
@@ -308,20 +309,20 @@ export function UserManagement() {
         </div>
 
         {error && (
-          <div className="mx-6 mt-4 rounded-md bg-red-50 p-3 text-sm text-red-600">
+          <div className="mx-4 mt-4 rounded-md bg-red-50 p-3 text-sm text-red-600 sm:mx-6">
             {error}
           </div>
         )}
 
         {resetUrl && (
-          <div className="mx-6 mt-4 rounded-md bg-blue-50 p-3">
+          <div className="mx-4 mt-4 rounded-md bg-blue-50 p-3 sm:mx-6">
             <p className="text-sm font-medium text-blue-800">{t('users.resetLinkCreated')}</p>
-            <div className="mt-2 flex items-center gap-2">
+            <div className="mt-2 flex flex-wrap items-center gap-2">
               <input
                 type="text"
                 readOnly
                 value={resetUrl}
-                className="flex-1 rounded border bg-white px-2 py-1 text-sm"
+                className="min-w-0 flex-1 basis-48 rounded border bg-white px-2 py-1 text-sm"
               />
               <button
                 onClick={() => handleCopy(resetUrl, 'reset')}
@@ -340,7 +341,9 @@ export function UserManagement() {
           </div>
         )}
 
-        <table className="min-w-full divide-y divide-gray-200">
+        {/* Breite Tabelle scrollt in sich statt die Seite zu verbreitern */}
+        <div className="overflow-x-auto" data-testid="users-table-scroll">
+        <table className="table-sticky-first min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
@@ -374,7 +377,8 @@ export function UserManagement() {
                 <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
                   {user.email}
                 </td>
-                <td className="px-6 py-4">
+                {/* min-w: im Scroll-Container wuerde die Zelle sonst auf ein Rollen-Kaertchen pro Zeile schrumpfen; ab lg wie bisher */}
+                <td className="min-w-[220px] px-6 py-4 lg:min-w-0">
                   <div className="flex flex-wrap gap-1">
                     {availableRoles.map((role) => {
                       const isAssigned = user.roleNames?.includes(role.name)
@@ -436,7 +440,7 @@ export function UserManagement() {
                   <div className="flex items-center justify-end gap-2">
                     <button
                       onClick={() => handleCreatePasswordReset(user.id)}
-                      className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-blue-600"
+                      className="rounded p-1 touch:p-2 text-gray-400 hover:bg-gray-100 hover:text-blue-600"
                       title={t('users.resetPassword')}
                     >
                       <Key className="h-4 w-4" />
@@ -445,7 +449,7 @@ export function UserManagement() {
                       user.isActive ? (
                         <button
                           onClick={() => handleDeactivateUser(user.id)}
-                          className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-red-600"
+                          className="rounded p-1 touch:p-2 text-gray-400 hover:bg-gray-100 hover:text-red-600"
                           title={t('users.deactivate')}
                         >
                           <UserX className="h-4 w-4" />
@@ -453,7 +457,7 @@ export function UserManagement() {
                       ) : (
                         <button
                           onClick={() => handleReactivateUser(user.id)}
-                          className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-green-600"
+                          className="rounded p-1 touch:p-2 text-gray-400 hover:bg-gray-100 hover:text-green-600"
                           title={t('users.reactivate')}
                         >
                           <UserCheck className="h-4 w-4" />
@@ -466,16 +470,18 @@ export function UserManagement() {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* Pending Invitations */}
       {invitations.length > 0 && (
         <div className="rounded-lg border bg-white">
-          <div className="border-b px-6 py-4">
+          <div className="border-b px-4 py-4 sm:px-6">
             <h2 className="text-lg font-medium">{t('users.pendingInvitations')}</h2>
           </div>
 
-          <table className="min-w-full divide-y divide-gray-200">
+          <div className="overflow-x-auto">
+          <table className="table-sticky-first min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
@@ -524,7 +530,7 @@ export function UserManagement() {
                       )}
                       <button
                         onClick={() => handleRevokeInvitation(invitation.id)}
-                        className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-red-600"
+                        className="rounded p-1 touch:p-2 text-gray-400 hover:bg-gray-100 hover:text-red-600"
                         title={t('users.revoke')}
                       >
                         <X className="h-4 w-4" />
@@ -535,14 +541,17 @@ export function UserManagement() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
       {/* Invite Modal */}
-      {showInviteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
-            <h3 className="text-lg font-medium">{t('users.inviteUser')}</h3>
+      {/* Radix-Dialog statt eigenem Overlay: passt in den Viewport, scrollt in sich, role="dialog" */}
+      <Dialog open={showInviteModal} onOpenChange={(open) => { if (!open) closeInviteModal() }}>
+        <DialogContent className="block max-w-md" data-testid="invite-dialog" onInteractOutside={(e) => e.preventDefault()}>
+            <DialogHeader className="pr-8">
+              <DialogTitle className="text-lg font-medium">{t('users.inviteUser')}</DialogTitle>
+            </DialogHeader>
 
             {!inviteUrl ? (
               <>
@@ -594,7 +603,7 @@ export function UserManagement() {
                   <p className="mt-2 text-sm text-red-600">{error}</p>
                 )}
 
-                <div className="mt-6 flex justify-end gap-3">
+                <div className="mt-6 flex flex-wrap justify-end gap-3">
                   <button
                     onClick={closeInviteModal}
                     className="rounded-md bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200"
@@ -619,12 +628,12 @@ export function UserManagement() {
                   <label className="block text-sm font-medium text-gray-700">
                     {t('users.inviteLink')}
                   </label>
-                  <div className="mt-1 flex items-center gap-2">
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
                     <input
                       type="text"
                       readOnly
                       value={inviteUrl}
-                      className="flex-1 rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm"
+                      className="min-w-0 flex-1 basis-48 rounded-md border border-gray-300 bg-gray-50 px-3 py-2 text-sm"
                     />
                     <button
                       onClick={() => handleCopy(inviteUrl, 'invite-modal')}
@@ -650,9 +659,8 @@ export function UserManagement() {
                 </div>
               </>
             )}
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

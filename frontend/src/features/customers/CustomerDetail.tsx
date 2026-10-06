@@ -31,6 +31,7 @@ import { cn, formatDate, formatCurrency } from '@/lib/utils'
 import { useDocumentTitle } from '@/lib/useDocumentTitle'
 import { useAuditLogs, AuditLogTable } from '@/features/audit'
 import { HelpVideoButton } from '@/components/HelpVideoButton'
+import { ScrollTabs } from '@/components/ScrollTabs'
 import { CommentsSection } from '@/components/CommentsSection'
 import { InvoiceStatusBadge } from '@/components/InvoiceStatusBadge'
 import { FileDropZone } from '@/components/FileDropZone'
@@ -1117,27 +1118,27 @@ export function CustomerDetail() {
   return (
     <div data-testid="customer-detail-page">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-4">
           <Link to="/customers" data-testid="customer-back-button">
             <Button variant="ghost" size="sm">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           </Link>
-          <div>
+          <div className="min-w-0">
             {editingCustomer ? (
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Input
                     value={editName}
                     onChange={(e) => setEditName(e.target.value)}
-                    className="text-xl font-bold h-9 w-80"
+                    className="text-xl font-bold h-9 w-full sm:w-80"
                     placeholder={t('customers.name')}
                     autoFocus
                     onKeyDown={(e) => { if (e.key === 'Enter') handleSaveCustomer(); if (e.key === 'Escape') setEditingCustomer(false) }}
                   />
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Input
                     value={editCustomerNumber}
                     onChange={(e) => setEditCustomerNumber(e.target.value)}
@@ -1158,12 +1159,12 @@ export function CustomerDetail() {
             ) : (
               <>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-bold" data-testid="customer-name">{customer.name}</h1>
+                  <h1 className="min-w-0 break-words text-2xl font-bold" data-testid="customer-name">{customer.name}</h1>
                   <button onClick={handleStartEditCustomer} className="text-gray-400 hover:text-gray-600">
                     <Pencil className="h-4 w-4" />
                   </button>
                 </div>
-                <div className="flex items-center gap-2 mt-1">
+                <div className="flex flex-wrap items-center gap-2 mt-1">
                   <button
                     data-testid="customer-status-badge"
                     onClick={async () => {
@@ -1388,7 +1389,7 @@ export function CustomerDetail() {
             customer.billingEmails.map((email) => (
               <span
                 key={email}
-                className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-blue-50 text-blue-700 text-sm"
+                className="inline-flex max-w-full items-center gap-1 px-2 py-1 [overflow-wrap:anywhere] rounded-full bg-blue-50 text-blue-700 text-sm"
               >
                 {email}
                 <button
@@ -1443,9 +1444,10 @@ export function CustomerDetail() {
 
       {/* Tabs */}
       <div className="mt-6 mb-4 border-b">
-        <nav className="-mb-px flex gap-4">
+        <ScrollTabs className="-mb-px gap-4" activeKey={activeTab}>
           <button
             onClick={() => setActiveTab('contracts')}
+            aria-current={activeTab === 'contracts' ? 'page' : undefined}
             className={`inline-flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium ${
               activeTab === 'contracts'
                 ? 'border-blue-500 text-blue-600'
@@ -1458,6 +1460,7 @@ export function CustomerDetail() {
           {contractGroups.length > 0 && (
             <button
               onClick={() => setActiveTab('groups')}
+              aria-current={activeTab === 'groups' ? 'page' : undefined}
               className={`inline-flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium ${
                 activeTab === 'groups'
                   ? 'border-blue-500 text-blue-600'
@@ -1470,6 +1473,7 @@ export function CustomerDetail() {
           )}
           <button
             onClick={() => setActiveTab('invoices')}
+            aria-current={activeTab === 'invoices' ? 'page' : undefined}
             className={`inline-flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium ${
               activeTab === 'invoices'
                 ? 'border-blue-500 text-blue-600'
@@ -1481,6 +1485,7 @@ export function CustomerDetail() {
           </button>
           <button
             onClick={() => setActiveTab('attachments')}
+            aria-current={activeTab === 'attachments' ? 'page' : undefined}
             className={`inline-flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium ${
               activeTab === 'attachments'
                 ? 'border-blue-500 text-blue-600'
@@ -1492,6 +1497,7 @@ export function CustomerDetail() {
           </button>
           <button
             onClick={() => setActiveTab('documents')}
+            aria-current={activeTab === 'documents' ? 'page' : undefined}
             className={`inline-flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium ${
               activeTab === 'documents'
                 ? 'border-blue-500 text-blue-600'
@@ -1503,6 +1509,7 @@ export function CustomerDetail() {
           </button>
           <button
             onClick={() => setActiveTab('todos')}
+            aria-current={activeTab === 'todos' ? 'page' : undefined}
             className={`inline-flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium ${
               activeTab === 'todos'
                 ? 'border-blue-500 text-blue-600'
@@ -1518,6 +1525,7 @@ export function CustomerDetail() {
           </button>
           <button
             onClick={() => setActiveTab('activity')}
+            aria-current={activeTab === 'activity' ? 'page' : undefined}
             className={`inline-flex items-center gap-2 border-b-2 px-1 py-3 text-sm font-medium ${
               activeTab === 'activity'
                 ? 'border-blue-500 text-blue-600'
@@ -1527,7 +1535,7 @@ export function CustomerDetail() {
             <History className="h-4 w-4" />
             {t('audit.activity')}
           </button>
-        </nav>
+        </ScrollTabs>
       </div>
 
       {/* Contracts Tab */}
@@ -1544,8 +1552,8 @@ export function CustomerDetail() {
               </Link>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-lg border">
-              <table className="min-w-full divide-y divide-gray-200">
+            <div className="overflow-x-auto rounded-lg border">
+              <table className="table-sticky-first table-sticky-capped min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th
@@ -1728,7 +1736,7 @@ export function CustomerDetail() {
       {/* Contract Groups Tab */}
       {activeTab === 'groups' && (
         <div data-testid="customer-groups-section">
-          <div className="overflow-hidden rounded-lg border">
+          <div className="overflow-x-auto rounded-lg border">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -1884,8 +1892,8 @@ export function CustomerDetail() {
             }
 
             return (
-              <div className="overflow-hidden rounded-lg border">
-                <table className="min-w-full divide-y divide-gray-200">
+              <div className="overflow-x-auto rounded-lg border">
+                <table className="table-sticky-first min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
@@ -2070,8 +2078,8 @@ export function CustomerDetail() {
             )}
 
             {/* Upload Form */}
-            <div className="flex items-end gap-4 mb-6">
-              <div className="flex-1">
+            <div className="flex flex-wrap items-end gap-4 mb-6">
+              <div className="w-full sm:w-auto sm:flex-1">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t('attachments.description')}
                 </label>
@@ -2124,13 +2132,13 @@ export function CustomerDetail() {
                 {customer.attachments.map((attachment) => (
                   <div
                     key={attachment.id}
-                    className="flex items-center justify-between p-3 rounded-lg border bg-gray-50 hover:bg-gray-100"
+                    className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-lg border bg-gray-50 hover:bg-gray-100"
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
                       {getFileIcon(attachment.contentType)}
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-sm">{attachment.originalFilename}</p>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-medium text-sm [overflow-wrap:anywhere]">{attachment.originalFilename}</p>
                           {attachment.category && (
                             <span className={cn('inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium', getCategoryColor(attachment.category))}>
                               {getCategoryLabel(attachment.category)}
@@ -2211,8 +2219,8 @@ export function CustomerDetail() {
             </div>
 
             {/* Add Link Form */}
-            <div className="flex items-end gap-4 mb-6">
-              <div className="flex-1">
+            <div className="flex flex-wrap items-end gap-4 mb-6">
+              <div className="w-full sm:w-auto sm:flex-1">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t('links.name')}
                 </label>
@@ -2222,7 +2230,7 @@ export function CustomerDetail() {
                   placeholder={t('links.namePlaceholder')}
                 />
               </div>
-              <div className="flex-1">
+              <div className="w-full sm:w-auto sm:flex-1">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   {t('links.url')}
                 </label>
@@ -2251,11 +2259,11 @@ export function CustomerDetail() {
                 {customer.links.map((link) => (
                   <div
                     key={link.id}
-                    className="flex items-center justify-between p-3 rounded-lg border bg-gray-50 hover:bg-gray-100"
+                    className="flex items-center justify-between gap-2 p-3 rounded-lg border bg-gray-50 hover:bg-gray-100"
                   >
-                    <div className="flex items-center gap-3">
-                      <Link2 className="h-4 w-4 text-red-500" />
-                      <div>
+                    <div className="flex min-w-0 items-center gap-3">
+                      <Link2 className="h-4 w-4 shrink-0 text-red-500" />
+                      <div className="min-w-0">
                         <a
                           href={link.url}
                           target="_blank"
@@ -2265,7 +2273,7 @@ export function CustomerDetail() {
                           <ExternalLink className="h-3 w-3" />
                           {link.name}
                         </a>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-gray-500 [overflow-wrap:anywhere]">
                           {link.url}
                           {link.createdByName && ` • ${link.createdByName}`}
                         </p>
@@ -2295,10 +2303,10 @@ export function CustomerDetail() {
         <div data-testid="customer-documents-section">
           {/* Filter */}
           <div className="mb-4 rounded-lg border bg-white p-4">
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4">
               <label className="text-sm font-medium text-gray-700">{t('attachments.category')}:</label>
               <Select value={docCategoryFilter || '__all__'} onValueChange={(value) => setDocCategoryFilter(value === '__all__' ? '' : value)}>
-                <SelectTrigger className="w-[200px]">
+                <SelectTrigger className="w-full sm:w-[200px]">
                   <SelectValue placeholder={t('attachments.allCategories')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -2320,7 +2328,7 @@ export function CustomerDetail() {
               <p className="mt-2 text-gray-600">{t('attachments.noDocuments')}</p>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-lg border">
+            <div className="overflow-x-auto rounded-lg border">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>

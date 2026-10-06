@@ -276,7 +276,7 @@ export function TimeTrackingTab({ contractId, customerName, clockodoCustomerId, 
     <div className="space-y-6">
       {/* Mapped Projects */}
       <div className="rounded-lg border bg-white p-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-sm font-medium text-gray-900">
             {t('timeTracking.mappedProjects')}
           </h3>
@@ -292,7 +292,7 @@ export function TimeTrackingTab({ contractId, customerName, clockodoCustomerId, 
         {mappings.length === 0 ? (
           <p className="mt-4 text-sm text-gray-500">{t('timeTracking.noMappings')}</p>
         ) : (
-          <div className="mt-4">
+          <div className="mt-4 overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b text-left text-gray-500">
@@ -414,7 +414,7 @@ export function TimeTrackingTab({ contractId, customerName, clockodoCustomerId, 
 
       {/* Auto-link Rules */}
       <div className="rounded-lg border bg-white p-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-sm font-medium text-gray-900">
             {t('timeTracking.autoLink.title')}
           </h3>
@@ -430,7 +430,7 @@ export function TimeTrackingTab({ contractId, customerName, clockodoCustomerId, 
         {autoLinkRules.length === 0 ? (
           <p className="mt-4 text-sm text-gray-500">{t('timeTracking.autoLink.noRules')}</p>
         ) : (
-          <div className="mt-4">
+          <div className="mt-4 overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
                 <tr className="border-b text-left text-gray-500">
@@ -474,7 +474,7 @@ export function TimeTrackingTab({ contractId, customerName, clockodoCustomerId, 
       {mappings.length > 0 && summary && (
         <>
           {/* KPI Cards */}
-          <div className={`grid gap-4 ${showRevenue ? 'grid-cols-2' : 'grid-cols-1'}`}>
+          <div className={`grid gap-4 ${showRevenue ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
             <div className="rounded-lg border bg-white p-4">
               <p className="text-sm text-gray-500">{t('timeTracking.totalHours')}</p>
               <p className="mt-1 text-2xl font-semibold">{summary.totalHours.toFixed(1)}h</p>
@@ -500,7 +500,7 @@ export function TimeTrackingTab({ contractId, customerName, clockodoCustomerId, 
 
           {/* By Service */}
           {summary.byService.length > 0 && (
-            <div className="rounded-lg border bg-white p-6">
+            <div className="overflow-x-auto rounded-lg border bg-white p-6">
               <h3 className="text-sm font-medium text-gray-900">{t('timeTracking.byService')}</h3>
               <table className="mt-3 min-w-full text-sm">
                 <thead>
@@ -529,7 +529,7 @@ export function TimeTrackingTab({ contractId, customerName, clockodoCustomerId, 
 
           {/* By Month */}
           {summary.byMonth.length > 0 && (
-            <div className="rounded-lg border bg-white p-6">
+            <div className="overflow-x-auto rounded-lg border bg-white p-6">
               <h3 className="text-sm font-medium text-gray-900">{t('timeTracking.byMonth')}</h3>
               <table className="mt-3 min-w-full text-sm">
                 <thead>

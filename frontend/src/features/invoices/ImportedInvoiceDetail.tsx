@@ -37,6 +37,7 @@ import { cn, formatCurrency, formatDate, formatDateTime } from '@/lib/utils'
 import { useAuth } from '@/lib/auth'
 import { CustomerPickerDialog } from '@/components/CustomerPickerDialog'
 import { PaymentMatchModal } from './PaymentMatchModal'
+import { PdfPreview } from '@/components/PdfPreview'
 
 // --- GraphQL ---
 
@@ -849,11 +850,11 @@ export function ImportedInvoiceDetail({ id }: { id: number }) {
   const canLinkAsCreditNote = !isVoided && !isCreditNote
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6">
+    <div className="mx-auto max-w-7xl py-2 sm:px-4 sm:py-6">
       {/* Toast */}
       {toast && (
         <div
-          className={`fixed right-4 top-4 z-50 rounded-lg px-4 py-3 text-sm font-medium shadow-lg ${
+          className={`fixed inset-x-2 top-2 z-50 rounded-lg sm:inset-x-auto sm:right-4 sm:top-4 sm:max-w-md lg:max-w-none px-4 py-3 text-sm font-medium shadow-lg ${
             toast.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
           }`}
         >
@@ -870,12 +871,12 @@ export function ImportedInvoiceDetail({ id }: { id: number }) {
           <ArrowLeft className="h-4 w-4" />
           {t('common.back')}
         </button>
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="break-words text-2xl font-bold">
               {invoice.invoiceNumber || invoice.originalFilename}
             </h1>
-            <div className="mt-1 flex items-center gap-3">
+            <div className="mt-1 flex flex-wrap items-center gap-3">
               <ExtractionStatusBadge status={invoice.extractionStatus} />
               {invoice.isPaid && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-sm font-medium text-green-800">
@@ -885,7 +886,7 @@ export function ImportedInvoiceDetail({ id }: { id: number }) {
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {/* Extraction actions */}
             {invoice.extractionStatus === 'pending' && (
               <Button variant="outline" size="sm" onClick={handleExtract} disabled={extracting}>
@@ -1091,7 +1092,7 @@ export function ImportedInvoiceDetail({ id }: { id: number }) {
                       {isEditable && (
                         <button
                           onClick={() => { setEditing('invoiceNumber'); setEditValue(invoice.invoiceNumber || '') }}
-                          className="text-muted-foreground hover:text-foreground"
+                          className="text-muted-foreground hover:text-foreground touch:p-2"
                         >
                           <Pencil className="h-3 w-3" />
                         </button>
@@ -1129,7 +1130,7 @@ export function ImportedInvoiceDetail({ id }: { id: number }) {
                       {isEditable && (
                         <button
                           onClick={() => { setEditing('invoiceDate'); setEditValue(invoice.invoiceDate || '') }}
-                          className="text-muted-foreground hover:text-foreground"
+                          className="text-muted-foreground hover:text-foreground touch:p-2"
                         >
                           <Pencil className="h-3 w-3" />
                         </button>
@@ -1168,7 +1169,7 @@ export function ImportedInvoiceDetail({ id }: { id: number }) {
                       {isEditable && (
                         <button
                           onClick={() => { setEditing('totalAmount'); setEditValue(invoice.totalAmount || '') }}
-                          className="text-muted-foreground hover:text-foreground"
+                          className="text-muted-foreground hover:text-foreground touch:p-2"
                         >
                           <Pencil className="h-3 w-3" />
                         </button>
@@ -1178,12 +1179,12 @@ export function ImportedInvoiceDetail({ id }: { id: number }) {
                 </div>
               </div>
 
-              <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
-                <div>
+              <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="min-w-0">
                   <div className="text-xs font-medium uppercase text-muted-foreground">
                     {t('importedInvoiceDetail.originalFile')}
                   </div>
-                  <div className="mt-1 font-medium">{invoice.originalFilename}</div>
+                  <div className="mt-1 break-words font-medium">{invoice.originalFilename}</div>
                   <div className="text-xs text-muted-foreground">{formatFileSize(invoice.fileSize)}</div>
                 </div>
                 <div>
@@ -1230,10 +1231,11 @@ export function ImportedInvoiceDetail({ id }: { id: number }) {
                   {t('importedInvoiceDetail.pdfPending')}
                 </div>
               ) : invoice.pdfUrl ? (
-                <iframe
+                <PdfPreview
                   src={invoice.pdfUrl}
-                  className="h-[600px] w-full rounded border"
+                  className="h-[600px]"
                   title="Invoice PDF"
+                  fileName={invoice.originalFilename}
                 />
               ) : (
                 <div className="py-12 text-center text-sm text-muted-foreground">
@@ -1253,10 +1255,10 @@ export function ImportedInvoiceDetail({ id }: { id: number }) {
             </CardHeader>
             <CardContent>
               {invoice.customerId ? (
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                   <Link
                     to={`/customers/${invoice.customerId}`}
-                    className="font-medium text-blue-600 hover:underline"
+                    className="min-w-0 break-words font-medium text-blue-600 hover:underline"
                   >
                     {invoice.customerDisplayName || invoice.customerName}
                   </Link>
@@ -1264,7 +1266,7 @@ export function ImportedInvoiceDetail({ id }: { id: number }) {
                     onClick={handleUnlinkCustomer}
                     disabled={!!invoice.contractId}
                     className={cn(
-                      'text-sm',
+                      'text-sm touch:p-2',
                       invoice.contractId
                         ? 'cursor-not-allowed text-gray-300'
                         : 'text-muted-foreground hover:text-red-600'
@@ -1295,16 +1297,16 @@ export function ImportedInvoiceDetail({ id }: { id: number }) {
             </CardHeader>
             <CardContent>
               {invoice.contractId ? (
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                   <Link
                     to={`/contracts/${invoice.contractId}`}
-                    className="font-medium text-blue-600 hover:underline"
+                    className="min-w-0 break-words font-medium text-blue-600 hover:underline"
                   >
                     {invoice.contractName}
                   </Link>
                   <button
                     onClick={handleUnlinkContract}
-                    className="text-sm text-muted-foreground hover:text-red-600"
+                    className="text-sm text-muted-foreground hover:text-red-600 touch:p-2"
                   >
                     <Unlink className="h-4 w-4" />
                   </button>
@@ -1398,7 +1400,7 @@ export function ImportedInvoiceDetail({ id }: { id: number }) {
               <CardContent>
                 <div className="space-y-1">
                   {invoice.receiverEmails.map((email, i) => (
-                    <div key={i} className="text-sm">{email}</div>
+                    <div key={i} className="break-all text-sm">{email}</div>
                   ))}
                 </div>
               </CardContent>

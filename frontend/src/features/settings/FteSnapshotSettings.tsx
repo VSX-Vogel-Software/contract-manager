@@ -79,7 +79,7 @@ export function FteSnapshotSettings() {
       </div>
 
       {/* Settings */}
-      <div className="grid grid-cols-2 gap-4 rounded-lg border p-4">
+      <div className="grid grid-cols-1 gap-4 rounded-lg border p-4 sm:grid-cols-2">
         <div>
           <label className="text-sm font-medium">{t('fteSnapshots.captureDay')}</label>
           <input
@@ -164,7 +164,7 @@ export function FteSnapshotSettings() {
               </span>
             </button>
             {expandedId === snap.id && (
-              <div className="border-t px-3 pb-3">
+              <div className="overflow-x-auto border-t px-3 pb-3">
                 <table className="w-full text-sm mt-2">
                   <thead>
                     <tr className="text-left text-xs text-muted-foreground">

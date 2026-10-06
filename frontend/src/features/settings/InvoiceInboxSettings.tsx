@@ -110,7 +110,7 @@ function InboxDebugModal({ inboxId, inboxName, onClose }: { inboxId: string; inb
 
   return (
     <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
-      <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[80dvh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{inboxName} — Emails ({totalCount})</DialogTitle>
           <DialogDescription>Recent emails processed from this inbox. Auto-refreshes every 5s.</DialogDescription>
@@ -314,7 +314,7 @@ export function InvoiceInboxSettings() {
             </div>
             {form.inboxType === 'imap' ? (
               <>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div><Label>{t('incomingInvoices.inboxes.host')}</Label><Input value={form.host} onChange={(e) => setForm({ ...form, host: e.target.value })} /></div>
                   <div><Label>{t('incomingInvoices.inboxes.port')}</Label><Input type="number" value={form.port} onChange={(e) => setForm({ ...form, port: parseInt(e.target.value) || 993 })} /></div>
                 </div>

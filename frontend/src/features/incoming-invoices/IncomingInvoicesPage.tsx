@@ -24,6 +24,9 @@ import {
 import { usePersistedState } from '@/lib/usePersistedState'
 import { formatDate, formatCurrency } from '@/lib/utils'
 import { IncomingInvoiceDetail } from './IncomingInvoiceDetail'
+import { MobileCard, MobileCardList } from '@/components/MobileCard'
+import { MobileSortControl } from '@/components/MobileSortControl'
+import { useMediaQuery } from '@/lib/useMediaQuery'
 import { mapStatus, displayStatusColor, filterToBackendStatus, backendStatusToFilter } from './statusMapping'
 
 // --- GraphQL ---
@@ -172,6 +175,8 @@ export function IncomingInvoicesPage() {
   const totalCount = data?.incomingInvoices?.totalCount || 0
   const hasNextPage = data?.incomingInvoices?.hasNextPage || false
 
+  // Unter md Karten, darueber die Tabelle
+  const isMdUp = useMediaQuery('(min-width: 768px)')
   const hasActiveFilters = search || statusFilter !== 'all' || dateFrom || dateTo
 
   // IDs that still need user action: extracted (needs confirm) or confirmed without CP
@@ -316,13 +321,132 @@ export function IncomingInvoicesPage() {
     setShowCreateCp(false)
   }
 
+  // Gegenpartei-Auswahl und Status teilen sich Tabelle und Karten (Telefon)
+  const renderCounterpartyEditor = (inv: any) => (
+    <Popover
+      open={editingInvId === inv.id}
+      onOpenChange={(open) => {
+        if (open) {
+          setEditingInvId(inv.id)
+          setCpSearch(inv.supplierName || '')
+          setShowCreateCp(false)
+          setNewCpName('')
+        } else {
+          setEditingInvId(null)
+        }
+      }}
+    >
+      <PopoverTrigger asChild>
+        <button
+          onClick={(e) => e.stopPropagation()}
+          className="flex-shrink-0 rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 touch:p-2"
+          title={t('incomingInvoices.editCounterparty', 'Edit counterparty')}
+          data-testid={`incoming-invoice-edit-cp-${inv.id}`}
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[300px] max-w-[calc(100vw-1rem)] p-0" align="start" onClick={(e) => e.stopPropagation()}>
+        {showCreateCp ? (
+          <div className="p-3 space-y-3">
+            <div className="text-sm font-medium">{t('banking.createCounterparty', 'Create counterparty')}</div>
+            <input
+              type="text"
+              placeholder={t('banking.counterpartyName', 'Name')}
+              value={newCpName}
+              onChange={(e) => setNewCpName(e.target.value)}
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              autoFocus
+            />
+            <div className="flex gap-2">
+              <button onClick={() => setShowCreateCp(false)} className="flex-1 rounded border px-3 py-1.5 text-sm hover:bg-gray-50">
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={() => handleCreateAndSelectCounterparty(inv.id)}
+                disabled={!newCpName.trim()}
+                className="flex-1 rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {t('common.create')}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <Command shouldFilter={false}>
+            <CommandInput
+              placeholder={t('incomingInvoices.searchCounterparty')}
+              value={cpSearch}
+              onValueChange={setCpSearch}
+            />
+            <CommandList>
+              <CommandEmpty>{t('common.noResults')}</CommandEmpty>
+              <CommandGroup>
+                {searchedCps.map((cp: any) => (
+                  <CommandItem
+                    key={cp.id}
+                    value={cp.id}
+                    onSelect={() => handleSelectCounterparty(inv.id, cp.id)}
+                    disabled={updatingCp}
+                  >
+                    <div className="flex flex-col">
+                      <span>{cp.name}</span>
+                      {cp.iban && <span className="text-xs text-gray-400">{cp.iban}</span>}
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+              <CommandSeparator />
+              <CommandGroup>
+                <CommandItem onSelect={() => setShowCreateCp(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  {t('banking.createNewCounterparty', 'Create new')}
+                </CommandItem>
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        )}
+      </PopoverContent>
+    </Popover>
+  )
+
+  const renderStatus = (inv: any) => {
+    const ds = mapStatus(inv.extractionStatus)
+    if (ds === 'inProgress') {
+      return <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+    }
+    if (ds === 'error') {
+      return (
+        <div className="flex items-center gap-1">
+          <Badge variant="secondary" className={displayStatusColor.error}>
+            {t('incomingInvoices.status.error')}
+          </Badge>
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              retriggerExtraction({ variables: { id: inv.id } }).then(() => refetch())
+            }}
+            className="rounded p-0.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 touch:p-2"
+            title={t('incomingInvoices.retryExtraction', 'Nochmals analysieren')}
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )
+    }
+    return (
+      <Badge variant="secondary" className={displayStatusColor[ds]}>
+        {t(`incomingInvoices.status.${ds}`)}
+      </Badge>
+    )
+  }
+
   // --- Render ---
 
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold">{t('incomingInvoices.title')}</h1>
           {hasActiveFilters && (
             <button onClick={clearFilters} className="text-xs text-blue-600 hover:text-blue-800">
@@ -425,7 +549,7 @@ export function IncomingInvoicesPage() {
 
       {/* Filter card */}
       <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-gray-50 p-3 mb-4">
-        <div className="min-w-[200px] flex-1">
+        <div className="w-full sm:w-auto sm:min-w-[200px] sm:flex-1">
           <label className="mb-1 block text-xs font-medium text-gray-500">{t('common.search')}</label>
           <input
             type="text"
@@ -435,7 +559,7 @@ export function IncomingInvoicesPage() {
             className="w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
         </div>
-        <div className="w-[150px]">
+        <div className="w-full sm:w-[150px]">
           <label className="mb-1 block text-xs font-medium text-gray-500">{t('incomingInvoices.statusLabel')}</label>
           <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1) }}>
             <SelectTrigger className="h-8 text-sm">
@@ -461,7 +585,7 @@ export function IncomingInvoicesPage() {
             </label>
           </div>
         )}
-        <div className="w-[130px]">
+        <div className="min-w-0 flex-1 sm:w-[130px] sm:flex-none">
           <label className="mb-1 block text-xs font-medium text-gray-500">{t('incomingInvoices.dateFrom', 'From')}</label>
           <input
             type="date"
@@ -470,7 +594,7 @@ export function IncomingInvoicesPage() {
             className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
         </div>
-        <div className="w-[130px]">
+        <div className="min-w-0 flex-1 sm:w-[130px] sm:flex-none">
           <label className="mb-1 block text-xs font-medium text-gray-500">{t('incomingInvoices.dateTo', 'To')}</label>
           <input
             type="date"
@@ -492,8 +616,66 @@ export function IncomingInvoicesPage() {
         </div>
       ) : (
         <>
+          {!isMdUp && (
+            <MobileCardList data-testid="incoming-invoice-cards">
+              <MobileSortControl<string>
+                options={[
+                  { value: 'invoice_date', label: t('incomingInvoices.date') },
+                  { value: 'supplier_name', label: t('incomingInvoices.supplier') },
+                  { value: 'invoice_number', label: t('incomingInvoices.invoiceNumber') },
+                  { value: 'gross_amount', label: t('incomingInvoices.grossAmount') },
+                  { value: 'extraction_status', label: t('incomingInvoices.statusLabel') },
+                ]}
+                sortBy={sortBy}
+                sortOrder={sortOrder as 'asc' | 'desc'}
+                onSortByChange={(field) => {
+                  setSortBy(field)
+                  setPage(1)
+                }}
+                onSortOrderChange={(order) => {
+                  setSortOrder(order)
+                  setPage(1)
+                }}
+              />
+              {invoices.map((inv: any) => (
+                <MobileCard
+                  key={inv.id}
+                  data-testid={`incoming-invoice-card-${inv.id}`}
+                  onClick={() => setSelectedId(inv.id)}
+                  title={inv.counterpartyName || inv.supplierName || inv.originalFilename}
+                  subtitle={
+                    <>
+                      {inv.counterpartyName && inv.supplierName && inv.counterpartyName !== inv.supplierName && (
+                        <span className="text-xs text-gray-400">{inv.supplierName}</span>
+                      )}
+                      {inv.invoiceNumber && <div className="text-xs text-gray-500">{inv.invoiceNumber}</div>}
+                    </>
+                  }
+                  meta={formatDate(inv.invoiceDate)}
+                  amount={formatCurrency(inv.grossAmount, { currency: inv.currency })}
+                  actions={
+                    <div className="flex w-full items-center justify-between gap-2">
+                      {renderStatus(inv)}
+                      <div className="flex items-center gap-1">
+                        {inv.counterpartyId && (
+                          <Link
+                            to={`/banking/counterparty/${inv.counterpartyId}`}
+                            className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                          >
+                            {t('incomingInvoices.counterparty')}
+                          </Link>
+                        )}
+                        {renderCounterpartyEditor(inv)}
+                      </div>
+                    </div>
+                  }
+                />
+              ))}
+            </MobileCardList>
+          )}
+          {isMdUp && (
           <div className="overflow-x-auto rounded-lg border bg-white">
-            <table className="w-full table-fixed text-sm">
+            <table className="w-full min-w-[720px] table-fixed text-sm">
               <thead>
                 <tr className="border-b bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
                   <th className="w-[10%] cursor-pointer whitespace-nowrap px-4 py-3" onClick={() => handleSort('invoice_date')}>
@@ -558,89 +740,7 @@ export function IncomingInvoicesPage() {
                             ({inv.supplierName.slice(0, 20)})
                           </span>
                         )}
-                        <Popover
-                          open={editingInvId === inv.id}
-                          onOpenChange={(open) => {
-                            if (open) {
-                              setEditingInvId(inv.id)
-                              setCpSearch(inv.supplierName || '')
-                              setShowCreateCp(false)
-                              setNewCpName('')
-                            } else {
-                              setEditingInvId(null)
-                            }
-                          }}
-                        >
-                          <PopoverTrigger asChild>
-                            <button
-                              onClick={(e) => e.stopPropagation()}
-                              className="flex-shrink-0 rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                              title={t('incomingInvoices.editCounterparty', 'Edit counterparty')}
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[300px] p-0" align="start" onClick={(e) => e.stopPropagation()}>
-                            {showCreateCp ? (
-                              <div className="p-3 space-y-3">
-                                <div className="text-sm font-medium">{t('banking.createCounterparty', 'Create counterparty')}</div>
-                                <input
-                                  type="text"
-                                  placeholder={t('banking.counterpartyName', 'Name')}
-                                  value={newCpName}
-                                  onChange={(e) => setNewCpName(e.target.value)}
-                                  className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                                  autoFocus
-                                />
-                                <div className="flex gap-2">
-                                  <button onClick={() => setShowCreateCp(false)} className="flex-1 rounded border px-3 py-1.5 text-sm hover:bg-gray-50">
-                                    {t('common.cancel')}
-                                  </button>
-                                  <button
-                                    onClick={() => handleCreateAndSelectCounterparty(inv.id)}
-                                    disabled={!newCpName.trim()}
-                                    className="flex-1 rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
-                                  >
-                                    {t('common.create')}
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              <Command shouldFilter={false}>
-                                <CommandInput
-                                  placeholder={t('incomingInvoices.searchCounterparty')}
-                                  value={cpSearch}
-                                  onValueChange={setCpSearch}
-                                />
-                                <CommandList>
-                                  <CommandEmpty>{t('common.noResults')}</CommandEmpty>
-                                  <CommandGroup>
-                                    {searchedCps.map((cp: any) => (
-                                      <CommandItem
-                                        key={cp.id}
-                                        value={cp.id}
-                                        onSelect={() => handleSelectCounterparty(inv.id, cp.id)}
-                                        disabled={updatingCp}
-                                      >
-                                        <div className="flex flex-col">
-                                          <span>{cp.name}</span>
-                                          {cp.iban && <span className="text-xs text-gray-400">{cp.iban}</span>}
-                                        </div>
-                                      </CommandItem>
-                                    ))}
-                                  </CommandGroup>
-                                  <CommandSeparator />
-                                  <CommandGroup>
-                                    <CommandItem onSelect={() => setShowCreateCp(true)}>
-                                      <Plus className="mr-2 h-4 w-4" />
-                                      {t('banking.createNewCounterparty', 'Create new')}
-                                    </CommandItem>
-                                  </CommandGroup>
-                                </CommandList>
-                              </Command>
-                            )}
-                          </PopoverContent>
-                        </Popover>
+                        {renderCounterpartyEditor(inv)}
                       </div>
                     </td>
                     <td className="px-4 py-2.5 text-gray-600">{inv.invoiceNumber || '—'}</td>
@@ -648,45 +748,17 @@ export function IncomingInvoicesPage() {
                       {formatCurrency(inv.grossAmount, { currency: inv.currency })}
                     </td>
                     <td className="px-4 py-2.5">
-                      {(() => {
-                        const ds = mapStatus(inv.extractionStatus)
-                        if (ds === 'inProgress') {
-                          return <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-                        }
-                        if (ds === 'error') {
-                          return (
-                            <div className="flex items-center gap-1">
-                              <Badge variant="secondary" className={displayStatusColor.error}>
-                                {t('incomingInvoices.status.error')}
-                              </Badge>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  retriggerExtraction({ variables: { id: inv.id } }).then(() => refetch())
-                                }}
-                                className="rounded p-0.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-                                title={t('incomingInvoices.retryExtraction', 'Nochmals analysieren')}
-                              >
-                                <RefreshCw className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-                          )
-                        }
-                        return (
-                          <Badge variant="secondary" className={displayStatusColor[ds]}>
-                            {t(`incomingInvoices.status.${ds}`)}
-                          </Badge>
-                        )
-                      })()}
+                      {renderStatus(inv)}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          )}
 
           {/* Pagination */}
-          {totalCount > 10 && <div className="flex items-center justify-between mt-4">
+          {totalCount > 10 && <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
             <span className="text-sm text-muted-foreground">
               {t('common.showingOf', { from: (page - 1) * 50 + 1, to: Math.min(page * 50, totalCount), total: totalCount })}
             </span>

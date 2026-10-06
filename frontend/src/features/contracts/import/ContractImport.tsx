@@ -575,7 +575,7 @@ export function ContractImport() {
                 return (
                   <div key={proposal.id} className={`p-4 ${isAlreadyImported ? 'bg-gray-100 opacity-60' : ''}`}>
                     {/* Proposal Header */}
-                    <div className="flex items-center gap-4">
+                    <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap sm:gap-4">
                       <button
                         onClick={() => toggleExpanded(proposal.id)}
                         className="flex-shrink-0"
@@ -594,7 +594,7 @@ export function ContractImport() {
                       )}
 
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-x-2 sm:flex-nowrap">
                           <span className={`font-medium truncate ${isAlreadyImported ? 'text-gray-500' : ''}`}>{proposal.customerName}</span>
                           <span className="text-sm text-gray-500">({proposal.customerNumber})</span>
                           {isAlreadyImported && (
@@ -661,7 +661,7 @@ export function ContractImport() {
 
                     {/* Expanded Details */}
                     {isExpanded && (
-                      <div className="mt-4 ml-10 space-y-4">
+                      <div className="mt-4 ml-0 space-y-4 sm:ml-10">
                         {/* Match Info */}
                         <div className="rounded bg-gray-50 p-3">
                           <div className="flex items-center justify-between">
@@ -789,6 +789,7 @@ export function ContractImport() {
                         {/* Line Items */}
                         <div>
                           <h4 className="text-sm font-medium">{t('import.lineItems')}</h4>
+                          <div className="overflow-x-auto">
                           <table className="mt-2 w-full text-sm">
                             <thead className="bg-gray-50">
                               <tr>
@@ -816,6 +817,7 @@ export function ContractImport() {
                               </tr>
                             </tbody>
                           </table>
+                          </div>
                         </div>
 
                         {/* Notes */}

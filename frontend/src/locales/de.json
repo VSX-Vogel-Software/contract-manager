@@ -17,6 +17,9 @@
     "incomingInvoices": "Eingangsrechnungen"
   },
   "common": {
+    "name": "Name",
+    "active": "Aktiv",
+    "inactive": "Inaktiv",
     "search": "Suchen...",
     "loading": "Laden...",
     "save": "Speichern",
@@ -59,6 +62,9 @@
     "moreResults": "+ weitere Ergebnisse..."
   },
   "auth": {
+    "connectionError": "Server nicht erreichbar",
+    "connectionErrorHint": "Deine Anmeldung bleibt erhalten. Bitte Verbindung prüfen und erneut versuchen.",
+    "retry": "Erneut versuchen",
     "signIn": "Anmelden",
     "signInButton": "Anmelden",
     "signOut": "Abmelden",
@@ -2824,5 +2830,20 @@
     "failed": "Mailversand fehlgeschlagen",
     "lastAttempt": "Letzter Versuch: {{when}}",
     "badge": "Versand fehlgeschlagen"
+  },
+  "mobile": {
+    "downloadPdf": "Herunterladen",
+    "sortDefault": "Standard",
+    "sortBy": "Sortieren nach",
+    "sortAscending": "Aufsteigend sortiert",
+    "sortDescending": "Absteigend sortiert",
+    "openMenu": "Menü öffnen",
+    "navigation": "Navigation",
+    "search": "Suchen",
+    "clearSearch": "Suche leeren",
+    "openChat": "Assistent öffnen",
+    "openPdf": "PDF öffnen",
+    "pdfHint": "Die Vorschau lässt sich auf diesem Gerät nicht einbetten.",
+    "showInfo": "Info anzeigen"
   }
 }

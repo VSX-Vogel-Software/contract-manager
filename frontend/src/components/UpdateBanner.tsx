@@ -35,7 +35,7 @@ export function UpdateBanner() {
         data-testid="update-banner"
       >
         <ArrowUpCircle className="h-4 w-4 shrink-0" />
-        <span>
+        <span className="min-w-0">
           {t('updateBanner.message', {
             version: latestVersion,
             current: CURRENT_VERSION,
@@ -43,14 +43,14 @@ export function UpdateBanner() {
         </span>
         <button
           onClick={() => setModalOpen(true)}
-          className="font-medium underline underline-offset-2 hover:text-green-100"
+          className="shrink-0 font-medium underline underline-offset-2 hover:text-green-100"
           data-testid="update-banner-link"
         >
           {t('updateBanner.action')}
         </button>
         <button
           onClick={handleDismiss}
-          className="ml-2 rounded p-0.5 hover:bg-green-700"
+          className="ml-2 shrink-0 rounded p-0.5 hover:bg-green-700 touch:p-2"
           aria-label={t('updateBanner.dismiss')}
           data-testid="update-banner-dismiss"
         >

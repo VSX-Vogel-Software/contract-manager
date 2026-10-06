@@ -151,10 +151,11 @@ export function AboutPage() {
                 const config = TYPE_CONFIG[entry.type] || TYPE_CONFIG.feature
                 const Icon = config.icon
                 return (
-                  <div key={i} className="rounded-lg border bg-white p-6">
+                  <div key={i} className="rounded-lg border bg-white p-4 sm:p-6">
                     <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
+                      {/* min-w-0 + break-words: lange Woerter/Pfade in Eintraegen sprengen sonst die Breite */}
+                      <div className="min-w-0 flex-1 break-words">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
                           <Badge variant="secondary" className={config.color}>
                             <Icon className="w-3 h-3 mr-1" />
                             {t(`about.changelog.${entry.type}`)}
@@ -170,7 +171,7 @@ export function AboutPage() {
                             {entry.details.map((detail, j) => (
                               <li key={j} className="flex items-start gap-2 text-sm text-gray-600">
                                 <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-blue-400 shrink-0" />
-                                {detail}
+                                <span className="min-w-0 break-words">{detail}</span>
                               </li>
                             ))}
                           </ul>
@@ -186,7 +187,7 @@ export function AboutPage() {
 
         <TabsContent value="about" className="mt-6 space-y-6">
           {/* Project info: GitHub + License */}
-          <div className="rounded-lg border bg-white p-6">
+          <div className="rounded-lg border bg-white p-4 sm:p-6">
             <h2 className="mb-4 text-lg font-semibold">{t('about.project')}</h2>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
@@ -198,7 +199,7 @@ export function AboutPage() {
                   href="https://github.com/VSX-Vogel-Software/contract-manager"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                  className="inline-flex max-w-full items-center gap-1.5 [overflow-wrap:anywhere] text-sm text-blue-600 hover:text-blue-800 hover:underline"
                 >
                   github.com/VSX-Vogel-Software/contract-manager
                   <ExternalLink className="h-3.5 w-3.5" />
@@ -225,7 +226,7 @@ export function AboutPage() {
           </div>
 
           {/* Version Info */}
-          <div className="rounded-lg border bg-white p-6">
+          <div className="rounded-lg border bg-white p-4 sm:p-6">
             <h2 className="mb-4 text-lg font-semibold">{t('about.versionInfo')}</h2>
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
@@ -246,20 +247,20 @@ export function AboutPage() {
           </div>
 
           {/* Frontend Dependencies */}
-          <div className="rounded-lg border bg-white p-6">
-            <div className="mb-4 flex items-center justify-between">
+          <div className="rounded-lg border bg-white p-4 sm:p-6">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="text-lg font-semibold">
                 {t('about.frontendDependencies')}
                 <span className="ml-2 text-sm font-normal text-gray-500">({filteredFe.length})</span>
               </h2>
-              <div className="relative">
+              <div className="relative w-full sm:w-auto">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
                   value={searchFe}
                   onChange={(e) => setSearchFe(e.target.value)}
                   placeholder={t('about.searchPackages')}
-                  className="rounded-lg border py-1.5 pl-9 pr-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full rounded-lg border py-1.5 pl-9 pr-3 text-sm sm:w-auto focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -267,20 +268,20 @@ export function AboutPage() {
           </div>
 
           {/* Backend Dependencies */}
-          <div className="rounded-lg border bg-white p-6">
-            <div className="mb-4 flex items-center justify-between">
+          <div className="rounded-lg border bg-white p-4 sm:p-6">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="text-lg font-semibold">
                 {t('about.backendDependencies')}
                 <span className="ml-2 text-sm font-normal text-gray-500">({filteredBe.length})</span>
               </h2>
-              <div className="relative">
+              <div className="relative w-full sm:w-auto">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
                   value={searchBe}
                   onChange={(e) => setSearchBe(e.target.value)}
                   placeholder={t('about.searchPackages')}
-                  className="rounded-lg border py-1.5 pl-9 pr-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full rounded-lg border py-1.5 pl-9 pr-3 text-sm sm:w-auto focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -312,7 +313,7 @@ function LicenseTable({ entries }: { entries: { name: string; version: string; l
         <tbody>
           {entries.map((entry, i) => (
             <tr key={`${entry.name}-${i}`} className="border-b last:border-0">
-              <td className="py-1.5 pr-4 font-mono text-xs">{entry.name}</td>
+              <td className="py-1.5 pr-4 font-mono text-xs [overflow-wrap:anywhere]">{entry.name}</td>
               <td className="py-1.5 pr-4 text-gray-600">{entry.version}</td>
               <td className="py-1.5 text-gray-600">{entry.license}</td>
             </tr>

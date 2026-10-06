@@ -254,7 +254,7 @@ export function PaymentMatchModal({
             })}
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-4">
+        <div className="min-w-0 space-y-4 py-4">
           {/* Existing matches */}
           {existingMatches.length > 0 && (
             <div>
@@ -263,15 +263,15 @@ export function PaymentMatchModal({
                 {existingMatches.map((match) => (
                   <div
                     key={match.id}
-                    className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50 p-3"
+                    className="flex flex-col items-start justify-between gap-2 rounded-lg border border-green-200 bg-green-50 p-3 sm:flex-row sm:items-center"
                   >
-                    <div>
-                      <div className="font-medium">{match.counterpartyName}</div>
+                    <div className="min-w-0">
+                      <div className="break-words font-medium">{match.counterpartyName}</div>
                       <div className="text-sm text-gray-500">
                         {formatDate(match.transactionDate)} - {formatCurrency(match.transactionAmount)}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex shrink-0 items-center gap-2">
                       <Badge variant="secondary">{match.matchType}</Badge>
                       <Button
                         variant="ghost"
@@ -307,7 +307,7 @@ export function PaymentMatchModal({
                       >
                         <div className="flex items-center justify-between">
                           <div className="min-w-0 flex-1">
-                            <div className="font-medium">{match.counterpartyName}</div>
+                            <div className="break-words font-medium">{match.counterpartyName}</div>
                             <div className="break-words text-sm text-gray-500">
                               {formatDate(match.transactionDate)} - {match.bookingText}
                             </div>
@@ -358,7 +358,7 @@ export function PaymentMatchModal({
                       >
                         <div className="flex items-center justify-between">
                           <div className="min-w-0 flex-1">
-                            <div className="font-medium">{tx.counterparty?.name || '-'}</div>
+                            <div className="break-words font-medium">{tx.counterparty?.name || '-'}</div>
                             <div className="break-words text-sm text-gray-500">
                               {formatDate(tx.entryDate)} - {tx.bookingText}
                             </div>

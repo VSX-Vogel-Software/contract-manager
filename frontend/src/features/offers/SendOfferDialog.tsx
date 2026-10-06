@@ -103,17 +103,17 @@ export function SendOfferDialog({
           <DialogTitle>{t('offers.send.title')}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <p className="text-sm text-gray-500">{t('offers.send.description')}</p>
 
           {/* Recipients list */}
           <div className="space-y-2">
             {recipients.map((email) => (
               <div key={email} className="flex items-center gap-2 text-sm bg-gray-50 rounded px-3 py-1.5">
-                <span className="flex-1">{email}</span>
+                <span className="min-w-0 flex-1 break-all">{email}</span>
                 <button
                   onClick={() => handleRemoveRecipient(email)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="shrink-0 text-gray-400 hover:text-gray-600 touch:-m-2 touch:p-2"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>

@@ -19,4 +19,12 @@ i18n
     },
   })
 
+// <html lang> folgt der UI-Sprache - Screenreader und die Silbentrennung
+// (hyphens: auto, z. B. in fixierten Tabellenspalten) richten sich danach
+const syncDocumentLang = (lng?: string) => {
+  if (lng) document.documentElement.lang = lng.split('-')[0]
+}
+syncDocumentLang(i18n.resolvedLanguage ?? i18n.language)
+i18n.on('languageChanged', syncDocumentLang)
+
 export default i18n

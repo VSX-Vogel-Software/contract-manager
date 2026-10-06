@@ -303,7 +303,7 @@ function DepartmentAnalysisContent() {
         >
           {ytdLabel}
         </button>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex flex-wrap items-center gap-2">
           <input
             type="date"
             value={dateFrom}
@@ -397,7 +397,7 @@ function DepartmentAnalysisContent() {
                     return distribution.map((d: { departmentName: string; hours: number; percentage: number }, i: number) => (
                       <div key={d.departmentName} className="flex items-center gap-3">
                         <div className={`h-3 w-3 rounded-full ${COLORS[i % COLORS.length]}`} />
-                        <span className="min-w-[160px] text-sm font-medium text-gray-900">{d.departmentName}</span>
+                        <span className="min-w-0 break-words text-sm font-medium text-gray-900 sm:min-w-[160px]">{d.departmentName}</span>
                         <div className="flex-1">
                           <div className="h-2 rounded-full bg-gray-100">
                             <div
@@ -481,7 +481,7 @@ function DepartmentAnalysisContent() {
                         return costDistribution.map((d: { departmentName: string; percentage: number; ftes: number }, i: number) => (
                           <div key={d.departmentName} className="flex items-center gap-3">
                             <div className={`h-3 w-3 rounded-full ${COLORS[i % COLORS.length]}`} />
-                            <span className="min-w-[160px] text-sm font-medium text-gray-900">{d.departmentName}</span>
+                            <span className="min-w-0 break-words text-sm font-medium text-gray-900 sm:min-w-[160px]">{d.departmentName}</span>
                             <div className="flex-1">
                               <div className="h-2 rounded-full bg-gray-100">
                                 <div

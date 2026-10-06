@@ -8,7 +8,8 @@ import {
   DragEndEvent,
   DragOverlay,
   DragStartEvent,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   closestCorners,
@@ -21,6 +22,7 @@ import { Input } from '@/components/ui/input'
 import { HelpVideoButton } from '@/components/HelpVideoButton'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   Calendar,
   MessageSquare,
@@ -29,6 +31,7 @@ import {
   GripVertical,
   ChevronDown,
   ChevronRight,
+  ArrowRightLeft,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth'
@@ -134,6 +137,12 @@ interface AssigneeColumn {
 // TodoCard Component (Draggable)
 // ============================================================================
 
+/** Ziel fuer "Verschieben" ohne Ziehen (eine Spalte = ein Zustaendiger) */
+interface MoveTarget {
+  assigneeId: number | null
+  label: string
+}
+
 interface TodoCardProps {
   todo: TodoItem
   currentUserId: number
@@ -141,6 +150,60 @@ interface TodoCardProps {
   onEdit: (todo: TodoItem) => void
   onViewComments: (todo: TodoItem) => void
   isDragging?: boolean
+  /** Spalten, in die die Karte verschoben werden kann (ohne die eigene) */
+  moveTargets?: MoveTarget[]
+  onMove?: (todo: TodoItem, assigneeId: number | null) => void
+}
+
+/**
+ * Verschieben in eine andere Spalte ohne Drag & Drop. Nur auf Touch-Geraeten
+ * sichtbar - dort ist Ziehen muehsam bzw. kollidiert mit dem Scrollen; mit der
+ * Maus bleibt die Karte wie bisher.
+ */
+function MoveTodoMenu({
+  todo,
+  targets,
+  onMove,
+}: {
+  todo: TodoItem
+  targets: MoveTarget[]
+  onMove: (todo: TodoItem, assigneeId: number | null) => void
+}) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  if (targets.length === 0) return null
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="hidden h-6 w-6 text-muted-foreground hover:text-primary touch:inline-flex touch:h-9 touch:w-9"
+          aria-label={t('todos.assignTo')}
+          data-testid={`todo-card-move-${todo.id}`}
+        >
+          <ArrowRightLeft className="h-3 w-3 touch:h-4 touch:w-4" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-56 p-1" data-testid={`todo-card-move-menu-${todo.id}`}>
+        <p className="px-2 py-1.5 text-xs font-medium text-muted-foreground">{t('todos.assignTo')}</p>
+        {targets.map((target) => (
+          <button
+            key={target.assigneeId ?? 'unassigned'}
+            type="button"
+            className="flex w-full items-center rounded-sm px-2 py-2.5 text-left text-sm hover:bg-accent"
+            data-testid={`todo-card-move-to-${target.assigneeId ?? 'unassigned'}`}
+            onClick={() => {
+              setOpen(false)
+              onMove(todo, target.assigneeId)
+            }}
+          >
+            {target.label}
+          </button>
+        ))}
+      </PopoverContent>
+    </Popover>
+  )
 }
 
 function TodoCard({
@@ -150,6 +213,8 @@ function TodoCard({
   onEdit,
   onViewComments,
   isDragging,
+  moveTargets,
+  onMove,
 }: TodoCardProps) {
   const getEntityLink = (todo: TodoItem): string => {
     if (todo.contractId) {
@@ -193,11 +258,14 @@ function TodoCard({
           </p>
         </div>
         <div className="flex gap-1 shrink-0">
+          {moveTargets && onMove && (
+            <MoveTodoMenu todo={todo} targets={moveTargets} onMove={onMove} />
+          )}
           {canEdit && (
             <Button
               variant="ghost"
               size="icon"
-              className="h-6 w-6 text-muted-foreground hover:text-primary"
+              className="h-6 w-6 text-muted-foreground hover:text-primary touch:h-9 touch:w-9"
               onClick={() => onEdit(todo)}
               data-testid={`todo-card-edit-${todo.id}`}
             >
@@ -266,7 +334,7 @@ function SortableTodoCard({ id, ...props }: SortableTodoCardProps) {
       <div
         {...attributes}
         {...listeners}
-        className="absolute left-0 top-0 bottom-0 w-6 flex items-center justify-center cursor-grab opacity-0 group-hover:opacity-100 transition-opacity"
+        className="absolute left-0 top-0 bottom-0 w-6 flex items-center justify-center cursor-grab opacity-0 group-hover:opacity-100 touch:opacity-100 transition-opacity touch-none"
       >
         <GripVertical className="h-4 w-4 text-muted-foreground" />
       </div>
@@ -283,6 +351,8 @@ function SortableTodoCard({ id, ...props }: SortableTodoCardProps) {
 
 interface BoardColumnProps {
   column: AssigneeColumn
+  columns: AssigneeColumn[]
+  onMove: (todo: TodoItem, assigneeId: number | null) => void
   currentUserId: number
   onToggleComplete: (todo: TodoItem) => void
   onEdit: (todo: TodoItem) => void
@@ -292,6 +362,8 @@ interface BoardColumnProps {
 
 function BoardColumn({
   column,
+  columns,
+  onMove,
   currentUserId,
   onToggleComplete,
   onEdit,
@@ -317,13 +389,19 @@ function BoardColumn({
 
   const todoIds = filteredTodos.map((t) => `todo-${t.id}`)
 
+  const moveTargets: MoveTarget[] = columns
+    .filter((c) => c.assigneeId !== column.assigneeId)
+    .map((c) => ({ assigneeId: c.assigneeId, label: c.isCurrentUser ? t('todos.me') : c.assigneeName }))
+
   return (
     <div
       ref={setNodeRef}
       className={cn(
-        'flex flex-col bg-gray-50 rounded-lg w-80 min-w-[320px] max-h-full transition-colors',
+        // Telefon: Spalte fast bildschirmbreit, Spalten rasten beim Wischen ein
+        'flex flex-col bg-gray-50 rounded-lg w-[calc(100vw-3rem)] max-w-[320px] shrink-0 snap-start sm:w-80 sm:min-w-[320px] max-h-full transition-colors',
         isOver && 'bg-blue-50 ring-2 ring-blue-200'
       )}
+      data-testid={`todo-column-${column.assigneeId ?? 'unassigned'}`}
     >
       {/* Column header */}
       <div
@@ -363,6 +441,8 @@ function BoardColumn({
                   onToggleComplete={onToggleComplete}
                   onEdit={onEdit}
                   onViewComments={onViewComments}
+                  moveTargets={moveTargets}
+                  onMove={onMove}
                 />
               ))
             )}
@@ -398,10 +478,15 @@ export function TodoBoard() {
 
   // Mutations
   const [updateTodo] = useMutation(UPDATE_TODO)
-  // DnD sensors
+  // DnD sensors: Maus wie bisher; auf Touch erst nach kurzem Halten, damit
+  // Wischen weiter scrollt (MouseSensor statt PointerSensor, sonst greifen
+  // beide bei Touch)
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(MouseSensor, {
       activationConstraint: { distance: 5 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 200, tolerance: 8 },
     })
   )
 
@@ -428,6 +513,22 @@ export function TodoBoard() {
       refetch()
     } catch (error) {
       console.error('Failed to update todo:', error)
+    }
+  }
+
+  // Zustaendigen wechseln (= Spalte), gemeinsam fuer Drag & Drop und Menue
+  const moveTodo = async (todo: TodoItem, targetAssigneeId: number | null) => {
+    if (targetAssigneeId === todo.assignedToId) return
+    try {
+      await updateTodo({
+        variables: {
+          todoId: todo.id,
+          assignedToId: targetAssigneeId,
+        },
+      })
+      refetch()
+    } catch (error) {
+      console.error('Failed to reassign todo:', error)
     }
   }
 
@@ -466,20 +567,7 @@ export function TodoBoard() {
       targetAssigneeId = overId === 'column-unassigned' ? null : parseInt(overId.replace('column-', ''))
     }
 
-    // Check if assignment changed
-    if (targetAssigneeId !== todo.assignedToId) {
-      try {
-        await updateTodo({
-          variables: {
-            todoId: todo.id,
-            assignedToId: targetAssigneeId,
-          },
-        })
-        refetch()
-      } catch (error) {
-        console.error('Failed to reassign todo:', error)
-      }
-    }
+    await moveTodo(todo, targetAssigneeId)
   }
 
   // Get dragged todo for overlay
@@ -498,18 +586,18 @@ export function TodoBoard() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">{t('todos.board')}</h1>
 
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           {/* Search */}
-          <div className="relative">
+          <div className="relative w-full sm:w-auto">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               value={searchFilter}
               onChange={(e) => setSearchFilter(e.target.value)}
               placeholder={t('common.search')}
-              className="pl-9 w-64"
+              className="pl-9 w-full sm:w-64"
             />
           </div>
 
@@ -526,7 +614,7 @@ export function TodoBoard() {
       </div>
 
       {/* Board */}
-      <div className="flex-1 overflow-x-auto p-4">
+      <div className="flex-1 overflow-x-auto snap-x snap-mandatory -mx-3 px-3 py-2 sm:mx-0 sm:p-4 sm:snap-none">
         <DndContext
           sensors={sensors}
           collisionDetection={closestCorners}
@@ -538,6 +626,8 @@ export function TodoBoard() {
               <BoardColumn
                 key={column.assigneeId ?? 'unassigned'}
                 column={column}
+                columns={columns}
+                onMove={moveTodo}
                 currentUserId={currentUserId}
                 onToggleComplete={handleToggleComplete}
                 onEdit={(todo) => { setDetailTodoId(todo.id); setDetailCanEdit(true); setDetailCanReassign(true) }}

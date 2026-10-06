@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, gql } from '@apollo/client'
-import { Shield, Loader2, Plus, Trash2, Pencil, X } from 'lucide-react'
+import { Shield, Loader2, Plus, Trash2, Pencil } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 interface Role {
   id: number
@@ -178,8 +179,8 @@ export function RoleManagement() {
   if (error) return <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-600">{t('settings.roles.loadError', { message: error.message })}</div>
 
   return (
-    <div className="rounded-lg border bg-white p-6">
-      <div className="flex items-center justify-between">
+    <div className="rounded-lg border bg-white p-4 sm:p-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-lg font-medium">{t('settings.roles.title')}</h2>
           <p className="mt-1 text-sm text-gray-500">{t('settings.roles.description')}</p>
@@ -192,7 +193,7 @@ export function RoleManagement() {
               setNewRolePermissions({})
               setMessage(null)
             }}
-            className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            className="inline-flex shrink-0 items-center gap-2 self-start rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 sm:self-auto"
           >
             <Plus className="h-4 w-4" />
             {t('settings.roles.createRole')}
@@ -211,13 +212,13 @@ export function RoleManagement() {
         {roles.map((role) => (
           <div
             key={role.id}
-            className="flex items-center justify-between rounded-lg border px-4 py-3"
+            className="flex items-center justify-between gap-2 rounded-lg border px-3 py-3 sm:px-4"
           >
-            <div className="flex items-center gap-3">
+            <div className="flex min-w-0 items-center gap-3">
               <Shield className={`h-5 w-5 ${role.isSystem ? 'text-purple-500' : 'text-gray-400'}`} />
               <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-gray-900">{role.name}</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="break-words font-medium text-gray-900">{role.name}</span>
                   {role.isSystem && (
                     <span className="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-800">
                       {t('settings.roles.system')}
@@ -233,7 +234,7 @@ export function RoleManagement() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => handleEditRole(role)}
-                  className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                  className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 touch:p-2.5"
                   title={t('settings.roles.editRole')}
                 >
                   <Pencil className="h-4 w-4" />
@@ -242,7 +243,7 @@ export function RoleManagement() {
                   <button
                     onClick={() => handleDeleteRole(role)}
                     disabled={deleting}
-                    className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
+                    className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 touch:p-2.5"
                     title={t('settings.roles.deleteRole')}
                   >
                     <Trash2 className="h-4 w-4" />
@@ -255,17 +256,15 @@ export function RoleManagement() {
       </div>
 
       {/* Edit Permissions Dialog */}
-      {editingRole && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="mx-4 w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium">
+      {/* Radix-Dialog statt eigenem Overlay: passt in den Viewport, scrollt in sich, role="dialog" */}
+      <Dialog open={!!editingRole} onOpenChange={(open) => { if (!open) setEditingRole(null) }}>
+        {editingRole && (
+          <DialogContent className="block max-w-2xl" data-testid="role-edit-dialog" onInteractOutside={(e) => e.preventDefault()}>
+            <DialogHeader className="pr-8">
+              <DialogTitle className="break-words text-lg font-medium">
                 {t('settings.roles.editRole')}: {editingRole.name}
-              </h3>
-              <button onClick={() => setEditingRole(null)} className="rounded p-1 hover:bg-gray-100">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+              </DialogTitle>
+            </DialogHeader>
 
             <PermissionMatrix
               registry={registry}
@@ -298,7 +297,7 @@ export function RoleManagement() {
               </p>
             )}
 
-            <div className="mt-4 flex justify-end gap-2">
+            <div className="mt-4 flex flex-wrap justify-end gap-2">
               <button
                 onClick={() => setEditingRole(null)}
                 className="rounded-md border px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
@@ -314,20 +313,16 @@ export function RoleManagement() {
                 {t('settings.roles.savePermissions')}
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+        )}
+      </Dialog>
 
       {/* Create Role Dialog */}
-      {showCreateDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="mx-4 w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium">{t('settings.roles.createRole')}</h3>
-              <button onClick={() => setShowCreateDialog(false)} className="rounded p-1 hover:bg-gray-100">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className="block max-w-2xl" data-testid="role-create-dialog" onInteractOutside={(e) => e.preventDefault()}>
+            <DialogHeader className="pr-8">
+              <DialogTitle className="text-lg font-medium">{t('settings.roles.createRole')}</DialogTitle>
+            </DialogHeader>
 
             <div className="mt-4">
               <label className="block text-sm font-medium text-gray-700">
@@ -356,7 +351,7 @@ export function RoleManagement() {
               </p>
             )}
 
-            <div className="mt-4 flex justify-end gap-2">
+            <div className="mt-4 flex flex-wrap justify-end gap-2">
               <button
                 onClick={() => setShowCreateDialog(false)}
                 className="rounded-md border px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
@@ -372,9 +367,8 @@ export function RoleManagement() {
                 {t('settings.roles.createRole')}
               </button>
             </div>
-          </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -17,6 +17,9 @@
     "incomingInvoices": "Incoming Invoices"
   },
   "common": {
+    "name": "Name",
+    "active": "Active",
+    "inactive": "Inactive",
     "search": "Search...",
     "loading": "Loading...",
     "save": "Save",
@@ -59,6 +62,9 @@
     "moreResults": "+ more results..."
   },
   "auth": {
+    "connectionError": "Server not reachable",
+    "connectionErrorHint": "You are still signed in. Please check your connection and try again.",
+    "retry": "Try again",
     "signIn": "Sign in to your account",
     "signInButton": "Sign in",
     "signOut": "Sign out",
@@ -2824,5 +2830,20 @@
     "failed": "Email delivery failed",
     "lastAttempt": "Last attempt: {{when}}",
     "badge": "Delivery failed"
+  },
+  "mobile": {
+    "downloadPdf": "Download",
+    "sortDefault": "Default",
+    "sortBy": "Sort by",
+    "sortAscending": "Sorted ascending",
+    "sortDescending": "Sorted descending",
+    "openMenu": "Open menu",
+    "navigation": "Navigation",
+    "search": "Search",
+    "clearSearch": "Clear search",
+    "openChat": "Open assistant",
+    "openPdf": "Open PDF",
+    "pdfHint": "The preview cannot be embedded on this device.",
+    "showInfo": "Show info"
   }
 }

@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import { useTranslation } from 'react-i18next'
 import { useMutation, gql } from '@apollo/client'
-import { X, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 const UPDATE_PATTERN = gql`
   mutation UpdatePattern($input: UpdatePatternInput!) {
@@ -86,14 +87,13 @@ export function EditPatternModal({ pattern, onClose, onSave }: EditPatternModalP
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="mx-4 w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium">{t('liquidity.editPattern')}</h3>
-          <button onClick={onClose} className="rounded p-1 hover:bg-gray-100">
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+    // Radix-Dialog statt eigenem Overlay: passt in den Viewport, scrollt in sich
+    // und liefert role="dialog" samt Fokusfalle
+    <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
+      <DialogContent className="max-w-md gap-0" onInteractOutside={(e) => e.preventDefault()}>
+        <DialogHeader>
+          <DialogTitle className="text-lg font-medium">{t('liquidity.editPattern')}</DialogTitle>
+        </DialogHeader>
 
         <div className="mt-4 space-y-4">
           <div>
@@ -155,7 +155,7 @@ export function EditPatternModal({ pattern, onClose, onSave }: EditPatternModalP
           {error && <p className="text-sm text-red-600">{error}</p>}
         </div>
 
-        <div className="mt-6 flex justify-end gap-2">
+        <div className="mt-6 flex flex-wrap justify-end gap-2">
           <button
             onClick={onClose}
             className="rounded-md border px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
@@ -171,7 +171,7 @@ export function EditPatternModal({ pattern, onClose, onSave }: EditPatternModalP
             {t('common.save')}
           </button>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

@@ -168,7 +168,7 @@ export function AuditLogPage() {
 
   return (
     <div data-testid="audit-log-page">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-bold">{t('audit.title')}</h1>
         <div className="flex items-center gap-3">
           <span className="text-sm text-gray-500">
@@ -179,14 +179,14 @@ export function AuditLogPage() {
       </div>
 
       {/* Filters */}
-      <div className="mt-4 flex flex-wrap items-center gap-4">
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-gray-400" />
-          <div className="relative">
+      <div className="mt-4 flex flex-wrap items-center gap-2 sm:gap-4">
+        <div className="flex w-full items-center gap-2 sm:w-auto">
+          <Filter className="h-4 w-4 shrink-0 text-gray-400" />
+          <div className="relative flex-1 sm:flex-none">
             <select
               value={entityTypeFilter}
               onChange={(e) => setEntityTypeFilter(e.target.value)}
-              className="appearance-none rounded-md border border-gray-300 bg-white py-2 pl-3 pr-8 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-full appearance-none rounded-md border border-gray-300 bg-white py-2 pl-3 pr-8 text-sm sm:w-auto focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="">{t('audit.allEntityTypes')}</option>
               {ENTITY_TYPES.map((type) => (
@@ -199,11 +199,11 @@ export function AuditLogPage() {
           </div>
         </div>
 
-        <div className="relative">
+        <div className="relative w-full sm:w-auto">
           <select
             value={actionFilter}
             onChange={(e) => setActionFilter(e.target.value)}
-            className="appearance-none rounded-md border border-gray-300 bg-white py-2 pl-3 pr-8 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full appearance-none rounded-md border border-gray-300 bg-white py-2 pl-3 pr-8 text-sm sm:w-auto focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           >
             <option value="">{t('audit.allActions')}</option>
             {ACTIONS.map((action) => (
@@ -215,11 +215,11 @@ export function AuditLogPage() {
           <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
         </div>
 
-        <div className="relative">
+        <div className="relative w-full sm:w-auto">
           <select
             value={userFilter}
             onChange={(e) => setUserFilter(e.target.value)}
-            className="appearance-none rounded-md border border-gray-300 bg-white py-2 pl-3 pr-8 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full appearance-none rounded-md border border-gray-300 bg-white py-2 pl-3 pr-8 text-sm sm:w-auto focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           >
             <option value="">{t('audit.allUsers')}</option>
             {usersData?.users.map((u) => (
@@ -236,7 +236,7 @@ export function AuditLogPage() {
           value={dateFrom}
           onChange={(e) => setDateFrom(e.target.value)}
           placeholder={t('audit.dateFrom')}
-          className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm sm:flex-none focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
 
         <input
@@ -244,17 +244,17 @@ export function AuditLogPage() {
           value={dateTo}
           onChange={(e) => setDateTo(e.target.value)}
           placeholder={t('audit.dateTo')}
-          className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="min-w-0 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm sm:flex-none focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
 
-        <div className="relative">
+        <div className="relative w-full sm:w-auto">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder={t('audit.searchPlaceholder')}
-            className="rounded-md border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm sm:w-auto focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           />
         </div>
       </div>

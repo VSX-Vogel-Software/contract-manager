@@ -51,6 +51,10 @@ import {
 import { useAuth } from '@/lib/auth'
 import { HelpVideoButton } from '@/components/HelpVideoButton'
 import { TransactionMatchSheet } from './TransactionMatchSheet'
+import { MobileCard, MobileCardList } from '@/components/MobileCard'
+import { MobileSortControl } from '@/components/MobileSortControl'
+import { ScrollTabs } from '@/components/ScrollTabs'
+import { useMediaQuery } from '@/lib/useMediaQuery'
 import { Link2, AlertTriangle } from 'lucide-react'
 
 // --- GraphQL ---
@@ -750,6 +754,139 @@ export function BankingPage() {
 
   const hasActiveFilters = filterAccountId !== 'all' || searchQuery || dateFrom || dateTo || amountMin || amountMax || direction !== 'all' || filterCostCenterId !== 'all' || unmatchedCredits
 
+  // Unter md Karten statt Tabelle; Gegenpartei-Auswahl und Details teilen sich beide
+  const isMdUp = useMediaQuery('(min-width: 768px)')
+  const renderTxCounterpartyEditor = (tx: (typeof transactions)[number]) => (
+    <Popover
+      open={editingTxCounterparty?.id === tx.id}
+      onOpenChange={(open) => {
+        if (open) {
+          setEditingTxCounterparty(tx)
+          setCpSearchQuery('')
+          setShowCreateCp(false)
+          setNewCpName('')
+        } else {
+          setEditingTxCounterparty(null)
+        }
+      }}
+    >
+      <PopoverTrigger asChild>
+        <button
+          onClick={(e) => e.stopPropagation()}
+          className="flex-shrink-0 rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 touch:p-2"
+          title={t('banking.editCounterparty')}
+          data-testid={`tx-edit-cp-${tx.id}`}
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-[300px] max-w-[calc(100vw-1rem)] p-0"
+        align="start"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {showCreateCp ? (
+          <div className="p-3 space-y-3">
+            <div className="text-sm font-medium">{t('banking.createCounterparty')}</div>
+            <input
+              type="text"
+              placeholder={t('banking.counterpartyName')}
+              value={newCpName}
+              onChange={(e) => setNewCpName(e.target.value)}
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+              autoFocus
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowCreateCp(false)}
+                className="flex-1 rounded border px-3 py-1.5 text-sm hover:bg-gray-50"
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                onClick={handleCreateAndSelectCounterparty}
+                disabled={!newCpName.trim() || creatingCp}
+                className="flex-1 rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
+              >
+                {creatingCp ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : t('common.create')}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <Command shouldFilter={false}>
+            <CommandInput
+              placeholder={t('banking.searchCounterparty')}
+              value={cpSearchQuery}
+              onValueChange={setCpSearchQuery}
+            />
+            <CommandList>
+              <CommandEmpty>{t('banking.noCounterpartiesFound')}</CommandEmpty>
+              <CommandGroup>
+                {searchedCounterparties.map((cp) => (
+                  <CommandItem
+                    key={cp.id}
+                    value={cp.id}
+                    onSelect={() => handleSelectCounterparty(cp.id)}
+                    disabled={updatingTxCp}
+                  >
+                    <div className="flex flex-col">
+                      <span>{cp.name}</span>
+                      {cp.iban && (
+                        <span className="text-xs text-gray-400">{cp.iban}</span>
+                      )}
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+              <CommandSeparator />
+              <CommandGroup>
+                <CommandItem onSelect={() => setShowCreateCp(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  {t('banking.createNewCounterparty')}
+                </CommandItem>
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        )}
+      </PopoverContent>
+    </Popover>
+  )
+
+  const renderTxDetails = (tx: (typeof transactions)[number]) => (
+    <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
+      {tx.valueDate && (
+        <>
+          <span className="text-gray-400">{t('banking.valueDate')}</span>
+          <span className="text-gray-600">{formatDate(tx.valueDate)}</span>
+        </>
+      )}
+      {tx.reference && (
+        <>
+          <span className="text-gray-400">{t('banking.reference')}</span>
+          <span className="text-gray-600 [overflow-wrap:anywhere]">{tx.reference}</span>
+        </>
+      )}
+      {tx.counterparty?.iban && (
+        <>
+          <span className="text-gray-400">{t('banking.iban')}</span>
+          <span className="text-gray-600">{tx.counterparty.iban}</span>
+        </>
+      )}
+      {tx.counterparty?.bic && (
+        <>
+          <span className="text-gray-400">{t('banking.bic')}</span>
+          <span className="text-gray-600">{tx.counterparty.bic}</span>
+        </>
+      )}
+      {tx.transactionType && (
+        <>
+          <span className="text-gray-400">{t('banking.transactionType')}</span>
+          <span className="text-gray-600">{tx.transactionType}</span>
+        </>
+      )}
+    </div>
+  )
+
   // --- Render ---
 
   if (accountsLoading && !accountsData) {
@@ -763,9 +900,9 @@ export function BankingPage() {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-2xl font-bold">{t('banking.title')}</h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <HelpVideoButton />
           <button
             onClick={openCreateDialog}
@@ -792,11 +929,11 @@ export function BankingPage() {
           </button>
         </div>
       ) : (
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {accounts.map((account) => (
             <div
               key={account.id}
-              className="rounded-lg border bg-white p-4 shadow-sm"
+              className="min-w-0 rounded-lg border bg-white p-4 shadow-sm"
             >
               <div className="flex items-start justify-between">
                 <div className="min-w-0 flex-1">
@@ -807,27 +944,27 @@ export function BankingPage() {
                     {account.bankCode} / {account.accountNumber}
                   </p>
                   {account.iban && (
-                    <p className="mt-0.5 text-xs text-gray-400">{account.iban}</p>
+                    <p className="mt-0.5 text-xs text-gray-400 [overflow-wrap:anywhere]">{account.iban}</p>
                   )}
                 </div>
                 <div className="ml-2 flex gap-1">
                   <button
                     onClick={() => openEditDialog(account)}
-                    className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                    className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600 touch:p-2.5"
                     title={t('banking.editAccount')}
                   >
                     <Pencil className="h-3.5 w-3.5" />
                   </button>
                   <button
                     onClick={() => setDeleteConfirmId(account.id)}
-                    className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
+                    className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 touch:p-2.5"
                     title={t('banking.deleteAccount')}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
               </div>
-              <div className="mt-3 flex items-center justify-between">
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                 <span className="text-xs text-gray-500">
                   {t('banking.transactionCount', { count: account.transactionCount })}
                 </span>
@@ -880,9 +1017,10 @@ export function BankingPage() {
       {accounts.length > 0 && (
         <div className="mt-6 space-y-4">
           {/* Tab switcher */}
-          <div className="flex items-center gap-4 border-b border-gray-200">
+          <ScrollTabs className="items-center gap-4 border-b border-gray-200" activeKey={activeTab} data-testid="banking-tabs">
             <button
               onClick={() => setActiveTab('transactions')}
+              aria-current={activeTab === 'transactions' ? 'page' : undefined}
               className={`border-b-2 px-1 pb-2 text-sm font-medium ${
                 activeTab === 'transactions'
                   ? 'border-blue-600 text-blue-600'
@@ -893,6 +1031,7 @@ export function BankingPage() {
             </button>
             <button
               onClick={() => setActiveTab('counterparties')}
+              aria-current={activeTab === 'counterparties' ? 'page' : undefined}
               className={`border-b-2 px-1 pb-2 text-sm font-medium ${
                 activeTab === 'counterparties'
                   ? 'border-blue-600 text-blue-600'
@@ -901,14 +1040,14 @@ export function BankingPage() {
             >
               {t('banking.counterparties')}
             </button>
-          </div>
+          </ScrollTabs>
 
           {/* Counterparties Tab */}
           {activeTab === 'counterparties' && (
             <div className="space-y-4">
               {/* Search & Date Filter */}
               <div className="flex flex-wrap items-end gap-3">
-                <div className="max-w-sm flex-1">
+                <div className="w-full sm:w-auto sm:max-w-sm sm:flex-1">
                   <input
                     type="text"
                     value={cpSearch}
@@ -1038,7 +1177,7 @@ export function BankingPage() {
 
               {/* Pagination */}
               {cpTotalCount > 0 && (
-                <div className="flex items-center justify-between text-sm text-gray-600">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-gray-600">
                   <span>
                     {t('common.pagination.showing', {
                       from: (cpPage - 1) * cpPageSize + 1,
@@ -1090,7 +1229,7 @@ export function BankingPage() {
           {/* Filters */}
           <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-gray-50 p-3">
             {/* Search */}
-            <div className="min-w-[200px] flex-1">
+            <div className="w-full sm:w-auto sm:min-w-[200px] sm:flex-1">
               <label className="mb-1 block text-xs font-medium text-gray-500">
                 {t('common.search')}
               </label>
@@ -1104,7 +1243,7 @@ export function BankingPage() {
             </div>
 
             {/* Account filter */}
-            <div className="w-[180px]">
+            <div className="w-full sm:w-[180px]">
               <label className="mb-1 block text-xs font-medium text-gray-500">
                 {t('banking.account')}
               </label>
@@ -1124,7 +1263,7 @@ export function BankingPage() {
             </div>
 
             {/* Date range */}
-            <div className="w-[130px]">
+            <div className="min-w-0 flex-1 sm:w-[130px] sm:flex-none">
               <label className="mb-1 block text-xs font-medium text-gray-500">
                 {t('banking.dateFrom')}
               </label>
@@ -1135,7 +1274,7 @@ export function BankingPage() {
                 className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
-            <div className="w-[130px]">
+            <div className="min-w-0 flex-1 sm:w-[130px] sm:flex-none">
               <label className="mb-1 block text-xs font-medium text-gray-500">
                 {t('banking.dateTo')}
               </label>
@@ -1148,7 +1287,7 @@ export function BankingPage() {
             </div>
 
             {/* Amount range */}
-            <div className="w-[100px]">
+            <div className="min-w-0 flex-1 sm:w-[100px] sm:flex-none">
               <label className="mb-1 block text-xs font-medium text-gray-500">
                 {t('banking.amountMin')}
               </label>
@@ -1158,7 +1297,7 @@ export function BankingPage() {
                 className="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
-            <div className="w-[100px]">
+            <div className="min-w-0 flex-1 sm:w-[100px] sm:flex-none">
               <label className="mb-1 block text-xs font-medium text-gray-500">
                 {t('banking.amountMax')}
               </label>
@@ -1170,7 +1309,7 @@ export function BankingPage() {
             </div>
 
             {/* Direction */}
-            <div className="w-[130px]">
+            <div className="w-full sm:w-[130px]">
               <label className="mb-1 block text-xs font-medium text-gray-500">
                 {t('banking.direction')}
               </label>
@@ -1187,7 +1326,7 @@ export function BankingPage() {
             </div>
 
             {/* Cost Center Filter */}
-            <div>
+            <div className="w-full sm:w-auto">
               <label className="mb-1 block text-xs font-medium text-gray-500">{t('costCenters.costCenter')}</label>
               <Select value={filterCostCenterId} onValueChange={setFilterCostCenterId}>
                 <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
@@ -1214,9 +1353,139 @@ export function BankingPage() {
             </div>
           </div>
 
+          {/* Telefon: Transaktionen als Karten; Antippen klappt die Details auf */}
+          {!isMdUp && (
+            <MobileCardList data-testid="transaction-cards">
+              <MobileSortControl<string>
+                options={[
+                  { value: 'date', label: t('banking.date') },
+                  { value: 'counterparty', label: t('banking.counterparty') },
+                  { value: 'amount', label: t('banking.amount') },
+                ]}
+                sortBy={sortBy}
+                sortOrder={sortOrder as 'asc' | 'desc'}
+                onSortByChange={setSortBy}
+                onSortOrderChange={setSortOrder}
+              />
+              {txLoading && transactions.length === 0 ? (
+                <div className="py-12 text-center text-gray-400">
+                  <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+                </div>
+              ) : transactions.length === 0 ? (
+                <div className="rounded-lg border bg-white px-4 py-12 text-center text-gray-500">
+                  {t('banking.noTransactions')}
+                </div>
+              ) : (
+                transactions.map((tx) => {
+                  const amount = parseFloat(tx.amount)
+                  const isExpanded = expandedTxId === tx.id
+                  const unmatched = tx.unmatchedAmount != null ? parseFloat(tx.unmatchedAmount) : 0
+                  const isPartialMatch = tx.matchedInvoice != null && unmatched > partialMatchThreshold
+                  return (
+                    <MobileCard
+                      key={tx.id}
+                      data-testid={`transaction-card-${tx.id}`}
+                      className={`${isExpanded ? 'bg-blue-50' : ''} ${isPartialMatch ? 'border-l-4 border-l-amber-500' : ''}`}
+                      onClick={() => setExpandedTxId(isExpanded ? null : tx.id)}
+                      expanded={isExpanded}
+                      title={tx.counterparty?.name || '-'}
+                      subtitle={
+                        isExpanded ? (
+                          <div className="space-y-2">
+                            <div className="whitespace-pre-wrap">{tx.bookingText || '-'}</div>
+                            {renderTxDetails(tx)}
+                          </div>
+                        ) : (
+                          <span className="line-clamp-2">{tx.bookingText || '-'}</span>
+                        )
+                      }
+                      meta={
+                        <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          <span>{formatDate(tx.entryDate)}</span>
+                          <span>{tx.accountName}</span>
+                          {tx.costCenter && (
+                            <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">{tx.costCenter.code}</span>
+                          )}
+                        </span>
+                      }
+                      amount={
+                        <span className={amount < 0 ? 'text-red-600' : 'text-green-600'}>
+                          {formatCurrency(tx.amount, { currency: tx.currency || 'EUR' })}
+                        </span>
+                      }
+                      actions={
+                        <>
+                          <button
+                            onClick={() => {
+                              setMatchSheetTxId(tx.id)
+                              setMatchSheetOpen(true)
+                            }}
+                            className={`inline-flex items-center gap-1 rounded p-2 text-sm ${tx.matchedInvoice ? 'text-blue-600 hover:text-blue-800' : 'text-gray-500 hover:text-gray-700'}`}
+                            data-testid={`transaction-card-match-${tx.id}`}
+                          >
+                            <Link2 className="h-4 w-4" />
+                            {t('banking.matchView.matchButton')}
+                          </button>
+                          {tx.matchedInvoice && (
+                            <Link
+                              to={
+                                tx.matchedInvoice.invoiceType === 'incoming'
+                                  ? `/incoming-invoices?id=${tx.matchedInvoice.invoiceId}`
+                                  : tx.matchedInvoice.invoiceType === 'imported'
+                                  ? `/invoices/${tx.matchedInvoice.invoiceId}?type=imported`
+                                  : `/invoices/${tx.matchedInvoice.invoiceId}`
+                              }
+                              className="inline-flex items-center gap-1 p-2 text-sm text-blue-600 hover:text-blue-800"
+                            >
+                              <FileText className="h-4 w-4" />
+                              {tx.matchedInvoice.invoiceNumber}
+                            </Link>
+                          )}
+                          {isPartialMatch && (
+                            <span
+                              className="inline-flex items-center gap-1 text-xs text-amber-700"
+                              title={t('banking.partialMatchTooltip', {
+                                defaultValue: 'Teilweise zugeordnet — {{remaining}} offen',
+                                remaining: formatCurrency(tx.unmatchedAmount ?? '0', { currency: tx.currency || 'EUR' }),
+                              })}
+                            >
+                              <AlertTriangle className="h-4 w-4 text-amber-600" />
+                              {t('banking.partialMatchWarning', { defaultValue: 'Teilweise zugeordnet' })}
+                            </span>
+                          )}
+                          <span className="ml-auto flex items-center gap-1">
+                            {tx.counterparty?.name && (
+                              <Link
+                                to={`/banking/counterparty/${tx.counterparty.id}`}
+                                className="p-2 text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                              >
+                                {t('banking.counterparty')}
+                              </Link>
+                            )}
+                            {tx.counterparty?.customerId ? (
+                              <span
+                                className="flex-shrink-0 rounded p-2 text-blue-400"
+                                title={t('banking.linkedToCustomer', { name: tx.counterparty.customerName })}
+                              >
+                                <Link2 className="h-3.5 w-3.5" />
+                              </span>
+                            ) : (
+                              renderTxCounterpartyEditor(tx)
+                            )}
+                          </span>
+                        </>
+                      }
+                    />
+                  )
+                })
+              )}
+            </MobileCardList>
+          )}
+
           {/* Transaction Table */}
+          {isMdUp && (
           <div className="overflow-x-auto rounded-lg border bg-white">
-            <table className="w-full table-fixed text-sm">
+            <table className="table-sticky-first w-full min-w-[720px] table-fixed text-sm">
               <thead>
                 <tr className="border-b bg-gray-50 text-left text-xs font-medium uppercase tracking-wide text-gray-500">
                   <th
@@ -1309,98 +1578,7 @@ export function BankingPage() {
                                 <Link2 className="h-3.5 w-3.5" />
                               </span>
                             ) : (
-                            <Popover
-                              open={editingTxCounterparty?.id === tx.id}
-                              onOpenChange={(open) => {
-                                if (open) {
-                                  setEditingTxCounterparty(tx)
-                                  setCpSearchQuery('')
-                                  setShowCreateCp(false)
-                                  setNewCpName('')
-                                } else {
-                                  setEditingTxCounterparty(null)
-                                }
-                              }}
-                            >
-                              <PopoverTrigger asChild>
-                                <button
-                                  onClick={(e) => e.stopPropagation()}
-                                  className="flex-shrink-0 rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-                                  title={t('banking.editCounterparty')}
-                                >
-                                  <Pencil className="h-3.5 w-3.5" />
-                                </button>
-                              </PopoverTrigger>
-                              <PopoverContent
-                                className="w-[300px] p-0"
-                                align="start"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {showCreateCp ? (
-                                  <div className="p-3 space-y-3">
-                                    <div className="text-sm font-medium">{t('banking.createCounterparty')}</div>
-                                    <input
-                                      type="text"
-                                      placeholder={t('banking.counterpartyName')}
-                                      value={newCpName}
-                                      onChange={(e) => setNewCpName(e.target.value)}
-                                      className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-                                      autoFocus
-                                    />
-                                    <div className="flex gap-2">
-                                      <button
-                                        onClick={() => setShowCreateCp(false)}
-                                        className="flex-1 rounded border px-3 py-1.5 text-sm hover:bg-gray-50"
-                                      >
-                                        {t('common.cancel')}
-                                      </button>
-                                      <button
-                                        onClick={handleCreateAndSelectCounterparty}
-                                        disabled={!newCpName.trim() || creatingCp}
-                                        className="flex-1 rounded bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700 disabled:opacity-50"
-                                      >
-                                        {creatingCp ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : t('common.create')}
-                                      </button>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <Command shouldFilter={false}>
-                                    <CommandInput
-                                      placeholder={t('banking.searchCounterparty')}
-                                      value={cpSearchQuery}
-                                      onValueChange={setCpSearchQuery}
-                                    />
-                                    <CommandList>
-                                      <CommandEmpty>{t('banking.noCounterpartiesFound')}</CommandEmpty>
-                                      <CommandGroup>
-                                        {searchedCounterparties.map((cp) => (
-                                          <CommandItem
-                                            key={cp.id}
-                                            value={cp.id}
-                                            onSelect={() => handleSelectCounterparty(cp.id)}
-                                            disabled={updatingTxCp}
-                                          >
-                                            <div className="flex flex-col">
-                                              <span>{cp.name}</span>
-                                              {cp.iban && (
-                                                <span className="text-xs text-gray-400">{cp.iban}</span>
-                                              )}
-                                            </div>
-                                          </CommandItem>
-                                        ))}
-                                      </CommandGroup>
-                                      <CommandSeparator />
-                                      <CommandGroup>
-                                        <CommandItem onSelect={() => setShowCreateCp(true)}>
-                                          <Plus className="mr-2 h-4 w-4" />
-                                          {t('banking.createNewCounterparty')}
-                                        </CommandItem>
-                                      </CommandGroup>
-                                    </CommandList>
-                                  </Command>
-                                )}
-                              </PopoverContent>
-                            </Popover>
+                            renderTxCounterpartyEditor(tx)
                             )}
                           </div>
                         </td>
@@ -1408,38 +1586,7 @@ export function BankingPage() {
                           {isExpanded ? (
                             <div className="space-y-2">
                               <div className="whitespace-pre-wrap">{tx.bookingText || '-'}</div>
-                              <div className="grid grid-cols-2 gap-x-6 gap-y-1 text-xs">
-                                {tx.valueDate && (
-                                  <>
-                                    <span className="text-gray-400">{t('banking.valueDate')}</span>
-                                    <span className="text-gray-600">{formatDate(tx.valueDate)}</span>
-                                  </>
-                                )}
-                                {tx.reference && (
-                                  <>
-                                    <span className="text-gray-400">{t('banking.reference')}</span>
-                                    <span className="break-all text-gray-600">{tx.reference}</span>
-                                  </>
-                                )}
-                                {tx.counterparty?.iban && (
-                                  <>
-                                    <span className="text-gray-400">{t('banking.iban')}</span>
-                                    <span className="text-gray-600">{tx.counterparty.iban}</span>
-                                  </>
-                                )}
-                                {tx.counterparty?.bic && (
-                                  <>
-                                    <span className="text-gray-400">{t('banking.bic')}</span>
-                                    <span className="text-gray-600">{tx.counterparty.bic}</span>
-                                  </>
-                                )}
-                                {tx.transactionType && (
-                                  <>
-                                    <span className="text-gray-400">{t('banking.transactionType')}</span>
-                                    <span className="text-gray-600">{tx.transactionType}</span>
-                                  </>
-                                )}
-                              </div>
+                              {renderTxDetails(tx)}
                             </div>
                           ) : (
                             <span className="block truncate">{tx.bookingText || '-'}</span>
@@ -1505,10 +1652,11 @@ export function BankingPage() {
               </tbody>
             </table>
           </div>
+          )}
 
           {/* Pagination */}
           {totalCount > 0 && (
-            <div className="flex items-center justify-between text-sm text-gray-600">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-gray-600">
               <span>
                 {t('common.pagination.showing', {
                   from: (page - 1) * pageSize + 1,

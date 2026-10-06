@@ -1921,7 +1921,7 @@ export function Settings({ showHeader = true, section }: SettingsProps) {
                   ) : (servicesData?.clockodoServices?.length ?? 0) === 0 ? (
                     <p className="mt-4 text-sm text-gray-500">{t('settings.departments.noServices')}</p>
                   ) : (
-                    <div className="mt-3">
+                    <div className="mt-3 overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="border-b text-left">

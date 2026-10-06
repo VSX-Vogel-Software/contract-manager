@@ -112,6 +112,7 @@ export function CostCenterSettings() {
         {costCenters.length === 0 ? (
           <p className="text-sm text-gray-500">{t('costCenters.noCostCenters')}</p>
         ) : (
+          <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b text-left">
@@ -158,6 +159,7 @@ export function CostCenterSettings() {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </div>

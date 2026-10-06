@@ -25,6 +25,8 @@ import {
   CommandList,
 } from '@/components/ui/command'
 import { cn } from '@/lib/utils'
+import { useIsTouch } from '@/lib/useMediaQuery'
+import { PdfPreview } from '@/components/PdfPreview'
 
 const MATCH_SUGGESTION = gql`
   query IncomingInvoiceMatchSuggestion($invoiceId: ID!) {
@@ -229,6 +231,7 @@ export function IncomingInvoiceDetail({ id, open, onClose, onUpdate, pendingIds 
 
   // PDF resize: persist user-chosen height to localStorage
   const pdfWrapperRef = useRef<HTMLDivElement>(null)
+  const isTouch = useIsTouch()
   useEffect(() => {
     const wrapper = pdfWrapperRef.current
     if (!wrapper) return
@@ -295,6 +298,10 @@ export function IncomingInvoiceDetail({ id, open, onClose, onUpdate, pendingIds 
                     </a>
                   </div>
                 </div>
+                {isTouch ? (
+                  // Touch: eingebettete PDFs zeigen Android gar nicht, iOS nur Seite 1
+                  <PdfPreview src={inv.pdfUrl} title="PDF Preview" fileName={inv.originalFilename} />
+                ) : (
                 <div
                   ref={pdfWrapperRef}
                   className="relative w-full bg-white overflow-hidden"
@@ -308,6 +315,7 @@ export function IncomingInvoiceDetail({ id, open, onClose, onUpdate, pendingIds 
                     <GripHorizontal className="h-3 w-6" />
                   </div>
                 </div>
+                )}
               </div>
             )}
 
@@ -330,8 +338,8 @@ export function IncomingInvoiceDetail({ id, open, onClose, onUpdate, pendingIds 
                 ? t('incomingInvoices.detail.lowConfidence', 'AI ist unsicher — bitte prüfen ({{c}}%)', { c: Math.round((conf[k] || 0) * 100) })
                 : undefined
               return (
-            <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
                 <Label>{t('incomingInvoices.supplier')}</Label>
                 <Input className={lowCls('supplier_name')} title={lowTitle('supplier_name')} value={form.supplierName} onChange={(e) => setForm({ ...form, supplierName: e.target.value })} />
               </div>
@@ -376,7 +384,7 @@ export function IncomingInvoiceDetail({ id, open, onClose, onUpdate, pendingIds 
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[300px] p-0" align="start">
+                  <PopoverContent className="w-[300px] max-w-[calc(100vw-1rem)] p-0" align="start">
                     <Command shouldFilter={false}>
                       <CommandInput
                         placeholder={t('incomingInvoices.searchCounterparty')}
@@ -425,7 +433,7 @@ export function IncomingInvoiceDetail({ id, open, onClose, onUpdate, pendingIds 
               )
             })()}
 
-            <div className="flex items-center gap-2 pt-4 border-t">
+            <div className="flex flex-wrap items-center gap-2 pt-4 border-t">
               <Button onClick={() => handleSave()} disabled={updating}>
                 {updating && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
                 {t('common.save')}

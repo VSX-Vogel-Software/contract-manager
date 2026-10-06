@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { Loader2, AlertTriangle, Download } from 'lucide-react'
 import { getToken } from '@/lib/auth'
 import { useDocumentTitle } from '@/lib/useDocumentTitle'
+import { PdfPreview } from '@/components/PdfPreview'
 
 export function AttachmentPermalink() {
   const { id } = useParams<{ id: string }>()
@@ -86,8 +87,8 @@ export function AttachmentPermalink() {
 
   return (
     <div className="flex h-[calc(100vh-4rem)] flex-col">
-      <div className="flex items-center justify-between border-b bg-white px-6 py-3">
-        <span className="text-sm font-medium text-gray-900">{filename}</span>
+      <div className="flex items-center justify-between gap-2 border-b bg-white px-3 py-3 sm:px-6">
+        <span className="min-w-0 [overflow-wrap:anywhere] text-sm font-medium text-gray-900">{filename}</span>
         <button
           onClick={handleDownload}
           className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
@@ -96,7 +97,12 @@ export function AttachmentPermalink() {
           {t('attachments.download')}
         </button>
       </div>
-      {isEmbeddable && blobUrl ? (
+      {contentType === 'application/pdf' && blobUrl ? (
+        // PDFs auf Touch-Geraeten im Geraete-Viewer oeffnen statt einbetten
+        <div className="flex flex-1 flex-col">
+          <PdfPreview src={blobUrl} title={filename} fileName={filename} className="flex-1 rounded-none border-0" />
+        </div>
+      ) : isEmbeddable && blobUrl ? (
         <iframe
           src={blobUrl}
           className="flex-1 w-full border-0"

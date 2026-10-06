@@ -353,7 +353,7 @@ export function InvoiceExportPage() {
 
       {/* Legal Data Warning */}
       {!legalDataComplete && (
-        <div className="flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
           <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
           <div className="flex-1 text-sm text-amber-800">{t('invoices.legalDataIncomplete')}</div>
           <Link to="/settings/invoices" className="text-sm font-medium text-amber-700 hover:text-amber-900 whitespace-nowrap">
@@ -368,7 +368,7 @@ export function InvoiceExportPage() {
           <CardTitle>{t('invoices.export.selectPeriod')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
             <Select value={String(month)} onValueChange={(value) => setMonth(parseInt(value))}>
               <SelectTrigger className="w-40" data-testid="month-select">
                 <SelectValue />
@@ -402,13 +402,13 @@ export function InvoiceExportPage() {
 
       {/* Totals Summary */}
       {!loading && invoices.length > 0 && (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {/* Overview */}
           <Card>
             <CardContent className="pt-6">
               <p className="text-sm text-muted-foreground">{t('invoices.export.totalInvoices')}</p>
               <p className="text-2xl font-bold" data-testid="total-count">{totals.total}</p>
-              <div className="mt-2 flex gap-4 text-sm">
+              <div className="mt-2 flex flex-wrap gap-x-4 text-sm">
                 <span className="text-green-600">{t('invoices.export.generated')}: {totals.generatedCount}</span>
                 {totals.openCount > 0 && (
                   <span className="text-orange-600">{t('invoices.export.open')}: {totals.openCount}</span>
@@ -423,7 +423,7 @@ export function InvoiceExportPage() {
               <p className="text-sm text-muted-foreground">{t('invoices.export.generatedTotal')}</p>
               <p className="text-2xl font-bold" data-testid="total-net">{formatCurrency(totals.generatedNet)}</p>
               {totals.generatedTax > 0 && (
-                <div className="mt-2 flex gap-4 text-sm text-muted-foreground">
+                <div className="mt-2 flex flex-wrap gap-x-4 text-sm text-muted-foreground">
                   <span>{t('invoices.taxAmount')}: {formatCurrency(totals.generatedTax)}</span>
                   <span>{t('invoices.grossTotal')}: {formatCurrency(totals.generatedGross)}</span>
                 </div>
@@ -459,7 +459,7 @@ export function InvoiceExportPage() {
         {ungeneratedCount > 0 && legalDataComplete && (
           <>
             {showConfirm ? (
-              <div className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2">
+              <div className="flex flex-wrap items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2">
                 <p className="text-sm text-blue-800">{t('invoices.generateConfirm', { count: selectedForGeneration.size })}</p>
                 <Button size="sm" onClick={handleGenerate} disabled={generating || selectedForGeneration.size === 0}>
                   {generating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
@@ -513,7 +513,7 @@ export function InvoiceExportPage() {
               {t('invoices.export.noInvoices')}
             </div>
           ) : (
-            <Table>
+            <Table className="table-sticky-first-two" style={{ ['--sticky-col1' as string]: '2rem' }}>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-8">
@@ -673,7 +673,7 @@ export function InvoiceExportPage() {
 
       {/* Invoice Preview Dialog */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
-        <DialogContent className="max-w-4xl h-[90vh] flex flex-col">
+        <DialogContent className="max-w-4xl h-[90dvh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{t('invoices.previewInvoice')}</DialogTitle>
           </DialogHeader>

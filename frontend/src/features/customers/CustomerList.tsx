@@ -6,6 +6,8 @@ import { Loader2, Search, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, Arrow
 import { usePersistedState } from '@/lib/usePersistedState'
 import { formatDateTime } from '@/lib/utils'
 import { HelpVideoButton } from '@/components/HelpVideoButton'
+import { MobileCard, MobileCardList } from '@/components/MobileCard'
+import { MobileSortControl } from '@/components/MobileSortControl'
 
 const CUSTOMERS_QUERY = gql`
   query Customers($search: String, $isActive: Boolean, $page: Int, $pageSize: Int, $sortBy: String, $sortOrder: String) {
@@ -132,8 +134,8 @@ export function CustomerList() {
       </div>
 
       {/* Search and Filter */}
-      <div className="mt-4 flex items-center gap-4">
-        <form onSubmit={handleSearch} className="flex-1 max-w-md">
+      <div className="mt-4 flex flex-wrap items-center gap-4">
+        <form onSubmit={handleSearch} className="w-full flex-1 sm:w-auto max-w-md">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <input
@@ -171,8 +173,56 @@ export function CustomerList() {
         <p className="mt-4 text-gray-600">{t('customers.noCustomers')}</p>
       ) : (
         <>
-          <div className="mt-4 overflow-hidden rounded-lg border">
-            <table className="min-w-full divide-y divide-gray-200">
+          <MobileSortControl<SortField>
+            className="mt-4"
+            options={[
+              { value: 'name', label: t('customers.name') },
+              { value: 'isActive', label: t('customers.status') },
+              { value: 'syncedAt', label: t('customers.syncedAt') },
+            ]}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onSortByChange={(field) => {
+              setSortBy(field)
+              setPage(1)
+            }}
+            onSortOrderChange={(order) => {
+              setSortOrder(order)
+              setPage(1)
+            }}
+          />
+          <MobileCardList className="mt-4" data-testid="customers-cards">
+            {customers.map((customer) => (
+              <MobileCard
+                key={customer.id}
+                to={`/customers/${customer.id}`}
+                data-testid={`customer-card-${customer.id}`}
+                title={customer.name}
+                badge={
+                  <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
+                    customer.isActive
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {customer.isActive ? t('customers.active') : t('customers.inactive')}
+                  </span>
+                }
+                subtitle={formatAddress(customer.address) || undefined}
+                meta={`${t('customers.syncedAt')}: ${formatDateTime(customer.syncedAt)}`}
+                amount={
+                  customer.contractCount > 0 ? (
+                    <span title={t('customers.activeContracts')}>
+                      <span className="text-blue-700">{customer.activeContractCount}</span>
+                      <span className="text-gray-400"> / </span>
+                      {customer.contractCount}
+                    </span>
+                  ) : undefined
+                }
+              />
+            ))}
+          </MobileCardList>
+          <div className="mt-4 hidden overflow-x-auto rounded-lg border md:block">
+            <table className="table-sticky-first min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th
@@ -259,7 +309,7 @@ export function CustomerList() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="mt-4 flex items-center justify-between">
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-gray-500">
                 {t('common.pagination.showing', {
                   from: (page - 1) * PAGE_SIZE + 1,

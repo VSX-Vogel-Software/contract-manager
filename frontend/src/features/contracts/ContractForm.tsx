@@ -525,15 +525,15 @@ export function ContractForm() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between xl:gap-0">
+        <div className="flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-4 xl:min-w-[auto]">
           <Button variant="ghost" size="sm" onClick={() => navigate(isEdit ? `/contracts/${id}` : '/contracts')}>
             <ArrowLeft className="mr-1 h-4 w-4" />
             {t('common.back')}
           </Button>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold">
+          <div className="min-w-0 xl:min-w-[auto]">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 xl:flex-nowrap">
+              <h1 className="min-w-0 break-words text-2xl font-bold xl:min-w-[auto]">
                 {isEdit
                   ? (contract?.name || contract?.customer.name || t('contracts.detail.details'))
                   : t('contracts.newContract')}
@@ -555,7 +555,7 @@ export function ContractForm() {
           </div>
         </div>
         {isEdit && !isEditing && contract && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 xl:flex-nowrap">
             {/* Delete Button - only for non-deleted/non-ended contracts */}
             {contract.status !== 'deleted' && contract.status !== 'ended' && (
               <Button
@@ -1393,7 +1393,7 @@ export function ContractForm() {
             <DialogTitle>{t('contracts.deleteConfirm.title')}</DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <p>{t('contracts.deleteConfirm.message')}</p>
+            <p>{t('contracts.deleteConfirm.message', { name: contract?.name || contract?.customer.name || '' })}</p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>

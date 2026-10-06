@@ -182,7 +182,7 @@ export function SplitRuleSettings() {
 
       {showForm && (
         <div className="rounded-lg border p-4 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="text-sm font-medium">{t('splitRules.counterparty')}</label>
               <select
@@ -207,7 +207,7 @@ export function SplitRuleSettings() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="text-sm font-medium">{t('splitRules.mode')}</label>
               <select

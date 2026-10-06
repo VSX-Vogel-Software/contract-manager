@@ -349,14 +349,14 @@ export function RevenueForecast() {
   return (
     <div>
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <TrendingUp className="h-8 w-8 text-blue-600" />
-          <h1 className="text-2xl font-bold">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <TrendingUp className="h-8 w-8 shrink-0 text-blue-600" />
+          <h1 className="min-w-0 break-words text-2xl font-bold">
             {forecastType === 'billing' ? t('forecast.title') : t('forecast.recognitionTitle')}
           </h1>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           {/* Forecast Type Toggle */}
           <div className="flex items-center gap-2">
             <label className="text-sm font-medium">{t('forecast.forecastType')}:</label>
@@ -474,7 +474,7 @@ export function RevenueForecast() {
       </div>
 
       {/* Color Legend */}
-      <div className="mb-3 flex items-center gap-4 text-xs text-gray-600">
+      <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600">
         <div className="flex items-center gap-1.5">
           <span className="inline-block h-3 w-3 rounded border border-yellow-200 bg-yellow-50" />
           <span>{t('forecast.statusActionable')}</span>
@@ -506,7 +506,7 @@ export function RevenueForecast() {
             <thead className="bg-gray-50">
               <tr>
                 <th
-                  className="sticky left-0 z-10 min-w-[260px] cursor-pointer bg-gray-50 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:bg-gray-100"
+                  className="sticky left-0 z-10 min-w-[160px] sm:min-w-[260px] cursor-pointer bg-gray-50 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:bg-gray-100"
                   onClick={() => handleSort('customer')}
                 >
                   {t('forecast.customer')}
@@ -549,7 +549,7 @@ export function RevenueForecast() {
               {/* Customer Rows */}
               {customerRows.map((customer) => (
                 <tr key={customer.customerId} className="hover:bg-gray-50">
-                  <td className="sticky left-0 z-10 min-w-[260px] bg-white px-4 py-3 text-sm group-hover:bg-gray-50">
+                  <td className="sticky left-0 z-10 min-w-[160px] sm:min-w-[260px] bg-white px-4 py-3 text-sm group-hover:bg-gray-50">
                     <Link
                       to={`/customers/${customer.customerId}`}
                       className="font-medium text-blue-600 hover:underline"
@@ -583,7 +583,7 @@ export function RevenueForecast() {
             <thead className="bg-gray-50">
               <tr>
                 <th
-                  className="sticky left-0 z-10 min-w-[220px] cursor-pointer bg-gray-50 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:bg-gray-100"
+                  className="sticky left-0 z-10 min-w-[150px] sm:min-w-[220px] cursor-pointer bg-gray-50 px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:bg-gray-100"
                   onClick={() => handleSort('contract')}
                 >
                   {t('forecast.contract')}
@@ -634,7 +634,7 @@ export function RevenueForecast() {
               {/* Contract Rows */}
               {sortedContracts.map((contract) => (
                 <tr key={contract.contractId} className="hover:bg-gray-50">
-                  <td className="sticky left-0 z-10 min-w-[220px] bg-white px-4 py-3 text-sm group-hover:bg-gray-50">
+                  <td className="sticky left-0 z-10 min-w-[150px] sm:min-w-[220px] bg-white px-4 py-3 text-sm group-hover:bg-gray-50">
                     <Link
                       to={`/contracts/${contract.contractId}`}
                       className="font-medium text-blue-600 hover:underline"

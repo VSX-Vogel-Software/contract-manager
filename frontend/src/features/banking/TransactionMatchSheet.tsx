@@ -379,9 +379,10 @@ export function TransactionMatchSheet({ transactionId, open, onOpenChange, onMat
 
   return (
     <>
-    {/* Undo banner shown outside the sheet after auto-close */}
+    {/* Undo banner shown outside the sheet after auto-close.
+        Telefon: volle Breite und ueber dem Chat-Knopf (unten rechts) samt Safe Area */}
     {undoMatchId && (
-      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-lg border border-green-200 bg-white px-4 py-3 shadow-lg text-sm">
+      <div className="fixed inset-x-2 bottom-[calc(max(1rem,env(safe-area-inset-bottom))_+_3.75rem)] z-50 flex items-center justify-between gap-3 rounded-lg border border-green-200 bg-white px-4 py-3 shadow-lg text-sm sm:inset-x-auto sm:bottom-4 sm:left-1/2 sm:-translate-x-1/2 sm:justify-start">
         <span className="text-green-700">✓ {t('banking.matchView.autoClosed')}</span>
         <button
           onClick={handleUndo}

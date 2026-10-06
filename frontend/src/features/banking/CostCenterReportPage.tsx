@@ -43,7 +43,7 @@ export function CostCenterReportPage() {
     <div className="space-y-4">
       <h2 className="text-xl font-semibold">{t('costCenterReport.title')}</h2>
 
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4">
         <div>
           <label className="text-sm font-medium">{t('costCenterReport.dateFrom')}</label>
           <input
@@ -67,6 +67,7 @@ export function CostCenterReportPage() {
       {loading ? (
         <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>
       ) : (
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b text-left">
@@ -95,6 +96,7 @@ export function CostCenterReportPage() {
             )}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   )

@@ -41,6 +41,8 @@ import { ImportedInvoiceDetail } from './ImportedInvoiceDetail'
 import { InvoiceStatusStepper } from '@/components/InvoiceStatusBadge'
 import { PaymentReminderList } from '@/features/reminders/PaymentReminderList'
 import { EmailSendStatus } from '@/components/EmailSendStatus'
+import { PdfPreview } from '@/components/PdfPreview'
+import { useIsTouch } from '@/lib/useMediaQuery'
 import { PAYMENT_REMINDER_FIELDS, type PaymentReminder } from '@/features/reminders/dunning'
 
 const INVOICE_RECORD_QUERY = gql`
@@ -259,6 +261,7 @@ export function InvoiceDetail() {
 function GeneratedInvoiceDetail({ id, fallbackToImported }: { id: number; fallbackToImported: boolean }) {
   const navigate = useNavigate()
   const { t } = useTranslation()
+  const isTouch = useIsTouch()
   const [showVoidDialog, setShowVoidDialog] = useState(false)
   const [voidReason, setVoidReason] = useState('')
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
@@ -284,7 +287,13 @@ function GeneratedInvoiceDetail({ id, fallbackToImported }: { id: number; fallba
 
   const handleSendEmail = async () => {
     if (!record) return
-    if (!confirm(t('invoices.sendEmailConfirm', { invoice: record.invoiceNumber }))) return
+    // Auf Touch gibt es am aktiven Knopf kein Empfaenger-Popover (es wuerde
+    // nach der Rueckfrage zusaetzlich aufgehen) - Empfaenger stehen hier
+    const recipients =
+      isTouch && record.customerBillingEmails.length > 0
+        ? `\n\n${t('invoiceDetail.sendTo')}\n${record.customerBillingEmails.join('\n')}`
+        : ''
+    if (!confirm(t('invoices.sendEmailConfirm', { invoice: record.invoiceNumber }) + recipients)) return
     try {
       const result = await sendEmail({ variables: { invoiceRecordId: String(record.id) } })
       if (result.data?.sendInvoiceEmail?.success) {
@@ -397,11 +406,11 @@ function GeneratedInvoiceDetail({ id, fallbackToImported }: { id: number; fallba
     : null
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6">
+    <div className="mx-auto max-w-7xl py-2 sm:px-4 sm:py-6">
       {/* Toast */}
       {toast && (
         <div
-          className={`fixed right-4 top-4 z-50 rounded-lg px-4 py-3 text-sm font-medium shadow-lg ${
+          className={`fixed inset-x-2 top-2 z-50 rounded-lg sm:inset-x-auto sm:right-4 sm:top-4 sm:max-w-md lg:max-w-none px-4 py-3 text-sm font-medium shadow-lg ${
             toast.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
           }`}
         >
@@ -418,10 +427,10 @@ function GeneratedInvoiceDetail({ id, fallbackToImported }: { id: number; fallba
           <ArrowLeft className="h-4 w-4" />
           {t('common.back')}
         </button>
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">{record.invoiceNumber}</h1>
-            <div className="mt-1 flex items-center gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="break-words text-2xl font-bold">{record.invoiceNumber}</h1>
+            <div className="mt-1 flex flex-wrap items-center gap-3">
               {record.documentType === 'storno' ? <StornoBadge /> : (
                 <InvoiceStatusStepper status={record.status} isPaid={record.isPaid} />
               )}
@@ -440,7 +449,7 @@ function GeneratedInvoiceDetail({ id, fallbackToImported }: { id: number; fallba
               )}
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {pdfViewUrl ? (
               <Button variant="outline" size="sm" asChild>
                 <a
@@ -476,7 +485,7 @@ function GeneratedInvoiceDetail({ id, fallbackToImported }: { id: number; fallba
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span tabIndex={0}>
+                  <span tabIndex={0} data-testid="invoice-send-email-trigger">
                     <Button
                       variant="outline"
                       size="sm"
@@ -496,7 +505,7 @@ function GeneratedInvoiceDetail({ id, fallbackToImported }: { id: number; fallba
                   <TooltipContent>
                     <p>{sendEmailDisabledReason}</p>
                   </TooltipContent>
-                ) : record.customerBillingEmails.length > 0 ? (
+                ) : !isTouch && record.customerBillingEmails.length > 0 ? (
                   <TooltipContent>
                     <p className="font-medium">{t('invoiceDetail.sendTo')}</p>
                     {record.customerBillingEmails.map((email) => (
@@ -549,7 +558,7 @@ function GeneratedInvoiceDetail({ id, fallbackToImported }: { id: number; fallba
                   </div>
                 </div>
               </div>
-              <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-4">
                 <div>
                   <div className="text-xs font-medium uppercase text-muted-foreground">
                     {t('invoiceDetail.customer')}
@@ -586,7 +595,7 @@ function GeneratedInvoiceDetail({ id, fallbackToImported }: { id: number; fallba
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-end justify-between">
-                <div className="grid grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-8">
                   <div>
                     <div className="text-xs font-medium uppercase text-muted-foreground">{t('invoices.netTotal')}</div>
                     <div className="mt-1 text-lg font-semibold">{formatCurrency(record.totalNet)}</div>
@@ -615,7 +624,7 @@ function GeneratedInvoiceDetail({ id, fallbackToImported }: { id: number; fallba
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
+              <Table stickyFirstColumn className="table-sticky-capped">
                 <TableHeader>
                   <TableRow>
                     <TableHead>{t('invoices.product')}</TableHead>
@@ -670,7 +679,7 @@ function GeneratedInvoiceDetail({ id, fallbackToImported }: { id: number; fallba
             </CardHeader>
             <CardContent>
               {pdfViewUrl ? (
-                <PdfPreview recordId={record.id} />
+                <InvoicePdfPreview recordId={record.id} />
               ) : previewHtmlUrl ? (
                 <HtmlPreview url={previewHtmlUrl} />
               ) : (
@@ -756,14 +765,14 @@ function GeneratedInvoiceDetail({ id, fallbackToImported }: { id: number; fallba
                     <span className="text-muted-foreground">{t('invoiceDetail.sentTo')}</span>
                     <div className="mt-1 space-y-0.5">
                       {record.emailSentTo.map((email, i) => (
-                        <div key={i} className="font-medium">{email}</div>
+                        <div key={i} className="[overflow-wrap:anywhere] font-medium">{email}</div>
                       ))}
                     </div>
                   </div>
                   {record.emailMessageId && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-muted-foreground">{t('invoiceDetail.messageId')}</span>
-                      <span className="max-w-[180px] truncate font-mono text-xs">{record.emailMessageId}</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="shrink-0 text-muted-foreground">{t('invoiceDetail.messageId')}</span>
+                      <span className="min-w-0 max-w-[180px] truncate font-mono text-xs">{record.emailMessageId}</span>
                     </div>
                   )}
                 </div>
@@ -877,8 +886,8 @@ function GeneratedInvoiceDetail({ id, fallbackToImported }: { id: number; fallba
   )
 }
 
-/** Loads invoice PDF via authenticated fetch and displays in iframe */
-function PdfPreview({ recordId }: { recordId: number }) {
+/** Loads invoice PDF via authenticated fetch; Desktop: iframe, Touch: Knopf "PDF oeffnen" */
+function InvoicePdfPreview({ recordId }: { recordId: number }) {
   const [blobUrl, setBlobUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -903,7 +912,7 @@ function PdfPreview({ recordId }: { recordId: number }) {
 
   if (!blobUrl) return null
 
-  return <iframe src={blobUrl} className="h-[600px] w-full rounded border" title="Invoice PDF" />
+  return <PdfPreview src={blobUrl} className="h-[600px]" title="Invoice PDF" />
 }
 
 /** Loads invoice HTML preview via authenticated fetch */
@@ -930,5 +939,6 @@ function HtmlPreview({ url }: { url: string }) {
 
   if (!html) return null
 
-  return <iframe srcDoc={html} className="h-[600px] w-full rounded border" title="Invoice Preview" />
+  // Telefon: Hoehe am Viewport statt fester 600 px
+  return <iframe srcDoc={html} className="h-[70dvh] w-full rounded border lg:h-[600px]" title="Invoice Preview" />
 }

@@ -39,3 +39,104 @@
     font-variant-numeric: tabular-nums;
   }
 }
+
+/*
+ * Mobil: Eingabefelder unter 16 px loesen auf iOS beim Fokussieren ein
+ * automatisches Hineinzoomen aus. Bewusst ausserhalb von @layer und mit
+ * !important - sonst gewinnt jedes `text-sm` an einem Feld.
+ */
+@media (hover: none) and (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/*
+ * Waagerecht scrollende Tabellen: Die Bezeichner-Spalte (Name/Nummer) bleibt
+ * beim Scrollen stehen, damit man weiss, welche Zeile man liest.
+ *
+ *   table-sticky-first      erste Spalte fixiert
+ *   table-sticky-first-two  erste Spalte (Checkbox, Aufklapp-Pfeil) plus die
+ *                           zweite; die erste muss dafuer feste Breite
+ *                           --sticky-col1 haben (Standard 2.5rem)
+ *
+ * Eine fixierte Spalte darf nie den Bildschirm fuellen. max-width ignoriert
+ * Chrome an Tabellenzellen; stattdessen darf die Spalte umbrechen (auch mit
+ * whitespace-nowrap an der Zelle). Das Tabellenlayout gibt ihr dann nur den
+ * Platz, den die anderen Spalten lassen - mindestens das laengste Wort.
+ * Deshalb break-word, nicht anywhere: anywhere senkt die Mindestbreite auf
+ * ein Zeichen.
+ *
+ * Hintergrund: Die fixierte Zelle muss deckend sein. Sie erbt ihn ueber
+ * tr -> thead/tbody -> table; eigene bg-Klassen an Zeilen oder Kopf (z. B.
+ * hover:bg-gray-50) gewinnen, weil :where() keine Spezifitaet hat.
+ */
+:is(.table-sticky-first, .table-sticky-first-two) {
+  --sticky-col1: 2.5rem;
+  background-color: #fff;
+}
+:where(.table-sticky-first, .table-sticky-first-two) :where(thead, tbody, tfoot, tr) {
+  background-color: inherit;
+}
+.table-sticky-first > :is(thead, tbody, tfoot) > tr > :is(th, td):first-child,
+.table-sticky-first-two > :is(thead, tbody, tfoot) > tr > :is(th, td):nth-child(2) {
+  position: sticky;
+  z-index: 1;
+  background-color: inherit;
+  white-space: normal;
+  overflow-wrap: break-word;
+  /* Lange Komposita ("Ergaenzungsvereinbarung") bestimmen sonst die
+     Mindestbreite der Spalte */
+  hyphens: auto;
+  /* Trennlinie als Schatten - Rahmen wandern bei sticky in Chrome mit */
+  box-shadow: inset -1px 0 0 #e5e7eb;
+}
+.table-sticky-first > :is(thead, tbody, tfoot) > tr > :is(th, td):first-child {
+  left: 0;
+}
+.table-sticky-first-two > :is(thead, tbody, tfoot) > tr > :is(th, td):first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background-color: inherit;
+  width: var(--sticky-col1);
+  min-width: var(--sticky-col1);
+  max-width: var(--sticky-col1);
+}
+.table-sticky-first-two > :is(thead, tbody, tfoot) > tr > :is(th, td):nth-child(2) {
+  left: var(--sticky-col1);
+}
+/* table-sticky-capped (zusaetzlich): Unterhalb von lg bekommt die fixierte
+   Spalte eine feste Breite. Noetig, wenn die Tabelle eine Mindestbreite hat
+   (min-w-[800px]) - dann verteilt das Layout den Ueberschuss auf die
+   textreichste Spalte, oft genau die fixierte. Mit fester Breite darf auch
+   mitten im Wort umgebrochen werden (englische UI trennt deutsche Woerter
+   nicht); ohne feste Breite waere das gefaehrlich, die Spalte fiele auf ein
+   Zeichen zusammen. */
+@media (max-width: 1023px) {
+  .table-sticky-capped.table-sticky-first > :is(thead, tbody, tfoot) > tr > :is(th, td):first-child,
+  .table-sticky-capped.table-sticky-first-two > :is(thead, tbody, tfoot) > tr > :is(th, td):nth-child(2) {
+    /* fester Wert: min()/calc() mit gemischten Einheiten behandelt Chrome an
+       Tabellenzellen wie auto - dann quetschen die nowrap-Nachbarn die
+       Spalte auf ein Zeichen zusammen */
+    width: 9rem;
+    min-width: 9rem;
+    overflow-wrap: anywhere;
+  }
+}
+/* Auf schmalen Bildschirmen weniger Innenabstand in der fixierten Spalte -
+   px-6 kostet dort sonst ein Siebtel der Breite */
+@media (max-width: 767px) {
+  .table-sticky-first > :is(thead, tbody, tfoot) > tr > :is(th, td):first-child,
+  .table-sticky-first-two > :is(thead, tbody, tfoot) > tr > :is(th, td):nth-child(2) {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}

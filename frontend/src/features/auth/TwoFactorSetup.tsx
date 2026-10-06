@@ -44,7 +44,7 @@ export function TwoFactorSetup() {
           </p>
         </div>
 
-        <div className="bg-white shadow rounded-lg p-6">
+        <div className="bg-white shadow rounded-lg p-4 sm:p-6">
           <SecuritySettings />
         </div>
 

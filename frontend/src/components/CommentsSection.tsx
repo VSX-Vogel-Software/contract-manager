@@ -392,7 +392,7 @@ export function CommentsSection({ entityType, entityId }: CommentsSectionProps) 
 
       {/* All Comments Modal */}
       <Dialog open={showAllModal} onOpenChange={setShowAllModal}>
-        <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-lg max-h-[80dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               {t('comments.allComments')} ({comments.length})

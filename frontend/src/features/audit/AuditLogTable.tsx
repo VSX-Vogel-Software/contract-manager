@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { ChevronDown, ChevronRight, Plus, Pencil, Trash2 } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
+import { MobileCard, MobileCardList } from '@/components/MobileCard'
 
 export interface AuditLogChange {
   field: string
@@ -163,8 +164,93 @@ export function AuditLogTable({ entries, showEntity = true, loading = false }: A
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border">
-      <table className="min-w-full divide-y divide-gray-200">
+    <>
+    {/* Telefon: Karten statt Tabelle; Antippen klappt die Aenderungen auf */}
+    <MobileCardList data-testid="audit-log-cards">
+      {entries.map((entry) => {
+        const isExpanded = expandedRows.has(entry.id)
+        const entityLink = getEntityLink(entry.entityType, entry.entityId)
+        const hasChanges = entry.changes.length > 0
+        const parentLink =
+          entry.parentEntityType && entry.parentEntityId
+            ? getEntityLink(entry.parentEntityType, entry.parentEntityId) || '#'
+            : null
+        return (
+          <MobileCard
+            key={entry.id}
+            data-testid={`audit-log-card-${entry.id}`}
+            onClick={hasChanges ? () => toggleRow(entry.id) : undefined}
+            expanded={hasChanges ? isExpanded : undefined}
+            title={
+              <span className="flex items-start gap-1">
+                {hasChanges &&
+                  (isExpanded ? (
+                    <ChevronDown className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
+                  ) : (
+                    <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
+                  ))}
+                <span className="min-w-0">
+                  {showEntity ? (
+                    <>
+                      <span className="block text-xs font-normal text-gray-500">
+                        {t(`audit.entityTypes.${entry.entityType}`)}
+                      </span>
+                      {entry.entityRepr}
+                    </>
+                  ) : (
+                    getChangesSummary(entry.changes, t)
+                  )}
+                </span>
+              </span>
+            }
+            badge={
+              <span
+                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${getActionBadgeClass(entry.action)}`}
+              >
+                {getActionIcon(entry.action)}
+                {t(`audit.actions.${entry.action}`)}
+              </span>
+            }
+            subtitle={showEntity ? getChangesSummary(entry.changes, t) : undefined}
+            meta={
+              <>
+                {formatDateTime(entry.timestamp)} · {entry.userName || t('audit.systemUser')}
+              </>
+            }
+            actions={
+              (showEntity && (entityLink || parentLink)) || (isExpanded && hasChanges) ? (
+                <div className="flex w-full min-w-0 flex-col gap-2 text-sm">
+                  {showEntity && (entityLink || parentLink) && (
+                    <div className="flex flex-wrap gap-x-4 gap-y-1">
+                      {entityLink && (
+                        <Link to={entityLink} className="text-blue-600 hover:text-blue-800">
+                          {entry.entityRepr}
+                        </Link>
+                      )}
+                      {parentLink && (
+                        <span className="text-xs text-gray-400">
+                          {t(`audit.entityTypes.${entry.parentEntityType}`)}:{' '}
+                          <Link to={parentLink} className="text-blue-600 hover:text-blue-800">
+                            #{entry.parentEntityId}
+                          </Link>
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {isExpanded && hasChanges && (
+                    <div className="min-w-0 break-words">
+                      <AuditLogChanges changes={entry.changes} t={t} />
+                    </div>
+                  )}
+                </div>
+              ) : undefined
+            }
+          />
+        )
+      })}
+    </MobileCardList>
+    <div className="hidden overflow-x-auto rounded-lg border md:block">
+      <table className="table-sticky-first-two min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
             <th className="w-10 px-3 py-3"></th>
@@ -282,5 +368,6 @@ export function AuditLogTable({ entries, showEntity = true, loading = false }: A
         </tbody>
       </table>
     </div>
+    </>
   )
 }

@@ -5,6 +5,7 @@ import { RevenueForecast } from '@/features/forecast/RevenueForecast'
 import { LiquidityAnalysis } from '@/features/liquidity'
 import { RevenueGoalsDashboard } from './RevenueGoalsDashboard'
 import { PriceIncreaseAnalytics } from './PriceIncreaseAnalytics'
+import { ScrollTabs } from '@/components/ScrollTabs'
 
 export function ForecastsPage() {
   const { t } = useTranslation()
@@ -18,8 +19,13 @@ export function ForecastsPage() {
     setSearchParams(value === 'revenue' ? {} : { tab: value })
   }
 
+  const tabProps = (tab: string) => ({
+    'aria-current': activeTab === tab ? ('page' as const) : undefined,
+    className: tabClass(tab),
+  })
+
   const tabClass = (tab: string) =>
-    `border-b-2 px-1 pb-2 text-sm font-medium ${
+    `whitespace-nowrap border-b-2 px-1 pb-2 text-sm font-medium ${
       activeTab === tab
         ? 'border-blue-600 text-blue-600'
         : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
@@ -28,17 +34,17 @@ export function ForecastsPage() {
   if (!hasLiquidity) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center gap-4 border-b border-gray-200">
-          <button onClick={() => handleTabChange('revenue')} className={tabClass('revenue')}>
+        <ScrollTabs className="items-center gap-4 border-b border-gray-200" activeKey={activeTab}>
+          <button onClick={() => handleTabChange('revenue')} {...tabProps('revenue')}>
             {t('forecasts.revenueTab')}
           </button>
-          <button onClick={() => handleTabChange('goals')} className={tabClass('goals')}>
+          <button onClick={() => handleTabChange('goals')} {...tabProps('goals')}>
             {t('forecasts.goalsTab')}
           </button>
-          <button onClick={() => handleTabChange('priceIncreases')} className={tabClass('priceIncreases')}>
+          <button onClick={() => handleTabChange('priceIncreases')} {...tabProps('priceIncreases')}>
             {t('forecasts.priceIncreasesTab')}
           </button>
-        </div>
+        </ScrollTabs>
         {activeTab === 'revenue' && <RevenueForecast />}
         {activeTab === 'goals' && <RevenueGoalsDashboard />}
         {activeTab === 'priceIncreases' && <PriceIncreaseAnalytics />}
@@ -48,20 +54,20 @@ export function ForecastsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-4 border-b border-gray-200">
-        <button onClick={() => handleTabChange('revenue')} className={tabClass('revenue')}>
+      <ScrollTabs className="items-center gap-4 border-b border-gray-200" activeKey={activeTab}>
+        <button onClick={() => handleTabChange('revenue')} {...tabProps('revenue')}>
           {t('forecasts.revenueTab')}
         </button>
-        <button onClick={() => handleTabChange('liquidity')} className={tabClass('liquidity')}>
+        <button onClick={() => handleTabChange('liquidity')} {...tabProps('liquidity')}>
           {t('forecasts.liquidityTab')}
         </button>
-        <button onClick={() => handleTabChange('goals')} className={tabClass('goals')}>
+        <button onClick={() => handleTabChange('goals')} {...tabProps('goals')}>
           {t('forecasts.goalsTab')}
         </button>
-        <button onClick={() => handleTabChange('priceIncreases')} className={tabClass('priceIncreases')}>
+        <button onClick={() => handleTabChange('priceIncreases')} {...tabProps('priceIncreases')}>
           {t('forecasts.priceIncreasesTab')}
         </button>
-      </div>
+      </ScrollTabs>
       {activeTab === 'revenue' && <RevenueForecast />}
       {activeTab === 'liquidity' && <LiquidityAnalysis />}
       {activeTab === 'goals' && <RevenueGoalsDashboard />}

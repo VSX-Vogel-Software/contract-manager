@@ -140,25 +140,35 @@ const searchablePages: SearchablePage[] = [
   { labelKey: 'auth.verifySuccess', keywords: ['verify', 'verifizieren', 'bestätigen', 'verification'], url: '/verify-signup' },
 ]
 
-export function Sidebar() {
+interface GlobalSearchProps {
+  /**
+   * `dropdown`: Ergebnisse schweben unter dem Feld (Desktop-Seitenleiste).
+   * `inline`: Ergebnisse stehen im Fluss und fuellen den verfuegbaren Platz
+   * (Navigationsschublade, Vollbild-Suche auf dem Telefon).
+   */
+  variant?: 'dropdown' | 'inline'
+  autoFocus?: boolean
+  /** Wird nach der Auswahl eines Treffers aufgerufen, z. B. zum Schliessen. */
+  onNavigate?: () => void
+  /** Steht rechts neben dem Eingabefeld (z. B. Schliessen-Knopf). */
+  trailing?: React.ReactNode
+}
+
+export function GlobalSearch({ variant = 'dropdown', autoFocus = false, onNavigate, trailing }: GlobalSearchProps) {
   const { t } = useTranslation()
-  const { user, logout, hasPermission } = useAuth()
+  const { hasPermission } = useAuth()
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
   const [showResults, setShowResults] = useState(false)
-  const [feedbackOpen, setFeedbackOpen] = useState(false)
-  const [signOutOpen, setSignOutOpen] = useState(false)
 
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const searchRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const isDropdown = variant === 'dropdown'
 
   const [search, { data, loading }] = useLazyQuery(GLOBAL_SEARCH, {
     fetchPolicy: 'cache-and-network',
   })
-
-  const { data: feedbackData } = useQuery(FEEDBACK_ENABLED)
-  const feedbackEnabled = feedbackData?.feedbackEnabled ?? false
 
   // Debounced search
   useEffect(() => {
@@ -173,6 +183,7 @@ export function Sidebar() {
 
   // Close on click outside
   useEffect(() => {
+    if (!isDropdown) return
     const handleClickOutside = (e: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
         setShowResults(false)
@@ -180,10 +191,11 @@ export function Sidebar() {
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
+  }, [isDropdown])
 
-  // "/" keyboard shortcut to focus search
+  // "/" keyboard shortcut to focus search (nur die Desktop-Suche)
   useEffect(() => {
+    if (!isDropdown) return
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't trigger if user is typing in an input/textarea
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
@@ -196,7 +208,7 @@ export function Sidebar() {
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [])
+  }, [isDropdown])
 
   // Client-side page search
   const filteredPages = useMemo(() => {
@@ -235,6 +247,7 @@ export function Sidebar() {
     setSearchQuery('')
     setShowResults(false)
     setSelectedIndex(-1)
+    onNavigate?.()
   }
 
   const handleSearchKeyDown = (e: React.KeyboardEvent) => {
@@ -269,130 +282,186 @@ export function Sidebar() {
     }
   }
 
-  return (
-    <aside className="flex w-64 flex-col border-r bg-white">
-      <div className="flex flex-col items-start gap-2 border-b px-6 py-4">
-        <img src="/vsx-logo.png" alt="VSX Vogel Software" className="h-10" />
-        <span className="text-lg font-semibold text-gray-900">Contract Manager</span>
-      </div>
-      {/* Search Bar - outside nav to avoid overflow clipping */}
-      <div className="relative px-4 pt-4 pb-1">
-        <div ref={searchRef} className="relative">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <input
-              ref={inputRef}
-              type="text"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value)
-                setShowResults(true)
-              }}
-              onFocus={() => setShowResults(true)}
-              onKeyDown={handleSearchKeyDown}
-              placeholder={t('common.search')}
-              className="w-full rounded-lg border border-gray-200 bg-gray-50 py-2.5 pl-9 pr-8 text-sm placeholder:text-gray-400 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
-            {loading ? (
-              <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-gray-400" />
-            ) : searchQuery ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchQuery('')
-                  setShowResults(false)
-                }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-gray-400 hover:bg-gray-200 hover:text-gray-600"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            ) : (
-              <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-gray-300 bg-gray-100 px-1.5 py-0.5 text-xs text-gray-400">/</kbd>
-            )}
-          </div>
+  const resultButtonClass = (idx: number) =>
+    cn(
+      'flex w-full items-start gap-3 px-3 text-left',
+      isDropdown ? 'py-2' : 'py-3',
+      idx === selectedIndex ? 'bg-blue-50' : 'hover:bg-gray-50'
+    )
 
-          {/* Search Results Dropdown */}
-          {showResults && searchQuery.length >= 2 && (() => {
-            let flatIndex = 0
-            return (
-            <div className="absolute left-0 top-full z-50 mt-1 w-[480px] max-h-80 overflow-y-auto rounded-lg border bg-white shadow-lg">
-              {/* Pages (client-side) */}
-              {filteredPages.length > 0 && (
-                <div>
-                  <div className="sticky top-0 bg-gray-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    {t('search.pages', 'Pages')}
-                  </div>
-                  {filteredPages.map((page) => {
-                    const idx = flatIndex++
-                    return (
-                      <button
-                        key={page.url}
-                        onClick={() => handleResultClick(page.url)}
-                        className={cn(
-                          'flex w-full items-start gap-3 px-3 py-2 text-left',
-                          idx === selectedIndex ? 'bg-blue-50' : 'hover:bg-gray-50'
-                        )}
-                      >
-                        <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
-                        <div className="truncate text-sm font-medium text-gray-900">
-                          {t(page.labelKey)}
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-              {/* Data results (API) */}
-              {data?.globalSearch?.groups?.map((group: { type: string; label: string; hasMore: boolean; items: { id: number; title: string; subtitle?: string; url: string }[] }) => (
-                <div key={group.type}>
-                  <div className="sticky top-0 bg-gray-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    {t(`search.${group.type}`, group.label)}
-                  </div>
-                  {group.items.map((item) => {
-                    const Icon = getTypeIcon(group.type)
-                    const idx = flatIndex++
-                    return (
-                      <button
-                        key={`${group.type}-${item.id}`}
-                        onClick={() => handleResultClick(item.url)}
-                        className={cn(
-                          'flex w-full items-start gap-3 px-3 py-2 text-left',
-                          idx === selectedIndex ? 'bg-blue-50' : 'hover:bg-gray-50'
-                        )}
-                      >
-                        <Icon className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-medium text-gray-900">
-                            {item.title}
-                          </div>
-                          {item.subtitle && (
-                            <div className="truncate text-xs text-gray-500">
-                              {item.subtitle}
-                            </div>
-                          )}
-                        </div>
-                      </button>
-                    )
-                  })}
-                  {group.hasMore && (
-                    <div className="px-3 py-2 text-xs text-gray-400 italic">
-                      {t('search.moreResults', '+ more results...')}
+  return (
+    <div ref={searchRef} className={cn('relative', !isDropdown && 'flex min-h-0 flex-1 flex-col')}>
+      <div className="flex items-center gap-2">
+      <div className="relative min-w-0 flex-1">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <input
+          ref={inputRef}
+          // Bewusst kein type="search": Chrome/Edge leeren das Feld sonst bei
+          // Escape, bisher schloss Escape nur die Trefferliste
+          type="text"
+          inputMode="search"
+          enterKeyHint="search"
+          autoFocus={autoFocus}
+          value={searchQuery}
+          onChange={(e) => {
+            setSearchQuery(e.target.value)
+            setShowResults(true)
+          }}
+          onFocus={() => setShowResults(true)}
+          onKeyDown={handleSearchKeyDown}
+          placeholder={t('common.search')}
+          data-testid="global-search-input"
+          className={cn(
+            'w-full rounded-lg border border-gray-200 bg-gray-50 pl-9 pr-8 text-sm placeholder:text-gray-400 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500',
+            isDropdown ? 'py-2.5' : 'py-3'
+          )}
+        />
+        {loading ? (
+          <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-gray-400" />
+        ) : searchQuery ? (
+          <button
+            type="button"
+            onClick={() => {
+              setSearchQuery('')
+              setShowResults(false)
+              inputRef.current?.focus()
+            }}
+            aria-label={t('mobile.clearSearch')}
+            className="absolute right-1 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded text-gray-400 hover:bg-gray-200 hover:text-gray-600"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        ) : isDropdown ? (
+          <kbd className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-gray-300 bg-gray-100 px-1.5 py-0.5 text-xs text-gray-400 touch:hidden">/</kbd>
+        ) : null}
+      </div>
+      {trailing}
+      </div>
+
+      {/* Search Results */}
+      {showResults && searchQuery.length >= 2 && (() => {
+        let flatIndex = 0
+        return (
+        <div
+          data-testid="global-search-results"
+          className={cn(
+            'overflow-y-auto bg-white',
+            isDropdown
+              ? 'absolute left-0 top-full z-50 mt-1 max-h-80 w-[480px] max-w-[calc(100vw-2rem)] rounded-lg border shadow-lg'
+              : 'mt-2 min-h-0 shrink overscroll-contain rounded-lg border'
+          )}
+        >
+          {/* Pages (client-side) */}
+          {filteredPages.length > 0 && (
+            <div>
+              <div className="sticky top-0 bg-gray-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                {t('search.pages', 'Pages')}
+              </div>
+              {filteredPages.map((page) => {
+                const idx = flatIndex++
+                return (
+                  <button
+                    key={page.url}
+                    onClick={() => handleResultClick(page.url)}
+                    className={resultButtonClass(idx)}
+                  >
+                    <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
+                    <div className="truncate text-sm font-medium text-gray-900">
+                      {t(page.labelKey)}
                     </div>
-                  )}
-                </div>
-              ))}
-              {/* No results */}
-              {filteredPages.length === 0 && !data?.globalSearch?.groups?.length && !loading && (
-                <div className="px-3 py-4 text-center text-sm text-gray-500">
-                  {t('search.noResults')}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+          {/* Data results (API) */}
+          {data?.globalSearch?.groups?.map((group: { type: string; label: string; hasMore: boolean; items: { id: number; title: string; subtitle?: string; url: string }[] }) => (
+            <div key={group.type}>
+              <div className="sticky top-0 bg-gray-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                {t(`search.${group.type}`, group.label)}
+              </div>
+              {group.items.map((item) => {
+                const Icon = getTypeIcon(group.type)
+                const idx = flatIndex++
+                return (
+                  <button
+                    key={`${group.type}-${item.id}`}
+                    onClick={() => handleResultClick(item.url)}
+                    className={resultButtonClass(idx)}
+                  >
+                    <Icon className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium text-gray-900">
+                        {item.title}
+                      </div>
+                      {item.subtitle && (
+                        <div className="truncate text-xs text-gray-500">
+                          {item.subtitle}
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                )
+              })}
+              {group.hasMore && (
+                <div className="px-3 py-2 text-xs text-gray-400 italic">
+                  {t('search.moreResults', '+ more results...')}
                 </div>
               )}
             </div>
-            )
-          })()}
+          ))}
+          {/* No results */}
+          {filteredPages.length === 0 && !data?.globalSearch?.groups?.length && !loading && (
+            <div className="px-3 py-4 text-center text-sm text-gray-500">
+              {t('search.noResults')}
+            </div>
+          )}
         </div>
+        )
+      })()}
+    </div>
+  )
+}
+
+interface SidebarProps {
+  /**
+   * `desktop`: feste Seitenleiste ab `lg`.
+   * `drawer`: Inhalt der ausfahrbaren Navigation auf Telefon und Tablet.
+   */
+  variant?: 'desktop' | 'drawer'
+  /** Wird nach einem Klick auf einen Menueeintrag aufgerufen. */
+  onNavigate?: () => void
+}
+
+export function Sidebar({ variant = 'desktop', onNavigate }: SidebarProps) {
+  const { t } = useTranslation()
+  const { user, logout, hasPermission } = useAuth()
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
+  const [signOutOpen, setSignOutOpen] = useState(false)
+  const isDrawer = variant === 'drawer'
+
+  const { data: feedbackData } = useQuery(FEEDBACK_ENABLED)
+  const feedbackEnabled = feedbackData?.feedbackEnabled ?? false
+
+  const itemClass = isDrawer ? 'py-3' : 'py-2.5'
+
+  return (
+    <aside
+      className={cn('flex flex-col bg-white', isDrawer ? 'h-full w-full pt-safe pb-safe' : 'w-64 border-r')}
+      data-testid={isDrawer ? 'nav-drawer' : 'sidebar'}
+    >
+      <div className={cn('flex flex-col items-start gap-2 border-b py-4', isDrawer ? 'px-4 pr-14' : 'px-6')}>
+        <img src="/vsx-logo.png" alt="VSX Vogel Software" className={isDrawer ? 'h-8' : 'h-10'} />
+        <span className="text-lg font-semibold text-gray-900">Contract Manager</span>
       </div>
-      <nav className="flex-1 overflow-y-auto space-y-1 px-4 pb-4">
+      {/* Search Bar - outside nav to avoid overflow clipping. In der Schublade
+          uebernimmt die Kopfleiste die Suche. */}
+      {!isDrawer && (
+        <div className="relative px-4 pt-4 pb-1">
+          <GlobalSearch />
+        </div>
+      )}
+      <nav className={cn('flex-1 overflow-y-auto overscroll-contain space-y-1 px-4 pb-4', isDrawer && 'pt-3')}>
         {navItems
           .filter((item) => {
             if (!item.permission) return true
@@ -404,9 +473,11 @@ export function Sidebar() {
               key={item.to}
               to={item.to}
               end={item.end}
+              onClick={onNavigate}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                  'flex items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors',
+                  itemClass,
                   isActive
                     ? 'bg-gray-100 text-gray-900'
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
@@ -421,13 +492,13 @@ export function Sidebar() {
       <div className="border-t p-4">
         <div className="mb-2 px-3">
           <p className="text-sm font-medium text-gray-900">{user?.firstName} {user?.lastName}</p>
-          <p className="text-xs text-gray-500">{user?.email}</p>
+          <p className="[overflow-wrap:anywhere] text-xs text-gray-500">{user?.email}</p>
           <p className="text-xs text-gray-400">{user?.companyName || user?.tenantName}</p>
         </div>
         {feedbackEnabled && (
           <button
             onClick={() => setFeedbackOpen(true)}
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
+            className={cn('flex w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900', itemClass)}
           >
             <MessageSquarePlus className="h-5 w-5" />
             {t('feedback.menuItem')}
@@ -436,7 +507,7 @@ export function Sidebar() {
         <button
           onClick={() => (isSsoSession() ? setSignOutOpen(true) : logout())}
           data-testid="sign-out"
-          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
+          className={cn('flex w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900', itemClass)}
         >
           <LogOut className="h-5 w-5" />
           {t('auth.signOut')}

@@ -77,7 +77,7 @@ export function PriceIncreaseAnalytics() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4">
         <h2 className="text-lg font-semibold">{t('dashboard.priceIncrease.title')}</h2>
         <select
           value={year}
@@ -91,7 +91,7 @@ export function PriceIncreaseAnalytics() {
       </div>
 
       <div
-        className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 cursor-pointer"
+        className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4 cursor-pointer"
         onClick={() => navigate(`/contracts?priceIncrease=true&year=${year}`)}
       >
         <KPICard
@@ -126,7 +126,7 @@ export function PriceIncreaseAnalytics() {
       </div>
 
       {contracts.length > 0 && (
-        <div className="overflow-hidden rounded-lg border">
+        <div className="overflow-x-auto rounded-lg border">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>

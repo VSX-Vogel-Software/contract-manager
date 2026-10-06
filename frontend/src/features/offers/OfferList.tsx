@@ -17,6 +17,9 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { cn, formatCurrency, formatDate } from '@/lib/utils'
 import { usePersistedState } from '@/lib/usePersistedState'
+import { useMediaQuery } from '@/lib/useMediaQuery'
+import { MobileCard, MobileCardList } from '@/components/MobileCard'
+import { MobileSortControl } from '@/components/MobileSortControl'
 
 const OFFERS_QUERY = gql`
   query Offers(
@@ -158,6 +161,9 @@ export function OfferList() {
     )
   }
 
+  // Unter md Karten, darueber die Tabelle
+  const isMdUp = useMediaQuery('(min-width: 768px)')
+
   const statusOptions = [
     { value: '', label: t('offers.allStatuses') },
     { value: 'draft', label: t('offers.statusDraft') },
@@ -177,7 +183,7 @@ export function OfferList() {
 
       {/* Filters */}
       <div className="flex gap-4 flex-wrap">
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative w-full sm:w-auto sm:flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           <Input
             value={search}
@@ -189,13 +195,13 @@ export function OfferList() {
             className="pl-9"
           />
         </div>
-        <div className="inline-flex rounded-md border border-input overflow-hidden">
+        <div className="inline-flex max-w-full overflow-x-auto scrollbar-none rounded-md border border-input [&>*]:shrink-0">
           {statusOptions.map((opt) => (
             <button
               key={opt.value}
               onClick={() => { setStatusFilter(opt.value); setPage(1) }}
               className={cn(
-                'px-3 py-1.5 text-sm font-medium transition-colors',
+                'whitespace-nowrap px-3 py-1.5 text-sm font-medium transition-colors',
                 statusFilter === opt.value
                   ? 'bg-primary text-primary-foreground'
                   : 'bg-background text-muted-foreground hover:bg-muted'
@@ -207,9 +213,86 @@ export function OfferList() {
         </div>
       </div>
 
+      {/* Telefon: Karten statt Tabelle */}
+      {!isMdUp && (
+        <MobileCardList data-testid="offer-cards">
+          <MobileSortControl<string>
+            options={[
+              { value: '', label: t('mobile.sortDefault') },
+              { value: 'offerNumber', label: t('offers.colOfferNumber') },
+              { value: 'customerName', label: t('offers.colCustomer') },
+              { value: 'offerDate', label: t('offers.colOfferDate') },
+              { value: 'validUntil', label: t('offers.colValidUntil') },
+              { value: 'totalGross', label: t('offers.colTotalGross') },
+            ]}
+            sortBy={sortField ?? ''}
+            sortOrder={sortOrder as 'asc' | 'desc'}
+            onSortByChange={(field) => {
+              setSortField(field || null)
+              setPage(1)
+            }}
+            onSortOrderChange={(order) => {
+              setSortOrder(order)
+              setPage(1)
+            }}
+          />
+          {loading && items.length === 0 ? (
+            <div className="py-8 text-center">
+              <Loader2 className="w-6 h-6 mx-auto animate-spin text-gray-400" />
+            </div>
+          ) : items.length === 0 ? (
+            <div className="rounded-lg border bg-white px-4 py-8 text-center text-gray-500">
+              {t('offers.noOffers')}
+            </div>
+          ) : (
+            items.map((offer) => {
+              const isExpired = offer.validUntil ? offer.validUntil < today : false
+              return (
+                <MobileCard
+                  key={offer.id}
+                  data-testid={`offer-card-${offer.id}`}
+                  to={`/offers/${offer.id}`}
+                  title={offer.offerNumber}
+                  badge={<StatusBadge status={offer.status} isExpired={isExpired} />}
+                  subtitle={
+                    <>
+                      {offer.customerName}
+                      {offer.contractName && <div className="text-xs text-gray-500">{offer.contractName}</div>}
+                      {offer.emailError && (
+                        <span className="mt-1 flex items-center gap-1 text-xs text-destructive" title={offer.emailError}>
+                          <AlertTriangle className="h-3 w-3" />
+                          {t('emailStatus.badge')}
+                        </span>
+                      )}
+                    </>
+                  }
+                  meta={
+                    <>
+                      {formatDate(offer.offerDate)}
+                      {offer.validUntil && (
+                        <span
+                          className={cn(
+                            'ml-2',
+                            isExpired && (offer.status === 'draft' || offer.status === 'sent') && 'text-red-600'
+                          )}
+                        >
+                          {t('offers.colValidUntil')}: {formatDate(offer.validUntil)}
+                        </span>
+                      )}
+                    </>
+                  }
+                  amount={formatCurrency(offer.totalGross)}
+                />
+              )
+            })
+          )}
+        </MobileCardList>
+      )}
+
       {/* Table */}
-      <div className="rounded-lg border bg-white">
-        <table className="w-full">
+      {isMdUp && (
+      <div className="rounded-lg border bg-white overflow-x-auto">
+        <table className="table-sticky-first w-full">
           <thead>
             <tr className="border-b bg-gray-50">
               <th
@@ -301,10 +384,11 @@ export function OfferList() {
           </tbody>
         </table>
       </div>
+      )}
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-gray-500">
             {t('common.pagination.showing', {
               from: (page - 1) * PAGE_SIZE + 1,

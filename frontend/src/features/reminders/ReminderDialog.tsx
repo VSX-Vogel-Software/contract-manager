@@ -159,7 +159,7 @@ export function ReminderDialog({
     <>
       {toast && (
         <div
-          className={`fixed right-4 top-4 z-[60] rounded-lg px-4 py-3 text-sm font-medium shadow-lg ${
+          className={`fixed inset-x-2 top-2 z-[60] rounded-lg sm:inset-x-auto sm:right-4 sm:top-4 sm:max-w-md lg:max-w-none px-4 py-3 text-sm font-medium shadow-lg ${
             toast.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
           }`}
         >
@@ -167,7 +167,7 @@ export function ReminderDialog({
         </div>
       )}
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="reminder-dialog">
+        <DialogContent className="max-w-2xl max-h-[90dvh] overflow-y-auto" data-testid="reminder-dialog">
           <DialogHeader>
             <DialogTitle>
               {draft
@@ -186,7 +186,7 @@ export function ReminderDialog({
           ) : draft ? (
             <div className="space-y-4 py-2">
               {/* Stage selector */}
-              <div className="grid gap-2 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <div>
                   <Label className="mb-1 block text-sm font-medium">{t('reminders.stageLabel')}</Label>
                   <Select value={String(stage)} onValueChange={handleStageChange}>
@@ -241,7 +241,7 @@ export function ReminderDialog({
               </div>
 
               {/* Fee + interest toggles */}
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="flex items-center justify-between rounded-lg border p-3">
                   <div>
                     <p className="text-sm font-medium">{t('reminders.feeLabel')}</p>

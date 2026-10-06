@@ -285,7 +285,7 @@ export function PdfAnalysisPanel({
             <h4 className="text-sm font-semibold text-gray-700 mb-3">
               {t('pdfAnalysis.metadataSection')}
             </h4>
-            <div className="overflow-hidden rounded-lg border">
+            <div className="overflow-x-auto rounded-lg border">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
@@ -342,7 +342,7 @@ export function PdfAnalysisPanel({
           <h4 className="text-sm font-semibold text-gray-700 mb-3">
             {t('pdfAnalysis.itemsSection')}
           </h4>
-          <div className="overflow-hidden rounded-lg border">
+          <div className="overflow-x-auto rounded-lg border">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>

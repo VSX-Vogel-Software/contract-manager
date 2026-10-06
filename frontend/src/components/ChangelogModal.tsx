@@ -79,7 +79,7 @@ export function ChangelogModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="max-h-[60vh] space-y-4 overflow-y-auto pr-1">
+        <div className="max-h-[60dvh] min-w-0 space-y-4 overflow-y-auto pr-1">
           {loading ? (
             <div className="py-12 text-center">
               <Loader2 className="mx-auto h-6 w-6 animate-spin text-gray-400" />
@@ -97,8 +97,8 @@ export function ChangelogModal({
               const config = TYPE_CONFIG[entry.type] || TYPE_CONFIG.feature
               const Icon = config.icon
               return (
-                <div key={i} className="rounded-lg border bg-white p-4">
-                  <div className="mb-1 flex items-center gap-2">
+                <div key={i} className="min-w-0 break-words rounded-lg border bg-white p-4">
+                  <div className="mb-1 flex flex-wrap items-center gap-2">
                     <Badge variant="secondary" className={config.color}>
                       <Icon className="mr-1 h-3 w-3" />
                       {t(`about.changelog.${entry.type}`)}
@@ -117,7 +117,7 @@ export function ChangelogModal({
                           className="flex items-start gap-2 text-sm text-gray-600"
                         >
                           <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-400" />
-                          {detail}
+                          <span className="min-w-0 break-words">{detail}</span>
                         </li>
                       ))}
                     </ul>
