@@ -103,6 +103,7 @@ services:
     environment:
       VITE_API_URL: http://localhost:4001/graphql
       VITE_API_URL_RELATIVE: /graphql
+      VITE_USE_POLLING: "1"
     volumes:
       - ./frontend:/app
       - /app/node_modules

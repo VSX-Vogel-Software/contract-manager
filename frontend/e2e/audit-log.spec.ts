@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test'
 test.describe('Audit Log', () => {
   test.beforeEach(async ({ page }) => {
     // Login first
-    await page.goto('/login')
+    await page.goto('/login/local')
     await page.fill('input[type="email"]', 'admin@test.local')
     await page.fill('input[type="password"]', 'admin123')
     await page.click('button[type="submit"]')

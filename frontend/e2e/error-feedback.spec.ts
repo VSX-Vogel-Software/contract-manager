@@ -10,7 +10,7 @@ import { test, expect } from '@playwright/test'
  */
 test.describe('Fehlerrueckmeldung', () => {
   test('zeigt einen Rechtefehler als Toast statt einer leeren Seite', async ({ page }) => {
-    await page.goto('/login')
+    await page.goto('/login/local')
     await page.fill('input[type="email"]', 'viewer@test.local')
     await page.fill('input[type="password"]', 'viewer123')
     await page.click('button[type="submit"]')
@@ -27,7 +27,7 @@ test.describe('Fehlerrueckmeldung', () => {
   })
 
   test('zeigt einen Netzwerkfehler, der sonst wie nichts aussieht', async ({ page }) => {
-    await page.goto('/login')
+    await page.goto('/login/local')
     await page.fill('input[type="email"]', 'admin@test.local')
     await page.fill('input[type="password"]', 'admin123')
     await page.click('button[type="submit"]')
@@ -41,7 +41,7 @@ test.describe('Fehlerrueckmeldung', () => {
   })
 
   test('meldet einen Fehler nicht doppelt, wenn die Maske ihn selbst anzeigt', async ({ page }) => {
-    await page.goto('/login')
+    await page.goto('/login/local')
     await page.fill('input[type="email"]', 'admin@test.local')
     await page.fill('input[type="password"]', 'admin123')
     await page.click('button[type="submit"]')
@@ -63,7 +63,7 @@ test.describe('Fehlerrueckmeldung', () => {
   })
 
   test('erklaert eine Seite ohne Berechtigung, statt sie leer zu lassen', async ({ page }) => {
-    await page.goto('/login')
+    await page.goto('/login/local')
     await page.fill('input[type="email"]', 'viewer@test.local')
     await page.fill('input[type="password"]', 'viewer123')
     await page.click('button[type="submit"]')
@@ -76,7 +76,7 @@ test.describe('Fehlerrueckmeldung', () => {
   })
 
   test('laesst sich schliessen', async ({ page }) => {
-    await page.goto('/login')
+    await page.goto('/login/local')
     await page.fill('input[type="email"]', 'admin@test.local')
     await page.fill('input[type="password"]', 'admin123')
     await page.click('button[type="submit"]')
