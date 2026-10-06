@@ -338,6 +338,7 @@ class Command(BaseCommand):
             self.inbox = self._seed_invoice_inbox()
             self.api_key = self._seed_api_key()
             self.absence_report = self._seed_absence_report()
+            self._seed_new_business_and_price_increases()
             self._seed_kpi_snapshots()
 
         self._print_summary()
@@ -1400,6 +1401,101 @@ class Command(BaseCommand):
             )
         self._count("Abwesenheitsberichte", True)
         return report
+
+    def _seed_new_business_and_price_increases(self):
+        """Daten fuer die Dashboard-Bereiche "New Bookings" und "Price Increase
+        Impact" - ohne sie blenden sich beide Bereiche aus.
+
+        - Gewonnene Deals: jeder fuenfte aktive Vertrag bekommt eine Demo-Deal-ID
+          und ein Gewinn-Datum im laufenden Jahr (New Name ARR, Deal-Anzahl).
+        - Upsell: einige Positionen anderer aktiver Vertraege bekommen ein
+          eigenes Gewinn-Datum (Back-to-Base ARR, bei Einmalpositionen
+          Development).
+        - Preiserhoehungen: wiederkehrende Positionen aktiver Vertraege bekommen
+          zwei Preisperioden - bisheriger Preis bis 31.3., heutiger Preis ab 1.4.
+          (abwechselnd Inflation/verhandelt). Der aktuelle Preis bleibt gleich.
+        - Ziele des Jahres, sofern noch keine gesetzt sind.
+
+        Deterministisch und ohne self.rng; nur Vertraege mit Demo-Kennung, nur
+        Felder, die noch leer sind - ein zweiter Lauf aendert nichts.
+        """
+        from apps.contracts.models import ContractItemPrice, NewBusinessGoal, NewBusinessGoalType
+
+        year = self.today.year
+        # Monate bis heute, damit kein Gewinn-Datum in der Zukunft liegt
+        months = [m for m in (2, 3, 5, 6, 8, 9) if date(year, m, 15) <= self.today] or [self.today.month]
+        active = sorted((c for c in self.contracts if c.status == "active"), key=lambda c: c.id)
+        won = active[::5][:6]
+        won_ids = {c.id for c in won}
+
+        for i, contract in enumerate(won):
+            created = False
+            if not contract.hubspot_deal_id:
+                contract.hubspot_deal_id = f"DEMO-DEAL-{contract.id:04d}"
+                contract.deal_won_date = date(year, months[i % len(months)], 15)
+                contract.save(update_fields=["hubspot_deal_id", "deal_won_date"])
+                created = True
+            self._count("Gewonnene Deals", created)
+
+        expansion_contracts = [c for c in active if c.id not in won_ids][:8]
+        for i, contract in enumerate(expansion_contracts):
+            item = contract.items.order_by("sort_order", "id").first()
+            if item is None:
+                continue
+            created = False
+            if item.deal_won_date is None:
+                item.deal_won_date = date(year, months[(i + 2) % len(months)], 10)
+                item.save(update_fields=["deal_won_date"])
+                created = True
+            self._count("Upsell-Positionen", created)
+
+        jan1 = date(year, 1, 1)
+        increase_from = date(year, 4, 1)
+        candidates = [
+            item
+            for contract in active
+            if contract.start_date and contract.start_date < jan1
+            for item in contract.items.order_by("sort_order", "id")
+            if not item.is_one_off
+        ][:10]
+        for i, item in enumerate(candidates):
+            created = False
+            if not item.price_periods.exists():
+                previous = money(item.unit_price / Decimal("1.06"))
+                ContractItemPrice.objects.create(
+                    tenant=self.tenant,
+                    item=item,
+                    valid_from=item.contract.start_date,
+                    valid_to=increase_from - timedelta(days=1),
+                    unit_price=previous,
+                    price_period=item.price_period,
+                )
+                ContractItemPrice.objects.create(
+                    tenant=self.tenant,
+                    item=item,
+                    valid_from=increase_from,
+                    unit_price=item.unit_price,
+                    price_period=item.price_period,
+                    increase_type=(
+                        ContractItemPrice.IncreaseType.INFLATION
+                        if i % 2 == 0
+                        else ContractItemPrice.IncreaseType.NEGOTIATED
+                    ),
+                )
+                created = True
+            self._count("Preiserhoehungen", created)
+
+        goals = {
+            NewBusinessGoalType.NEW_ARR: Decimal("250000"),
+            NewBusinessGoalType.BACK_TO_BASE_ARR: Decimal("150000"),
+            NewBusinessGoalType.NEW_DEVELOPMENT: Decimal("100000"),
+            NewBusinessGoalType.NEW_DEAL_COUNT: Decimal("6"),
+        }
+        for goal_type, target in goals.items():
+            _, created = NewBusinessGoal.objects.get_or_create(
+                tenant=self.tenant, year=year, goal_type=goal_type, defaults={"target_amount": target}
+            )
+            self._count("New-Business-Ziele", created)
 
     def _seed_kpi_snapshots(self):
         """KPI-Snapshots der fuenf Vormonate, damit die Sparklines der reinen
