@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { useApolloClient, gql } from '@apollo/client'
+import { createContext, useCallback, useContext, useState, useEffect, ReactNode } from 'react'
+import { ApolloError, useApolloClient, gql } from '@apollo/client'
 import { clearSsoSession } from './ssoSession'
 
 interface User {
@@ -21,6 +21,10 @@ interface AuthContextType {
   token: string | null
   isAuthenticated: boolean
   isLoading: boolean
+  /** Server beim Start nicht erreichbar - Anmeldung bleibt erhalten */
+  connectionError: boolean
+  /** Anmeldestatus erneut pruefen (nach connectionError) */
+  retryAuth: () => void
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string; twoFactor?: { challengeToken: string; method: string }; setupRequired?: boolean }>
   loginWithTokens: (accessToken: string, refreshToken: string) => Promise<boolean>
   logout: () => void
@@ -72,22 +76,28 @@ const ME_QUERY = gql`
 
 const TOKEN_KEY = 'auth_token'
 const REFRESH_TOKEN_KEY = 'refresh_token'
+/** Versuche fuer die Anmeldepruefung beim Start, bevor "nicht erreichbar" kommt */
+const AUTH_CHECK_ATTEMPTS = 3
+const AUTH_CHECK_RETRY_MS = 1000
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [token, setToken] = useState<string | null>(() => localStorage.getItem(TOKEN_KEY))
   const [isLoading, setIsLoading] = useState(true)
+  const [connectionError, setConnectionError] = useState(false)
   const client = useApolloClient()
 
   // Check authentication status on mount
-  useEffect(() => {
-    const checkAuth = async () => {
-      const storedToken = localStorage.getItem(TOKEN_KEY)
-      if (!storedToken) {
-        setIsLoading(false)
-        return
-      }
+  const checkAuth = useCallback(async () => {
+    const storedToken = localStorage.getItem(TOKEN_KEY)
+    if (!storedToken) {
+      setIsLoading(false)
+      return
+    }
+    setIsLoading(true)
+    setConnectionError(false)
 
+    for (let attempt = 1; ; attempt++) {
       try {
         const { data } = await client.query({
           query: ME_QUERY,
@@ -108,17 +118,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.removeItem(REFRESH_TOKEN_KEY)
           setToken(null)
         }
-      } catch {
-        localStorage.removeItem(TOKEN_KEY)
-        localStorage.removeItem(REFRESH_TOKEN_KEY)
-        setToken(null)
-      } finally {
-        setIsLoading(false)
+        break
+      } catch (err) {
+        // Nur ein Netzwerkfehler (Funkloch, Server kurz weg) ist kein Grund
+        // zum Abmelden - sonst ist man auf dem Telefon nach jedem Tunnel
+        // ausgeloggt. Erst erneut versuchen, dann "nicht erreichbar" zeigen
+        // und die Anmeldung behalten. Alles andere (GraphQL-Fehler) wie bisher.
+        const isNetworkError =
+          err instanceof ApolloError && !!err.networkError && err.graphQLErrors.length === 0
+        if (!isNetworkError) {
+          localStorage.removeItem(TOKEN_KEY)
+          localStorage.removeItem(REFRESH_TOKEN_KEY)
+          setToken(null)
+          break
+        }
+        if (attempt >= AUTH_CHECK_ATTEMPTS) {
+          setConnectionError(true)
+          break
+        }
+        await new Promise((resolve) => setTimeout(resolve, AUTH_CHECK_RETRY_MS * attempt))
       }
     }
-
-    checkAuth()
+    setIsLoading(false)
   }, [client])
+
+  useEffect(() => {
+    checkAuth()
+  }, [checkAuth])
 
   const loginWithTokens = async (accessToken: string, refreshToken: string): Promise<boolean> => {
     localStorage.setItem(TOKEN_KEY, accessToken)
@@ -220,6 +246,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         token,
         isAuthenticated: !!user,
         isLoading,
+        connectionError,
+        retryAuth: checkAuth,
         login,
         loginWithTokens,
         logout,
