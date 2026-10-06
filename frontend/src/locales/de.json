@@ -17,6 +17,7 @@
     "incomingInvoices": "Eingangsrechnungen"
   },
   "common": {
+    "total": "Gesamt",
     "name": "Name",
     "active": "Aktiv",
     "inactive": "Inaktiv",
@@ -145,6 +146,8 @@
     "welcome": "Willkommen im Contract Manager",
     "drilldown": {
       "item": "Position",
+      "itemCount_one": "{{count}} Position",
+      "itemCount_other": "{{count}} Positionen",
       "value": "ARR-Wert"
     },
     "kpis": {

@@ -118,7 +118,7 @@ export function NewBusinessDetailPage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold">{title}</h1>
-          <p className="text-sm text-muted-foreground">{year} — {items.length} {items.length === 1 ? 'item' : 'items'}{isCurrency && ` — ${t('common.total')}: ${formatCurrency(total.toString())}`}</p>
+          <p className="text-sm text-muted-foreground">{year} — {t('dashboard.drilldown.itemCount', { count: items.length })}{isCurrency && ` — ${t('common.total')}: ${formatCurrency(total.toString())}`}</p>
         </div>
       </div>
 
@@ -133,7 +133,7 @@ export function NewBusinessDetailPage() {
         <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
       ) : (
         <div className="overflow-x-auto rounded-lg border bg-card">
-          <table className="table-sticky-first min-w-full text-sm">
+          <table className="table-sticky-first table-sticky-capped min-w-full text-sm">
             <thead>
               <tr className="border-b text-left text-gray-500">
                 <SortHeader label={t('contracts.customer')} field="customerName" />
