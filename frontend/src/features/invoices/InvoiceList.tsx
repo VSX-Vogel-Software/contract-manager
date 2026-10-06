@@ -456,6 +456,12 @@ export function InvoiceList() {
 
   // State
   const [search, setSearch] = useState('')
+  // Entprellt: sonst je Tastendruck zwei Abfragen mit bis zu 1000 Zeilen
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 300)
+    return () => clearTimeout(timer)
+  }, [search])
   const [sourceFilter, setSourceFilter] = usePersistedState<SourceFilter>('cm:invoiceList:sourceFilter', 'ALL')
   const [paymentStatus, setPaymentStatus] = usePersistedState<string>('cm:invoiceList:paymentStatus', 'ALL')
   const [uploadStatus, setUploadStatus] = useState<string>('ALL')
@@ -485,7 +491,7 @@ export function InvoiceList() {
   // Queries & Mutations
   const { data, loading, refetch, startPolling, stopPolling } = useQuery(INVOICES, {
     variables: {
-      search: search || null,
+      search: debouncedSearch || null,
       paymentStatus: paymentStatus === 'ALL' ? null : paymentStatus,
       uploadStatus: uploadStatus === 'ALL' ? null : uploadStatus,
       sortBy: sortField,
@@ -498,7 +504,7 @@ export function InvoiceList() {
 
   const { data: generatedData, loading: generatedLoading, refetch: generatedRefetch } = useQuery(INVOICE_RECORDS, {
     variables: {
-      search: search || null,
+      search: debouncedSearch || null,
       sortBy: sortField,
       sortOrder: sortField ? sortOrder : null,
       offset: 0,
@@ -537,7 +543,8 @@ export function InvoiceList() {
   const [reExtractInvoiceMutation] = useMutation(RE_EXTRACT_INVOICE)
   const [confirmCustomerMatchMutation] = useMutation(CONFIRM_CUSTOMER_MATCH)
   const [unlinkCustomerMutation] = useMutation(UNLINK_CUSTOMER, { context: { suppressErrorToast: true } })
-  const { data: m365Data } = useQuery(M365_SETTINGS_QUERY)
+  // statisch: einmal je Sitzung
+  const { data: m365Data } = useQuery(M365_SETTINGS_QUERY, { fetchPolicy: 'cache-first' })
   const [sendInvoiceEmail, { loading: sendingEmail }] = useMutation(SEND_INVOICE_EMAIL, { context: { suppressErrorToast: true } })
   const [sendAllUnsent, { loading: sendingAll }] = useMutation(SEND_ALL_UNSENT, { context: { suppressErrorToast: true } })
   const [bulkSendErrors, setBulkSendErrors] = useState<{ invoiceNumber: string; error: string }[]>([])
@@ -553,7 +560,9 @@ export function InvoiceList() {
 
   // Dunning settings (for overdue thresholds + reminder action)
   const { data: dunningData } = useQuery<{ dunningSettings: DunningSettings | null }>(
-    DUNNING_SETTINGS_QUERY
+    DUNNING_SETTINGS_QUERY,
+    // selten geaendert; Speichern laedt per refetchQueries neu
+    { fetchPolicy: 'cache-first' }
   )
   const dunningSettings = dunningData?.dunningSettings ?? null
   const [reminderInvoiceId, setReminderInvoiceId] = useState<number | null>(null)

@@ -1,21 +1,48 @@
-import i18n from 'i18next'
+import i18n, { type BackendModule, type ResourceKey } from 'i18next'
 import { initReactI18next } from 'react-i18next'
 import LanguageDetector from 'i18next-browser-languagedetector'
 
-import de from '../locales/de.json'
-import en from '../locales/en.json'
+// Sprachdateien als eigene Chunks: geladen wird nur die aktive Sprache
+// (plus die Rueckfallsprache de, falls die aktive eine andere ist). Ein
+// Sprachwechsel laedt die neue Datei nach, bevor umgeschaltet wird -
+// changeLanguage wartet darauf, es blitzen also keine Schluessel auf.
+const locales: Record<string, () => Promise<{ default: ResourceKey }>> = {
+  de: () => import('../locales/de.json'),
+  en: () => import('../locales/en.json'),
+}
 
-i18n
+const lazyLocaleBackend: BackendModule = {
+  type: 'backend',
+  init() {},
+  read(language, _namespace, callback) {
+    const load = locales[language]
+    // Unbekannte Sprache: leer, die Rueckfallsprache uebernimmt
+    if (!load) return callback(null, {})
+    load().then(
+      (m) => callback(null, m.default),
+      (err) => callback(err, null)
+    )
+  },
+}
+
+/**
+ * Erfuellt sich, sobald die Startsprache geladen ist. main.tsx rendert erst
+ * danach - sonst zeigt der erste Render Schluessel statt Text.
+ */
+export const i18nReady = i18n
+  .use(lazyLocaleBackend)
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    resources: {
-      de: { translation: de },
-      en: { translation: en },
-    },
     fallbackLng: 'de',
+    // "en-US" -> nur "en" laden
+    load: 'languageOnly',
     interpolation: {
       escapeValue: false,
+    },
+    react: {
+      // Wir warten selbst auf i18nReady; kein Suspense in useTranslation
+      useSuspense: false,
     },
   })
 

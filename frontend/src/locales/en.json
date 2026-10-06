@@ -2333,7 +2333,9 @@
     "action": "View changelog",
     "dismiss": "Dismiss",
     "modalTitle": "What's new",
-    "modalSubtitle": "Changes since your installed version {{current}}"
+    "modalSubtitle": "Changes since your installed version {{current}}",
+    "chunkError": "The application has been updated. Please reload the page.",
+    "reload": "Reload"
   },
   "helpVideo": {
     "button": "Quick Guide",

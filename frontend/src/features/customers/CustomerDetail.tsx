@@ -554,7 +554,9 @@ export function CustomerDetail() {
   })
 
   const { data: dunningData } = useQuery<{ dunningSettings: DunningSettings | null }>(
-    DUNNING_SETTINGS_QUERY
+    DUNNING_SETTINGS_QUERY,
+    // selten geaendert; Speichern laedt per refetchQueries neu
+    { fetchPolicy: 'cache-first' }
   )
   const dunningSettings = dunningData?.dunningSettings ?? null
 

@@ -85,6 +85,8 @@ export function DunningTemplateSettings({ showHeader = true }: DunningTemplateSe
 
   const { data, loading, refetch } = useQuery<{ dunningSettings: DunningSettings | null }>(
     DUNNING_SETTINGS_QUERY,
+    // selten geaendert; Speichern laedt per refetchQueries neu
+    { fetchPolicy: 'cache-first' }
   )
   const [save, { loading: saving }] = useMutation(SAVE_DUNNING_SETTINGS)
 

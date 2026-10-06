@@ -72,7 +72,7 @@ test.describe('Dashboard-Kacheln', () => {
     await settle(page)
     const spark = page.getByTestId('kpi-sparkline-active-contracts')
     await expect(spark).toBeVisible()
-    await expect(spark.locator('.recharts-area-curve')).toHaveCount(1)
+    await expect(spark.locator('.sparkline-line')).toHaveCount(1)
     // Linie liegt innerhalb der Karte
     const card = (await page.getByTestId('kpi-card-active-contracts').boundingBox())!
     const box = (await spark.boundingBox())!

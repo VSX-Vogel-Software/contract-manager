@@ -2333,7 +2333,9 @@
     "action": "Changelog ansehen",
     "dismiss": "Ausblenden",
     "modalTitle": "Neuerungen",
-    "modalSubtitle": "Änderungen seit deiner installierten Version {{current}}"
+    "modalSubtitle": "Änderungen seit deiner installierten Version {{current}}",
+    "chunkError": "Die Anwendung wurde aktualisiert. Bitte lade die Seite neu.",
+    "reload": "Neu laden"
   },
   "helpVideo": {
     "button": "Kurze Anleitung",

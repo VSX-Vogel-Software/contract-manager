@@ -64,8 +64,10 @@ export function matchRoute(pattern: string, pathname: string): boolean {
 
 export function useHelpVideoLinks(): HelpVideoLink[] {
   const { pathname } = useLocation()
+  // Aendert sich praktisch nie: einmal je Sitzung laden, nicht bei jedem Seitenwechsel
   const { data } = useQuery<{ helpVideoLinks: HelpVideoLinksEntry[] }>(
-    HELP_VIDEO_LINKS_QUERY
+    HELP_VIDEO_LINKS_QUERY,
+    { fetchPolicy: 'cache-first' }
   )
 
   return useMemo(() => {

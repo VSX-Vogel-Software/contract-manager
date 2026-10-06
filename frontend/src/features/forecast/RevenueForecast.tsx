@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next'
 import { useQuery, gql } from '@apollo/client'
 import { Link } from 'react-router-dom'
 import { Loader2, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, RefreshCw, Download } from 'lucide-react'
-import * as XLSX from 'xlsx'
 import {
   Select,
   SelectContent,
@@ -14,6 +13,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { HelpVideoButton } from '@/components/HelpVideoButton'
 import { formatCurrency } from '@/lib/utils'
+import { isChunkLoadError, reloadOnceForChunkError } from '@/lib/chunkReload'
 
 const REVENUE_FORECAST_QUERY = gql`
   query RevenueForecast($months: Int, $quarters: Int, $view: String, $proRata: Boolean, $excludeOneOff: Boolean, $refresh: Boolean) {
@@ -276,7 +276,7 @@ export function RevenueForecast() {
     }
   }
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     if (!forecast) return
 
     const headers: string[] = []
@@ -316,6 +316,16 @@ export function RevenueForecast() {
       })
     }
 
+    // xlsx (~90 KB gz) erst beim Export laden, nicht mit der Seite
+    let XLSX: typeof import('xlsx')
+    try {
+      XLSX = await import('xlsx')
+    } catch (err) {
+      // Nach einem Deploy fehlt evtl. der alte Chunk: einmal neu laden
+      if (isChunkLoadError(err)) reloadOnceForChunkError()
+      else console.error('xlsx konnte nicht geladen werden', err)
+      return
+    }
     const ws = XLSX.utils.aoa_to_sheet([headers, ...rows])
 
     // Set column widths

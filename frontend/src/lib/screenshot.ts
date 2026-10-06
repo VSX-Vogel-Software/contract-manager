@@ -1,7 +1,6 @@
 /**
  * Screenshot capture utility using html2canvas
  */
-import html2canvas from 'html2canvas'
 
 export interface ScreenshotResult {
   success: boolean
@@ -20,6 +19,8 @@ export async function captureScreenshot(
   maxWidth: number = 1920
 ): Promise<ScreenshotResult> {
   try {
+    // html2canvas (~50 KB gz) erst bei Bedarf laden
+    const { default: html2canvas } = await import('html2canvas')
     // Capture the entire document body
     const canvas = await html2canvas(document.body, {
       // Logging disabled for production

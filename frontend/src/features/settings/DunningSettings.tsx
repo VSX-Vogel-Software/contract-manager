@@ -67,7 +67,9 @@ export function DunningSettings({ showHeader = true }: DunningSettingsProps) {
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   const { data, loading } = useQuery<{ dunningSettings: DunningSettingsType | null }>(
-    DUNNING_SETTINGS_QUERY
+    DUNNING_SETTINGS_QUERY,
+    // selten geaendert; Speichern laedt per refetchQueries neu
+    { fetchPolicy: 'cache-first' }
   )
   const [save, { loading: saving }] = useMutation(SAVE_DUNNING_SETTINGS)
 
