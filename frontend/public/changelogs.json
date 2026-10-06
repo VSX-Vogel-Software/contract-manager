@@ -1,5 +1,24 @@
 [
   {
+    "version": "2.40.0",
+    "date": "2026-10-05",
+    "title": "Contract Manager auf Telefon und Tablet",
+    "description": "Die Anwendung lässt sich jetzt auch unterwegs bedienen. Auf Telefon und Tablet ersetzt eine Kopfleiste mit Menü die Seitenleiste, Listen erscheinen als Karten, und nichts läuft mehr seitlich aus dem Bild. Am Rechner bleibt alles, wie es war.",
+    "type": "feature",
+    "details": [
+      "Menü und Suche über die Kopfleiste, die Suche öffnet bildschirmfüllend",
+      "Verträge, Kunden, Produkte, Projekte, Rechnungen, Angebote und Eingangsrechnungen als Karten, sortierbar über ein Auswahlfeld",
+      "Breite Tabellen scrollen in sich, die erste Spalte bleibt dabei stehen; Reiter lassen sich seitlich wischen",
+      "Dialoge passen auf den Bildschirm, Speichern-Knöpfe sind immer erreichbar",
+      "Erklärungen hinter dem Info-Symbol öffnen per Antippen",
+      "PDFs öffnen auf dem Telefon im Betrachter des Geräts",
+      "Aufgaben lassen sich mit dem Finger ziehen oder über ein Menü einer anderen Person zuweisen",
+      "Kein automatisches Hineinzoomen mehr beim Tippen in ein Eingabefeld auf dem iPhone",
+      "Dashboard: jede Kachel mit Symbol, Verlauf der letzten Monate und Link zu den Daten dahinter",
+      "Kurzer Verbindungsabbruch beim Öffnen meldet nicht mehr ab - stattdessen kommt \"Server nicht erreichbar\" mit Knopf zum erneuten Versuchen"
+    ]
+  },
+  {
     "version": "2.39.0",
     "date": "2026-09-24",
     "title": "Verlässliche Links in E-Mails, und das Auditlog blättert selbst weiter",
