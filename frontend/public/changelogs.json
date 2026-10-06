@@ -1,5 +1,19 @@
 [
   {
+    "version": "2.41.0",
+    "date": "2026-10-06",
+    "title": "Spürbar schneller, besonders auf dem Telefon",
+    "description": "Die Anwendung lädt beim Öffnen nur noch, was die aktuelle Seite braucht, statt alles auf einmal. Auf dem Telefon über Mobilfunk erscheinen Dashboard und Listen damit etwa doppelt so schnell. Auch im Hintergrund arbeitet sie sparsamer: Dashboard, Prognosen und Listen fragen die Datenbank nur noch einen Bruchteil so oft ab wie bisher.",
+    "type": "improvement",
+    "details": [
+      "Beim Öffnen werden rund 70 % weniger Daten übertragen",
+      "Dashboard, Prognosen, Liquidität und Vertrags-/Kundendetails berechnen deutlich schneller",
+      "Rechnungs-, Kunden-, Aufgaben- und Banking-Listen bleiben auch bei vielen Einträgen gleich schnell",
+      "Nach einem Update lädt die Seite bei Bedarf einmal von selbst neu, statt leer zu bleiben",
+      "New-Business-Detailseite: Tabelle auf dem Telefon lesbar, Beschriftung der Summe korrigiert"
+    ]
+  },
+  {
     "version": "2.40.1",
     "date": "2026-10-06",
     "title": "Contract Manager auf Telefon und Tablet",
