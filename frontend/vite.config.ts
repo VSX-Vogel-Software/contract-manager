@@ -18,7 +18,25 @@ export default defineConfig({
     port: 3000,
     // Bind-Mount vom Windows-Host liefert keine inotify-Ereignisse; ohne
     // Polling serviert Vite nach einer Aenderung stumm den alten Stand.
-    watch: process.env.VITE_USE_POLLING === '1' ? { usePolling: true, interval: 300 } : undefined,
+    // Polling kostet je Durchlauf einen stat() pro Datei - Test- und
+    // Build-Ausgaben (tausende Bildschirmfotos) deshalb ausnehmen, sonst
+    // frisst der Container im Leerlauf eine halbe CPU.
+    watch:
+      process.env.VITE_USE_POLLING === '1'
+        ? {
+            usePolling: true,
+            interval: 1000,
+            binaryInterval: 3000,
+            ignored: [
+              '**/dist*/**',
+              '**/mobile-screens*/**',
+              '**/test-results*/**',
+              '**/playwright-report/**',
+              '**/playwright/.auth/**',
+              '**/e2e/**',
+            ],
+          }
+        : undefined,
     allowedHosts: ['.ngrok-free.app', '.ngrok.io', '.ngrok.app'],
     proxy: {
       '/graphql': {
