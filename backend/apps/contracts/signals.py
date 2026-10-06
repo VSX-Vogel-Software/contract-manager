@@ -5,7 +5,7 @@ import logging
 from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
-from apps.contracts.forecast_cache import invalidate_tenant_forecast
+from apps.contracts.forecast_cache import KPI_TRENDS_PREFIX, invalidate_tenant_forecast
 
 logger = logging.getLogger(__name__)
 
@@ -37,3 +37,10 @@ def invalidate_on_invoice_record_change(sender, instance, **kwargs):
 @receiver(post_save, sender="invoices.ImportedInvoice")
 def invalidate_on_imported_invoice_change(sender, instance, **kwargs):
     invalidate_tenant_forecast(instance.tenant_id)
+
+
+@receiver(post_save, sender="contracts.DashboardKpiSnapshot")
+@receiver(post_delete, sender="contracts.DashboardKpiSnapshot")
+def invalidate_on_kpi_snapshot_change(sender, instance, **kwargs):
+    # Snapshots aendern nur die Verlaeufe, nicht den Forecast
+    invalidate_tenant_forecast(instance.tenant_id, prefixes=(KPI_TRENDS_PREFIX,))

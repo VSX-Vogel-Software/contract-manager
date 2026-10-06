@@ -281,3 +281,29 @@ def _send_scheduled_dept_time_report(schedule, year, month):
             "content_bytes": xlsx_bytes,
         }],
     )
+
+
+@shared_task(acks_late=True)
+def capture_dashboard_kpi_snapshots() -> int:
+    """Taeglich: Dashboard-Kennzahlen des laufenden Monats je Mandant festhalten.
+
+    Upsert je (Mandant, Monat) - der letzte Lauf im Monat ist der Monatswert.
+    Kein Backfill vergangener Monate. Fehler eines Mandanten halten die
+    anderen nicht auf.
+
+    Returns:
+        Anzahl geschriebener Snapshots.
+    """
+    from apps.contracts.kpi_trends import capture_snapshot
+    from apps.tenants.models import Tenant
+
+    written = 0
+    for tenant in Tenant.objects.filter(is_active=True):
+        try:
+            capture_snapshot(tenant)
+            written += 1
+        except Exception:
+            logger.exception("KPI-Snapshot fuer Mandant %s fehlgeschlagen", tenant.name)
+
+    logger.info("KPI-Snapshots geschrieben: %d", written)
+    return written

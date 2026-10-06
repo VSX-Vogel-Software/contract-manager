@@ -303,4 +303,8 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.contracts.tasks.send_scheduled_reports",
         "schedule": 86400,  # daily
     },
+    "capture-dashboard-kpi-snapshots": {
+        "task": "apps.contracts.tasks.capture_dashboard_kpi_snapshots",
+        "schedule": 86400,  # daily (upsert des laufenden Monats)
+    },
 }

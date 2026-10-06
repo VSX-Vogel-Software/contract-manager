@@ -1779,6 +1779,31 @@ class NewBusinessGoal(TenantModel):
         return f"{self.year} {self.get_goal_type_display()}: {self.target_amount}"
 
 
+class DashboardKpiSnapshot(TenantModel):
+    """Monatlicher Stand der Dashboard-Kennzahlen (Grundlage der Verlaeufe).
+
+    Der taegliche Task ``capture_dashboard_kpi_snapshots`` ueberschreibt die
+    Zeile des laufenden Monats; der letzte Lauf im Monat ist der Monatswert.
+    ``metrics`` enthaelt alle Kachelwerte (Betraege als Dezimal-Strings) und den
+    Forecast je Erloesart, siehe ``apps.contracts.kpi_trends.collect_snapshot_metrics``.
+    """
+
+    year_month = models.DateField(help_text="Monatserster des erfassten Monats")
+    metrics = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["tenant", "year_month"],
+                name="unique_dashboard_kpi_snapshot_per_month",
+            ),
+        ]
+        ordering = ["year_month"]
+
+    def __str__(self):
+        return f"KPI-Snapshot {self.year_month:%Y-%m} ({self.tenant})"
+
+
 class ContractComment(TenantModel):
     """A comment on a contract."""
 

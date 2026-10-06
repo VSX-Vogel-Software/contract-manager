@@ -11,28 +11,20 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_CACHE_TTL_MINUTES = 60
 
+# Praefix der Dashboard-Verlaeufe (dashboardKpiTrends); wird zusammen mit dem
+# Forecast invalidiert.
+KPI_TRENDS_PREFIX = "kpi_trends"
+CACHE_PREFIXES = ("forecast", "recognition", KPI_TRENDS_PREFIX)
 
-def _build_cache_key(
-    prefix: str,
-    tenant_id: int,
-    view: str,
-    months: Optional[int],
-    quarters: Optional[int],
-    pro_rata: bool,
-    exclude_one_off: bool,
-) -> str:
-    """Build a deterministic cache key from query parameters."""
-    params = json.dumps(
-        {
-            "view": view,
-            "months": months,
-            "quarters": quarters,
-            "pro_rata": pro_rata,
-            "exclude_one_off": exclude_one_off,
-        },
-        sort_keys=True,
-    )
-    query_hash = hashlib.md5(params.encode()).hexdigest()[:12]
+
+def _build_cache_key(prefix: str, tenant_id: int, **params) -> str:
+    """Build a deterministic cache key from query parameters.
+
+    Forecast/recognition pass view, months, quarters, pro_rata and
+    exclude_one_off; the KPI trends pass their own parameters.
+    """
+    params_json = json.dumps(params, sort_keys=True)
+    query_hash = hashlib.md5(params_json.encode()).hexdigest()[:12]
     return f"{prefix}:v1:{tenant_id}:{query_hash}"
 
 
@@ -89,10 +81,10 @@ def set_cached_forecast(
     logger.debug("Forecast cached: %s (TTL=%ds)", key, ttl)
 
 
-def invalidate_tenant_forecast(tenant_id: int) -> None:
-    """Delete all cached forecast entries for a tenant."""
+def invalidate_tenant_forecast(tenant_id: int, prefixes: tuple[str, ...] = CACHE_PREFIXES) -> None:
+    """Delete all cached forecast entries (incl. KPI trends) for a tenant."""
     deleted = 0
-    for prefix in ("forecast", "recognition"):
+    for prefix in prefixes:
         tracker_key = _keys_tracker_key(prefix, tenant_id)
         tracked = cache.get(tracker_key) or []
         if tracked:

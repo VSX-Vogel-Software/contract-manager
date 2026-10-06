@@ -1203,9 +1203,13 @@ class RevenueForecastResult:
 # =============================================================================
 
 
-def calculate_dashboard_kpis(tenant) -> dict:
+def calculate_dashboard_kpis(tenant, ytd_by_month: dict | None = None) -> dict:
     """
     Calculate all dashboard KPIs for a tenant.
+
+    ytd_by_month: optional dict that receives the YTD revenue per month
+    (key 1..12, events before Jan 1 count towards January). Its values add up
+    exactly to year_to_date_revenue (used by the KPI trends).
 
     Returns dict with:
     - total_active_contracts: Count of active contracts
@@ -1293,6 +1297,9 @@ def calculate_dashboard_kpis(tenant) -> dict:
             # YTD: events from current year start up to today
             if event_date <= today:
                 year_to_date_revenue += event_total
+                if ytd_by_month is not None:
+                    bucket = event_date.month if event_date.year == today.year else 1
+                    ytd_by_month[bucket] = ytd_by_month.get(bucket, Decimal("0")) + event_total
 
             # Current year: events within current year
             if event_date <= current_year_end:
@@ -1331,13 +1338,24 @@ def calculate_dashboard_kpis(tenant) -> dict:
     }
 
 
-def calculate_price_increase_impact(tenant, year: int) -> PriceIncreaseImpactType:
+def calculate_price_increase_impact(tenant, year: int, by_month: dict | None = None) -> PriceIncreaseImpactType:
     """
     Calculate YoY ARR delta from price increases for a given year.
 
     Compares price of recurring items at Jan 1 of `year` vs Jan 1 of `year-1`.
     Only considers contracts that existed before Jan 1 of `year` (not new business).
+
+    by_month: optional dict that receives the deltas per month in which the new
+    price applies ({"total"|"inflation"|"negotiated"|"untagged": {month: Decimal}});
+    Jan-1-vs-Jan-1 changes count towards January. Used by the KPI trends.
     """
+
+    def _add_month(kind: str, month: int, amount: Decimal) -> None:
+        if by_month is None:
+            return
+        for key in ("total", kind):
+            bucket = by_month.setdefault(key, {})
+            bucket[month] = bucket.get(month, Decimal("0")) + amount
     jan1_current = date(year, 1, 1)
     jan1_previous = date(year - 1, 1, 1)
 
@@ -1395,10 +1413,13 @@ def calculate_price_increase_impact(tenant, year: int) -> PriceIncreaseImpactTyp
                     increase_type = pp.increase_type
                     if increase_type == "inflation":
                         inflation_arr_impact += delta_arr
+                        _add_month("inflation", pp.valid_from.month, delta_arr)
                     elif increase_type == "negotiated":
                         negotiated_arr_impact += delta_arr
+                        _add_month("negotiated", pp.valid_from.month, delta_arr)
                     else:
                         untagged_arr_impact += delta_arr
+                        _add_month("untagged", pp.valid_from.month, delta_arr)
             else:
                 # No period-specific pricing starting this year —
                 # still check Jan 1 vs Jan 1 for base price changes
@@ -1416,6 +1437,7 @@ def calculate_price_increase_impact(tenant, year: int) -> PriceIncreaseImpactTyp
                 total_arr_impact += delta_arr
                 item_count += 1
                 untagged_arr_impact += delta_arr
+                _add_month("untagged", 1, delta_arr)
 
     return PriceIncreaseImpactType(
         year=year,
@@ -1500,10 +1522,13 @@ def calculate_contract_price_increases(tenant, year: int) -> list[ContractPriceI
     return results
 
 
-def calculate_revenue_by_stream(tenant, year: int) -> list[dict]:
+def calculate_revenue_by_stream(tenant, year: int, ytd_by_month: dict | None = None) -> list[dict]:
     """
     Calculate revenue grouped by revenue stream (effective_revenue_type)
     for a given year.
+
+    ytd_by_month: optional dict that receives the YTD revenue (all streams)
+    per month (key 1..12). Used by the KPI trends for past years.
 
     Returns a list of dicts, one per stream, each with:
     - revenue_type: str (or "unclassified")
@@ -1556,6 +1581,9 @@ def calculate_revenue_by_stream(tenant, year: int) -> list[dict]:
 
                 if ytd_cutoff and event_date <= ytd_cutoff:
                     streams[stream]["ytd"] += amount
+                    if ytd_by_month is not None:
+                        bucket = event_date.month if event_date.year == year else 1
+                        ytd_by_month[bucket] = ytd_by_month.get(bucket, Decimal("0")) + amount
 
     # Ensure all 3 standard streams are present
     from apps.core.models import RevenueType
@@ -1634,7 +1662,7 @@ _ARR_MULTIPLIERS = {
 }
 
 
-def calculate_new_business_metrics(tenant, year: int) -> dict:
+def calculate_new_business_metrics(tenant, year: int, by_month: dict | None = None) -> dict:
     """
     Calculate new business metrics for a given year.
 
@@ -1642,9 +1670,21 @@ def calculate_new_business_metrics(tenant, year: int) -> dict:
     Back-to-Base = customer HAD invoiced revenue in year-1.
 
     B2B additionally includes expansion/upsell items on existing contracts.
+
+    by_month: optional dict that receives the values per month of the
+    deal_won_date (keys as in the result, each {month: value}); negotiated
+    price increases count in the month the new price applies. The internal
+    calculate_price_increase_impact call is exposed as "price_increase"
+    (per month) and "price_increase_result". Used by the KPI trends.
     """
     from apps.core.models import RevenueType
     from apps.contracts.models import calculate_arr_value
+
+    def _add_month(key: str, month: int, amount) -> None:
+        if by_month is None:
+            return
+        bucket = by_month.setdefault(key, {})
+        bucket[month] = bucket.get(month, 0) + amount
 
     existing_customers = _customers_with_prior_year_revenue(tenant, year)
 
@@ -1665,6 +1705,8 @@ def calculate_new_business_metrics(tenant, year: int) -> dict:
 
     for contract in won_contracts:
         is_existing = contract.customer_id in existing_customers
+        won_month = contract.deal_won_date.month
+        _add_month("won_deal_count", won_month, 1)
         for item in contract.items.all():
             ert = item.get_effective_revenue_type()
             face_value = item.unit_price * item.quantity
@@ -1672,14 +1714,18 @@ def calculate_new_business_metrics(tenant, year: int) -> dict:
             if item.is_one_off:
                 if ert in (RevenueType.ADVANCED_DEVELOPMENT, RevenueType.TRAINING_IMPLEMENTATION):
                     won_development_revenue += face_value
+                    _add_month("won_development_revenue", won_month, face_value)
             else:
                 annualized = face_value * _ARR_MULTIPLIERS.get(item.price_period or "monthly", 12)
                 if ert in (RevenueType.ADVANCED_DEVELOPMENT, RevenueType.TRAINING_IMPLEMENTATION):
                     won_development_revenue += annualized
+                    _add_month("won_development_revenue", won_month, annualized)
                 elif is_existing:
                     won_b2b_arr += annualized
+                    _add_month("won_b2b_arr", won_month, annualized)
                 else:
                     won_new_arr += annualized
+                    _add_month("won_new_arr", won_month, annualized)
 
     # --- Expansion/upsell on existing contracts ---
     # Only count items that have an explicit deal_won_date in the current year.
@@ -1695,11 +1741,13 @@ def calculate_new_business_metrics(tenant, year: int) -> dict:
 
     for item in expansion_items:
         ert = item.get_effective_revenue_type()
+        won_month = item.deal_won_date.month
         if item.is_one_off:
             # One-off expansion items → Won Development
             if ert in (RevenueType.ADVANCED_DEVELOPMENT, RevenueType.TRAINING_IMPLEMENTATION):
                 face_value = item.unit_price * item.quantity
                 won_development_revenue += face_value
+                _add_month("won_development_revenue", won_month, face_value)
         else:
             # Recurring expansion items → B2B ARR
             arr = calculate_arr_value(
@@ -1707,10 +1755,17 @@ def calculate_new_business_metrics(tenant, year: int) -> dict:
             )
             if arr > 0:
                 won_b2b_arr += arr
+                _add_month("won_b2b_arr", won_month, arr)
 
     # --- Negotiated price increases on existing contracts = B2B bookings ---
-    price_impact = calculate_price_increase_impact(tenant, year)
+    price_by_month = {} if by_month is not None else None
+    price_impact = calculate_price_increase_impact(tenant, year, by_month=price_by_month)
     won_b2b_arr += price_impact.negotiated_arr_impact
+    if by_month is not None:
+        by_month["price_increase"] = price_by_month
+        by_month["price_increase_result"] = price_impact
+        for month, amount in price_by_month.get("negotiated", {}).items():
+            _add_month("won_b2b_arr", month, amount)
 
     return {
         "won_new_arr": won_new_arr,
@@ -1778,6 +1833,78 @@ class DashboardKPIsType:
     next_year_forecast: Decimal
     next_year_one_off: Decimal
     next_year_discounts: Decimal
+
+
+@strawberry.type
+class KpiTrendPoint:
+    """Ein Monatswert eines Kennzahl-Verlaufs."""
+
+    month: str  # "YYYY-MM"
+    value: float
+
+
+@strawberry.type
+class KpiStreamTrend:
+    """Verlauf des Forecasts einer Erloesart (Schluessel wie in revenueByStream)."""
+
+    stream: str
+    points: List[KpiTrendPoint]
+
+
+@strawberry.type
+class DashboardKpiTrends:
+    """Verlaeufe der Dashboard-Kacheln (leere Liste = kein Verlauf).
+
+    Rueckgerechnet, letzte `months` Monate (Monatsende bzw. heute fuer den
+    laufenden Monat); vorhandene Snapshots ersetzen den rueckgerechneten Wert.
+    """
+
+    active_contracts: List[KpiTrendPoint]
+    annual_recurring_revenue: List[KpiTrendPoint]
+    # nur Snapshots
+    total_contract_value: List[KpiTrendPoint]
+    current_year_forecast: List[KpiTrendPoint]
+    next_year_forecast: List[KpiTrendPoint]
+    revenue_stream_forecast: List[KpiStreamTrend]
+    # Jahr `year`, kumuliert je Monat
+    year_to_date_revenue: List[KpiTrendPoint]
+    won_new_arr: List[KpiTrendPoint]
+    back_to_base_arr: List[KpiTrendPoint]
+    won_development_revenue: List[KpiTrendPoint]
+    won_deal_count: List[KpiTrendPoint]
+    price_increase_total: List[KpiTrendPoint]
+    price_increase_inflation: List[KpiTrendPoint]
+    price_increase_negotiated: List[KpiTrendPoint]
+
+
+def kpi_trends_from_dict(data: dict) -> DashboardKpiTrends:
+    """Ergebnis von apps.contracts.kpi_trends (auch aus dem Cache) in GraphQL-Typen."""
+
+    def points(key):
+        return [KpiTrendPoint(month=p["month"], value=p["value"]) for p in data.get(key, [])]
+
+    return DashboardKpiTrends(
+        active_contracts=points("active_contracts"),
+        annual_recurring_revenue=points("annual_recurring_revenue"),
+        total_contract_value=points("total_contract_value"),
+        current_year_forecast=points("current_year_forecast"),
+        next_year_forecast=points("next_year_forecast"),
+        revenue_stream_forecast=[
+            KpiStreamTrend(
+                stream=s["stream"],
+                points=[KpiTrendPoint(month=p["month"], value=p["value"]) for p in s["points"]],
+            )
+            for s in data.get("revenue_stream_forecast", [])
+        ],
+        year_to_date_revenue=points("year_to_date_revenue"),
+        won_new_arr=points("won_new_arr"),
+        back_to_base_arr=points("back_to_base_arr"),
+        won_development_revenue=points("won_development_revenue"),
+        won_deal_count=points("won_deal_count"),
+        price_increase_total=points("price_increase_total"),
+        price_increase_inflation=points("price_increase_inflation"),
+        price_increase_negotiated=points("price_increase_negotiated"),
+    )
 
 
 @strawberry.type
@@ -2602,6 +2729,21 @@ class ContractQuery:
             next_year_one_off=kpis["next_year_one_off"],
             next_year_discounts=kpis["next_year_discounts"],
         )
+
+    @strawberry.field
+    def dashboard_kpi_trends(
+        self,
+        info: Info[Context, None],
+        year: int,
+        months: Optional[int] = 12,
+    ) -> DashboardKpiTrends:
+        """Verlaeufe der Dashboard-Kacheln (Sparklines), gecacht wie der Forecast."""
+        from .kpi_trends import get_kpi_trends
+
+        user = require_perm(info, "contracts", "read")
+        if not user.tenant:
+            return kpi_trends_from_dict({})
+        return kpi_trends_from_dict(get_kpi_trends(user.tenant, year, months))
 
     @strawberry.field
     def price_increase_impact(

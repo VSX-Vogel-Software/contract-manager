@@ -1,10 +1,27 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
 import { useQuery, gql } from '@apollo/client'
-import { Loader2, AlertCircle, Info } from 'lucide-react'
+import {
+  Loader2,
+  AlertCircle,
+  Info,
+  FileText,
+  Briefcase,
+  Repeat,
+  Receipt,
+  TrendingUp,
+  CalendarClock,
+  UserPlus,
+  UserCheck,
+  Code,
+  Handshake,
+  ArrowUpRight,
+  Percent,
+  GraduationCap,
+} from 'lucide-react'
 import { KPICard } from './KPICard'
 import { HelpVideoButton } from '@/components/HelpVideoButton'
+import type { SparklinePoint } from '@/components/Sparkline'
 import { formatCurrency } from '@/lib/utils'
 import {
   Dialog,
@@ -12,12 +29,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 
 const DASHBOARD_KPIS_QUERY = gql`
   query DashboardKPIs($year: Int!) {
@@ -72,6 +83,78 @@ const DASHBOARD_KPIS_QUERY = gql`
     }
   }
 `
+
+// Verlauf je Kachel (Change dashboard-kpi-trends). Eigene Abfrage, damit die
+// Werte nicht auf die teurere Rueckrechnung warten.
+const DASHBOARD_KPI_TRENDS_QUERY = gql`
+  query DashboardKpiTrends($year: Int!, $months: Int) {
+    dashboardKpiTrends(year: $year, months: $months) {
+      activeContracts { month value }
+      annualRecurringRevenue { month value }
+      totalContractValue { month value }
+      currentYearForecast { month value }
+      nextYearForecast { month value }
+      revenueStreamForecast {
+        stream
+        points { month value }
+      }
+      yearToDateRevenue { month value }
+      wonNewArr { month value }
+      backToBaseArr { month value }
+      wonDevelopmentRevenue { month value }
+      wonDealCount { month value }
+      priceIncreaseTotal { month value }
+      priceIncreaseInflation { month value }
+      priceIncreaseNegotiated { month value }
+    }
+  }
+`
+
+interface DashboardKpiTrends {
+  activeContracts: SparklinePoint[]
+  annualRecurringRevenue: SparklinePoint[]
+  totalContractValue: SparklinePoint[]
+  currentYearForecast: SparklinePoint[]
+  nextYearForecast: SparklinePoint[]
+  revenueStreamForecast: { stream: string; points: SparklinePoint[] }[]
+  yearToDateRevenue: SparklinePoint[]
+  wonNewArr: SparklinePoint[]
+  backToBaseArr: SparklinePoint[]
+  wonDevelopmentRevenue: SparklinePoint[]
+  wonDealCount: SparklinePoint[]
+  priceIncreaseTotal: SparklinePoint[]
+  priceIncreaseInflation: SparklinePoint[]
+  priceIncreaseNegotiated: SparklinePoint[]
+}
+
+/** Ziel, Abweichung und Fortschrittsbalken unter dem Wert (New Business, Umsatzziele) */
+function GoalProgress({ actual, target, format }: { actual: number; target: number; format: (v: number) => string }) {
+  const { t } = useTranslation()
+  const progress = (actual / target) * 100
+  const diff = actual - target
+  const overTarget = progress > 100
+  return (
+    <>
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-x-2 text-xs text-muted-foreground">
+        <span>{t('forecasts.goals.target')}: {format(target)}</span>
+        <span className={diff >= 0 ? 'text-emerald-600 font-medium' : 'text-red-600 font-medium'}>
+          {diff >= 0 ? '+' : ''}{format(diff)}
+        </span>
+      </div>
+      <div className="mt-2 relative h-2 w-full rounded-full bg-gray-200">
+        <div
+          className={`h-2 rounded-full transition-all ${
+            overTarget ? 'bg-emerald-500' : progress >= 80 ? 'bg-blue-500' : 'bg-blue-400'
+          }`}
+          style={{ width: `${Math.min(progress, 100)}%` }}
+        />
+      </div>
+      <p className={`mt-1 text-xs font-medium ${overTarget ? 'text-emerald-600' : 'text-muted-foreground'}`}>
+        {Math.round(progress)}%
+      </p>
+    </>
+  )
+}
 
 interface DashboardKPIs {
   totalActiveContracts: number
@@ -141,13 +224,19 @@ interface DashboardKPIsData {
 
 export function Dashboard() {
   const { t } = useTranslation()
-  const navigate = useNavigate()
   const [showInfoModal, setShowInfoModal] = useState(false)
 
   const currentYear = new Date().getFullYear()
   const { data: kpisData, loading: kpisLoading, error: kpisError } = useQuery<DashboardKPIsData>(DASHBOARD_KPIS_QUERY, {
     variables: { year: currentYear },
   })
+  // Fehlt der Verlauf (Fehler, aeltere API), zeigt das Dashboard einfach keine
+  // Linien - kein Toast, die Kennzahlen selbst sind ja da
+  const { data: trendsData } = useQuery<{ dashboardKpiTrends: DashboardKpiTrends }>(DASHBOARD_KPI_TRENDS_QUERY, {
+    variables: { year: currentYear, months: 12 },
+    context: { suppressErrorToast: true },
+  })
+  const trends = trendsData?.dashboardKpiTrends
   if (kpisLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -183,16 +272,20 @@ export function Dashboard() {
     streamDataMap[s.revenueType] = { ytdActual: parseFloat(s.ytdActual), forecast: parseFloat(s.fullYearForecast) }
   }
   const STANDARD_STREAMS = [
-    { key: 'recurring', i18nKey: 'products.revenueTypes.recurring', explanationKey: 'dashboard.revenueGoals.recurringExplanation' },
-    { key: 'advanced_development', i18nKey: 'products.revenueTypes.advancedDevelopment' },
-    { key: 'training_implementation', i18nKey: 'products.revenueTypes.trainingImplementation' },
+    { key: 'recurring', icon: Repeat, i18nKey: 'products.revenueTypes.recurring', explanationKey: 'dashboard.revenueGoals.recurringExplanation' },
+    { key: 'advanced_development', icon: Code, i18nKey: 'products.revenueTypes.advancedDevelopment' },
+    { key: 'training_implementation', icon: GraduationCap, i18nKey: 'products.revenueTypes.trainingImplementation' },
   ] as const
+  const streamTrendMap: Record<string, SparklinePoint[]> = {}
+  for (const st of trends?.revenueStreamForecast || []) {
+    streamTrendMap[st.stream] = st.points
+  }
   const hasRevenueGoalsData = Object.keys(revenueGoalMap).length > 0 || Object.values(streamDataMap).some(s => s.forecast > 0)
   const newBusinessCards = nb ? [
-    { key: 'new_arr', label: t('forecasts.newBusiness.newNameArr'), info: t('dashboard.kpis.newNameArrExplanation'), actual: parseFloat(nb.wonNewArr), target: nbGoalMap['new_arr'] || 0, isCurrency: true },
-    { key: 'back_to_base_arr', label: t('forecasts.newBusiness.backToBaseArr'), info: t('dashboard.kpis.backToBaseArrExplanation'), actual: parseFloat(nb.backToBaseArr), target: nbGoalMap['back_to_base_arr'] || 0, isCurrency: true },
-    { key: 'new_development', label: t('forecasts.newBusiness.wonDevelopment'), info: t('dashboard.kpis.wonDevelopmentExplanation'), actual: parseFloat(nb.wonDevelopmentRevenue), target: nbGoalMap['new_development'] || 0, isCurrency: true },
-    { key: 'new_deal_count', label: t('forecasts.newBusiness.wonDealCount'), info: t('dashboard.kpis.wonDealCountExplanation'), actual: nb.wonDealCount, target: nbGoalMap['new_deal_count'] || 0, isCurrency: false },
+    { key: 'new_arr', icon: UserPlus, label: t('forecasts.newBusiness.newNameArr'), info: t('dashboard.kpis.newNameArrExplanation'), actual: parseFloat(nb.wonNewArr), target: nbGoalMap['new_arr'] || 0, isCurrency: true, trend: trends?.wonNewArr },
+    { key: 'back_to_base_arr', icon: UserCheck, label: t('forecasts.newBusiness.backToBaseArr'), info: t('dashboard.kpis.backToBaseArrExplanation'), actual: parseFloat(nb.backToBaseArr), target: nbGoalMap['back_to_base_arr'] || 0, isCurrency: true, trend: trends?.backToBaseArr },
+    { key: 'new_development', icon: Code, label: t('forecasts.newBusiness.wonDevelopment'), info: t('dashboard.kpis.wonDevelopmentExplanation'), actual: parseFloat(nb.wonDevelopmentRevenue), target: nbGoalMap['new_development'] || 0, isCurrency: true, trend: trends?.wonDevelopmentRevenue },
+    { key: 'new_deal_count', icon: Handshake, label: t('forecasts.newBusiness.wonDealCount'), info: t('dashboard.kpis.wonDealCountExplanation'), actual: nb.wonDealCount, target: nbGoalMap['new_deal_count'] || 0, isCurrency: false, trend: trends?.wonDealCount },
   ] : []
 
   const formatForecastSubtitle = (oneOff: string | undefined, discounts: string | undefined) => {
@@ -209,12 +302,13 @@ export function Dashboard() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">{t('dashboard.title')}</h1>
+      <div className="flex items-center justify-between gap-2 mb-6">
+        <h1 className="min-w-0 break-words text-2xl font-bold">{t('dashboard.title')}</h1>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowInfoModal(true)}
-            className="text-muted-foreground hover:text-foreground transition-colors p-1"
+            aria-label={t('mobile.showInfo')}
+            className="text-muted-foreground hover:text-foreground transition-colors p-1 touch:p-2"
           >
             <Info className="h-5 w-5" />
           </button>
@@ -224,31 +318,51 @@ export function Dashboard() {
 
       {/* KPI Cards */}
       {(dashPrefs?.showContracts !== false) && (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-8">
+      <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-3 mb-8">
         <KPICard
+          kpiKey="active-contracts"
+          icon={FileText}
+          href="/contracts"
+          trend={trends?.activeContracts}
           title={t('dashboard.kpis.totalActiveContracts')}
           value={kpis?.totalActiveContracts ?? 0}
           explanation={t('dashboard.kpis.totalActiveContractsExplanation')}
         />
         <KPICard
+          kpiKey="total-contract-value"
+          icon={Briefcase}
+          href="/contracts"
+          trend={trends?.totalContractValue}
           title={t('dashboard.kpis.totalContractValue')}
           value={parseFloat(kpis?.totalContractValue ?? '0')}
           explanation={t('dashboard.kpis.totalContractValueExplanation')}
           isCurrency
         />
         <KPICard
+          kpiKey="arr"
+          icon={Repeat}
+          href="/forecasts"
+          trend={trends?.annualRecurringRevenue}
           title={t('dashboard.kpis.annualRecurringRevenue')}
           value={parseFloat(kpis?.annualRecurringRevenue ?? '0')}
           explanation={t('dashboard.kpis.annualRecurringRevenueExplanation')}
           isCurrency
         />
         <KPICard
+          kpiKey="ytd-revenue"
+          icon={Receipt}
+          href="/forecasts"
+          trend={trends?.yearToDateRevenue}
           title={t('dashboard.kpis.yearToDateRevenue')}
           value={parseFloat(kpis?.yearToDateRevenue ?? '0')}
           explanation={t('dashboard.kpis.yearToDateRevenueExplanation')}
           isCurrency
         />
         <KPICard
+          kpiKey="current-year-forecast"
+          icon={TrendingUp}
+          href="/forecasts"
+          trend={trends?.currentYearForecast}
           title={t('dashboard.kpis.currentYearForecast')}
           value={parseFloat(kpis?.currentYearForecast ?? '0')}
           subtitle={formatForecastSubtitle(kpis?.currentYearOneOff, kpis?.currentYearDiscounts)}
@@ -256,6 +370,10 @@ export function Dashboard() {
           isCurrency
         />
         <KPICard
+          kpiKey="next-year-forecast"
+          icon={CalendarClock}
+          href="/forecasts"
+          trend={trends?.nextYearForecast}
           title={t('dashboard.kpis.nextYearForecast')}
           value={parseFloat(kpis?.nextYearForecast ?? '0')}
           subtitle={formatForecastSubtitle(kpis?.nextYearOneOff, kpis?.nextYearDiscounts)}
@@ -269,58 +387,26 @@ export function Dashboard() {
       {(dashPrefs?.showNewBusiness !== false) && nb && (nb.wonDealCount > 0 || parseFloat(nb.wonNewArr) > 0 || parseFloat(nb.backToBaseArr) > 0 || Object.keys(nbGoalMap).length > 0) && (
         <div className="mb-8">
           <h2 className="text-lg font-semibold mb-3">{t('forecasts.newBusiness.title')} <span className="ml-1 inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">Beta</span></h2>
-          <div className="grid gap-4 md:grid-cols-4">
+          {/* Vier Spalten erst ab lg: am Tablet brechen die Titel neben Icon und Info sonst mitten im Wort um */}
+          <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
             {newBusinessCards.map((card) => {
-              const progress = card.target > 0 ? (card.actual / card.target) * 100 : null
-              const diff = card.actual - card.target
-              const overTarget = progress !== null && progress > 100
-
+              // Wert wie die uebrigen Kacheln ganzzahlig (passt auf dem Telefon in die
+              // halbe Breite); Ziel und Abweichung wie bisher mit Cent
+              const format = (v: number) => (card.isCurrency ? formatCurrency(v.toString()) : String(v))
               return (
-                <div
+                <KPICard
                   key={card.key}
-                  className="rounded-lg border bg-card p-4 hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer"
-                  onClick={() => navigate(`/dashboard/new-business/${card.key}?year=${currentYear}`)}
+                  kpiKey={card.key}
+                  icon={card.icon}
+                  href={`/dashboard/new-business/${card.key}?year=${currentYear}`}
+                  trend={card.trend}
+                  title={card.label}
+                  value={card.actual}
+                  isCurrency={card.isCurrency}
+                  explanation={card.info}
                 >
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-muted-foreground">{card.label}</p>
-                    {card.info && (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="h-3.5 w-3.5 text-muted-foreground/50 hover:text-muted-foreground" />
-                          </TooltipTrigger>
-                          <TooltipContent side="top" className="max-w-xs text-xs">
-                            {card.info}
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    )}
-                  </div>
-                  <p className="mt-1 text-2xl font-semibold">
-                    {card.isCurrency ? formatCurrency(card.actual.toString()) : card.actual}
-                  </p>
-                  {card.target > 0 && (
-                    <>
-                      <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-                        <span>{t('forecasts.goals.target')}: {card.isCurrency ? formatCurrency(card.target.toString()) : card.target}</span>
-                        <span className={diff >= 0 ? 'text-emerald-600 font-medium' : 'text-red-600 font-medium'}>
-                          {diff >= 0 ? '+' : ''}{card.isCurrency ? formatCurrency(diff.toString()) : diff}
-                        </span>
-                      </div>
-                      <div className="mt-2 relative h-2 w-full rounded-full bg-gray-200">
-                        <div
-                          className={`h-2 rounded-full transition-all ${
-                            overTarget ? 'bg-emerald-500' : (progress ?? 0) >= 80 ? 'bg-blue-500' : 'bg-blue-400'
-                          }`}
-                          style={{ width: `${Math.min(progress ?? 0, 100)}%` }}
-                        />
-                      </div>
-                      <p className={`mt-1 text-xs font-medium ${overTarget ? 'text-emerald-600' : 'text-muted-foreground'}`}>
-                        {Math.round(progress!)}%
-                      </p>
-                    </>
-                  )}
-                </div>
+                  {card.target > 0 && <GoalProgress actual={card.actual} target={card.target} format={format} />}
+                </KPICard>
               )
             })}
           </div>
@@ -333,34 +419,41 @@ export function Dashboard() {
         const pi = kpisData?.priceIncreaseImpact
         const totalImpact = parseFloat(pi?.totalArrImpact ?? '0')
         if (!pi || totalImpact <= 0) return null
+        const href = `/contracts?priceIncrease=true&year=${currentYear}`
         return (
           <div className="mb-8">
             <h2 className="text-lg font-semibold mb-3">{t('dashboard.priceIncrease.title')} <span className="ml-1 inline-flex items-center rounded-md bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">Beta</span></h2>
-            <div
-              className="grid gap-4 md:grid-cols-3 cursor-pointer"
-              onClick={() => navigate(`/contracts?priceIncrease=true&year=${currentYear}`)}
-            >
+            <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-3">
               <KPICard
+                kpiKey="price-increase-total"
+                icon={ArrowUpRight}
+                href={href}
+                trend={trends?.priceIncreaseTotal}
                 title={t('dashboard.priceIncrease.totalImpact')}
                 value={totalImpact}
                 explanation={t('dashboard.priceIncrease.totalImpactExplanation')}
                 subtitle={t('dashboard.priceIncrease.itemCount', { count: pi.itemCount })}
                 isCurrency
-                className="hover:border-blue-300 hover:shadow-sm transition-all"
               />
               <KPICard
+                kpiKey="price-increase-inflation"
+                icon={Percent}
+                href={href}
+                trend={trends?.priceIncreaseInflation}
                 title={t('dashboard.priceIncrease.inflation')}
                 value={parseFloat(pi.inflationArrImpact)}
                 explanation={t('dashboard.priceIncrease.inflationExplanation')}
                 isCurrency
-                className="hover:border-blue-300 hover:shadow-sm transition-all"
               />
               <KPICard
+                kpiKey="price-increase-negotiated"
+                icon={Handshake}
+                href={href}
+                trend={trends?.priceIncreaseNegotiated}
                 title={t('dashboard.priceIncrease.negotiated')}
                 value={parseFloat(pi.negotiatedArrImpact)}
                 explanation={t('dashboard.priceIncrease.negotiatedExplanation')}
                 isCurrency
-                className="hover:border-blue-300 hover:shadow-sm transition-all"
               />
             </div>
           </div>
@@ -371,66 +464,31 @@ export function Dashboard() {
       {(dashPrefs?.showRevenueGoals !== false) && hasRevenueGoalsData && (
         <div className="mb-8">
           <h2 className="text-lg font-semibold mb-3">{t('dashboard.revenueGoals.title')}</h2>
-          <div
-            className="grid gap-4 md:grid-cols-3 cursor-pointer"
-            onClick={() => navigate('/forecasts?tab=goals')}
-          >
+          <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-3">
             {STANDARD_STREAMS.map((stream) => {
-              const data = streamDataMap[stream.key]
               const target = revenueGoalMap[stream.key] || 0
-              const forecast = data?.forecast ?? 0
-              const progress = target > 0 ? (forecast / target) * 100 : null
-              const diff = forecast - target
-              const overTarget = progress !== null && progress > 100
-
+              const forecast = streamDataMap[stream.key]?.forecast ?? 0
+              const format = (v: number) => formatCurrency(v.toString())
               return (
-                <div key={stream.key} className="rounded-lg border bg-card p-4 hover:border-blue-300 hover:shadow-sm transition-all">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-muted-foreground">{t(stream.i18nKey)}</p>
-                    {'explanationKey' in stream && stream.explanationKey && (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild onClick={(e) => e.stopPropagation()}>
-                            <button className="text-muted-foreground hover:text-foreground transition-colors">
-                              <Info className="h-3.5 w-3.5" />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-xs">
-                            <p>{t(stream.explanationKey)}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    )}
-                  </div>
-                  <p className="mt-1 text-2xl font-semibold">
-                    {formatCurrency(forecast.toString())}
-                  </p>
+                <KPICard
+                  key={stream.key}
+                  kpiKey={`goal-${stream.key}`}
+                  icon={stream.icon}
+                  href="/forecasts?tab=goals"
+                  trend={streamTrendMap[stream.key]}
+                  title={t(stream.i18nKey)}
+                  value={forecast}
+                  isCurrency
+                  explanation={'explanationKey' in stream ? t(stream.explanationKey) : undefined}
+                >
                   {target > 0 ? (
-                    <>
-                      <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-                        <span>{t('forecasts.goals.target')}: {formatCurrency(target.toString())}</span>
-                        <span className={diff >= 0 ? 'text-emerald-600 font-medium' : 'text-red-600 font-medium'}>
-                          {diff >= 0 ? '+' : ''}{formatCurrency(diff.toString())}
-                        </span>
-                      </div>
-                      <div className="mt-2 relative h-2 w-full rounded-full bg-gray-200">
-                        <div
-                          className={`h-2 rounded-full transition-all ${
-                            overTarget ? 'bg-emerald-500' : (progress ?? 0) >= 80 ? 'bg-blue-500' : 'bg-blue-400'
-                          }`}
-                          style={{ width: `${Math.min(progress ?? 0, 100)}%` }}
-                        />
-                      </div>
-                      <p className={`mt-1 text-xs font-medium ${overTarget ? 'text-emerald-600' : 'text-muted-foreground'}`}>
-                        {Math.round(progress!)}%
-                      </p>
-                    </>
+                    <GoalProgress actual={forecast} target={target} format={format} />
                   ) : (
                     <p className="mt-2 text-xs text-muted-foreground">
                       <span className="underline">{t('forecasts.goals.setGoals')}</span>
                     </p>
                   )}
-                </div>
+                </KPICard>
               )
             })}
           </div>
@@ -439,7 +497,7 @@ export function Dashboard() {
 
       {/* Info Modal */}
       <Dialog open={showInfoModal} onOpenChange={setShowInfoModal}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[80dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t('dashboard.info.title')}</DialogTitle>
           </DialogHeader>
