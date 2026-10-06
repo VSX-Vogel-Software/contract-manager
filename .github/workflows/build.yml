@@ -84,7 +84,10 @@ jobs:
 
       - name: Install dependencies
         working-directory: ./backend
-        run: uv pip install --system -e ".[dev]"
+        # Lock-Datei statt freier Aufloesung: gleiche Versionen wie im Image
+        run: |
+          uv pip install --system -r requirements-dev.lock
+          uv pip install --system --no-deps -e ".[dev]"
 
       - name: Run tests
         working-directory: ./backend

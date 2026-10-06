@@ -121,6 +121,18 @@ Status transition buttons (Activate, Pause, Cancel, etc.) appear only in Detail 
 
 When modifying Docker build for production, edit `Dockerfile.prod` files. CI (`.github/workflows/build.yml`) uses these to build and push images to ghcr.io.
 
+## Backend-Abhaengigkeiten (Lock-Dateien)
+
+CI und beide Dockerfiles installieren aus `backend/requirements.lock` (Produktion) bzw. `backend/requirements-dev.lock` (Dev/CI) und danach das Projekt selbst mit `--no-deps`. Ohne Lock zog die CI am 06.10.2026 frisch graphql-core 3.3.0 und das Backend startete nicht mehr.
+
+Nach jeder Aenderung an `dependencies` in `pyproject.toml` beide Dateien neu erzeugen (im Backend-Container, als root):
+
+```bash
+docker compose exec -u root backend sh -c "cd /app && uv pip compile pyproject.toml --python-version 3.12 -o requirements.lock && uv pip compile pyproject.toml --extra dev --python-version 3.12 -o requirements-dev.lock"
+```
+
+Bewusst aktualisieren statt frei aufloesen: `--upgrade-package <name>` fuer einzelne Pakete, danach volle Backend-Suite.
+
 ## Release Tags
 
 Tags have **no `v` prefix**: use `1.7.2`, not `v1.7.2`. The CI workflow triggers on `[0-9]*`.

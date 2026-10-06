@@ -16,10 +16,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV PATH="/root/.local/bin:$PATH"
 
 # Copy dependency files
-COPY pyproject.toml .
+COPY pyproject.toml requirements.lock ./
 
-# Install dependencies
-RUN uv pip install --system -e .
+# Install dependencies: exakte Versionen aus der Lock-Datei, dann das Projekt
+# selbst ohne Nachaufloesung (sonst zieht uv frische Versionen - so kam am
+# 06.10.2026 graphql-core 3.3.0 in die CI)
+RUN uv pip install --system -r requirements.lock     && uv pip install --system --no-deps -e .
 
 # Install pip-licenses for OSS attribution generation
 RUN uv pip install --system pip-licenses

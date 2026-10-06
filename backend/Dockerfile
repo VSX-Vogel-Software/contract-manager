@@ -22,10 +22,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 ENV PATH="/root/.local/bin:$PATH"
 
 # Copy dependency files
-COPY pyproject.toml .
+COPY pyproject.toml requirements-dev.lock ./
 
-# Install dependencies
-RUN uv pip install --system -e ".[dev]"
+# Install dependencies (Versionen aus der Lock-Datei, siehe Dockerfile.prod)
+RUN uv pip install --system -r requirements-dev.lock     && uv pip install --system --no-deps -e ".[dev]"
 
 # Install pip-licenses for OSS attribution
 RUN uv pip install --system pip-licenses
