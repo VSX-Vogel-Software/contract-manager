@@ -1,5 +1,17 @@
 [
   {
+    "version": "2.41.2",
+    "date": "2026-10-07",
+    "title": "Suche beachtet die Zugriffsrechte",
+    "description": "Die Suche oben in der Navigation zeigt nur noch Treffer aus Bereichen, auf die man auch Zugriff hat - genau wie die übrigen Seiten. Rechnungsnummern erscheinen zum Beispiel nur noch, wenn die eigene Rolle Rechnungen lesen darf.",
+    "type": "security",
+    "details": [
+      "Treffer für Kunden, Verträge und Rechnungen nur mit dem jeweiligen Leserecht",
+      "Vor abgeschlossener Einrichtung der Zwei-Faktor-Anmeldung liefert die Suche nichts",
+      "API-Schlüssel finden nur, was ihre Berechtigungen erlauben"
+    ]
+  },
+  {
     "version": "2.41.1",
     "date": "2026-10-07",
     "title": "Tägliche Aufgaben laufen zuverlässig zur festen Uhrzeit",

@@ -244,13 +244,27 @@ class CoreQuery:
         from apps.customers.models import Customer
         from apps.invoices.models import InvoiceRecord
 
+        from apps.core.permissions import check_perm
+
+        empty = GlobalSearchResult(groups=[], total_count=0)
+        # Gleiche Regeln wie jede andere Abfrage: ohne Anmeldung oder mit einem
+        # 2FA-Setup-Token (nur Passwort, 2FA noch nicht eingerichtet) nichts.
+        # Bewusst leere Liste statt Fehler - die Suche laeuft beim Tippen.
+        if not info.context.is_authenticated or info.context.is_2fa_setup_restricted:
+            return empty
         user = info.context.user
         if user is None or not user.tenant:
-            return GlobalSearchResult(groups=[], total_count=0)
+            return empty
+
+        def may_read(resource: str) -> bool:
+            # Rolle des Benutzers und - bei API-Keys - der Scope des Schluessels
+            allowed, _ = check_perm(info, resource, "read")
+            return allowed is not None
 
         query = query.strip()
         if len(query) < 2:
-            return GlobalSearchResult(groups=[], total_count=0)
+            return empty
+        limit = max(1, min(limit, 50))
 
         groups = []
         total_count = 0
@@ -260,13 +274,13 @@ class CoreQuery:
         # Order by: customers with CUS ID first, then by name
         # Fetch limit+1 to check if there are more
         from django.db.models import Case, When, Value, IntegerField
-        customer_q = (
+        customer_q = None if not may_read("customers") else (
             Q(name__icontains=query) |
             Q(netsuite_customer_number__icontains=query)
         )
-        if is_numeric:
+        if customer_q is not None and is_numeric:
             customer_q |= Q(id=int(query))
-        customers = list(Customer.objects.filter(
+        customers = [] if customer_q is None else list(Customer.objects.filter(
             tenant=user.tenant,
         ).filter(customer_q).annotate(
             has_cus_id=Case(
@@ -300,15 +314,15 @@ class CoreQuery:
 
         # Search contracts
         # Fetch limit+1 to check if there are more
-        contract_q = (
+        contract_q = None if not may_read("contracts") else (
             Q(name__icontains=query) |
             Q(netsuite_sales_order_number__icontains=query) |
             Q(po_number__icontains=query) |
             Q(order_confirmation_number__icontains=query)
         )
-        if is_numeric:
+        if contract_q is not None and is_numeric:
             contract_q |= Q(id=int(query))
-        contracts = list(Contract.objects.filter(
+        contracts = [] if contract_q is None else list(Contract.objects.filter(
             tenant=user.tenant,
         ).filter(contract_q).select_related("customer")[:limit + 1])
 
@@ -335,7 +349,7 @@ class CoreQuery:
             total_count += len(contract_items)
 
         # Search invoice records by invoice number
-        invoice_records = list(InvoiceRecord.objects.filter(
+        invoice_records = [] if not may_read("invoices") else list(InvoiceRecord.objects.filter(
             tenant=user.tenant,
             invoice_number__icontains=query,
         ).exclude(
