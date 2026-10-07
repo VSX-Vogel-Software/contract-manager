@@ -146,6 +146,36 @@ class ParsedQuery:
         )
 
 
+# Bereichswoerter (gefaltet, de/en, Ein- und Mehrzahl): "ksb vertraege" sucht
+# "ksb" nur unter den Vertraegen. Mehrere Bereichswoerter = Vereinigung.
+TYPE_WORDS: dict[str, str] = {
+    **dict.fromkeys(["kunde", "kunden", "customer", "customers"], "customer"),
+    **dict.fromkeys(["vertrag", "vertraege", "contract", "contracts"], "contract"),
+    **dict.fromkeys(["rechnung", "rechnungen", "invoice", "invoices"], "invoice"),
+    **dict.fromkeys(["angebot", "angebote", "offer", "offers", "quote", "quotes"], "offer"),
+    **dict.fromkeys(
+        ["eingangsrechnung", "eingangsrechnungen", "lieferantenrechnung", "lieferantenrechnungen"],
+        "incoming_invoice",
+    ),
+    **dict.fromkeys(["gegenpartei", "gegenparteien", "counterparty", "counterparties"], "counterparty"),
+    **dict.fromkeys(["produkt", "produkte", "product", "products", "artikel"], "product"),
+}
+
+
+def split_type_words(raw: str) -> tuple[str, set[str]]:
+    """Trennt Bereichswoerter ab: ("ksb", {"contract"}) fuer "ksb Verträge".
+
+    Nur wenn danach noch etwas zu suchen bleibt - "Verträge" allein bleibt
+    eine normale Suche.
+    """
+    words = raw.split()
+    types = {TYPE_WORDS[fold(w)] for w in words if fold(w) in TYPE_WORDS}
+    rest = [w for w in words if fold(w) not in TYPE_WORDS]
+    if not types or not rest:
+        return raw, set()
+    return " ".join(rest), types
+
+
 def parse_query(raw: str) -> ParsedQuery | None:
     """Faltet die Anfrage und zerlegt sie in Woerter; None = nichts zu suchen."""
     raw = raw.strip()
@@ -566,7 +596,32 @@ def run_search(
     """Alle erlaubten Bereiche durchsuchen; Gruppen nach bestem Rang.
 
     `may_read(resource)` prueft das Leserecht (Rolle + API-Key-Scope).
+
+    Bereichswoerter ("ksb vertraege") grenzen auf ihre Bereiche ein. Findet
+    das nichts, gilt die Anfrage woertlich - ein Produkt kann ja auch
+    "Rechnungsmodul" heissen.
     """
+    rest, word_types = split_type_words(raw_query)
+    if word_types:
+        narrowed = word_types if types is None else word_types & set(types)
+        if narrowed:
+            groups = _run(tenant, rest, may_read, limit, offset, sorted(narrowed))
+            if groups:
+                return groups
+            # Beim Nachladen heisst "leer" nur "Liste zu Ende"
+            if offset > 0 and _run(tenant, rest, may_read, 1, 0, sorted(narrowed)):
+                return []
+    return _run(tenant, raw_query, may_read, limit, offset, types)
+
+
+def _run(
+    tenant,
+    raw_query: str,
+    may_read: Callable[[str], bool],
+    limit: int,
+    offset: int,
+    types: list[str] | None,
+) -> list[HitGroup]:
     parsed = parse_query(raw_query)
     if parsed is None:
         return []
