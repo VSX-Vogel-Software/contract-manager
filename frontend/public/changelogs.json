@@ -1,7 +1,7 @@
 [
   {
     "version": "2.41.0",
-    "date": "2026-10-06",
+    "date": "2026-10-07",
     "title": "Spürbar schneller, besonders auf dem Telefon",
     "description": "Die Anwendung lädt beim Öffnen nur noch, was die aktuelle Seite braucht, statt alles auf einmal. Auf dem Telefon über Mobilfunk erscheinen Dashboard und Listen damit etwa doppelt so schnell. Auch im Hintergrund arbeitet sie sparsamer: Dashboard, Prognosen und Listen fragen die Datenbank nur noch einen Bruchteil so oft ab wie bisher.",
     "type": "improvement",
