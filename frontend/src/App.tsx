@@ -48,6 +48,7 @@ const DepartmentAnalysis = lazyPage(() => import('./features/contracts/Departmen
 const IncomingInvoicesPage = lazyPage(() => import('./features/incoming-invoices/IncomingInvoicesPage'), 'IncomingInvoicesPage')
 const OrderConfirmationDetail = lazyPage(() => import('./features/contracts/OrderConfirmationDetail'), 'OrderConfirmationDetail')
 const AttachmentPermalink = lazyPage(() => import('./features/contracts/AttachmentPermalink'), 'AttachmentPermalink')
+const SearchPage = lazyPage(() => import('./features/search/SearchPage'), 'SearchPage')
 
 type LazyPage = ReturnType<typeof lazyPage>
 
@@ -94,6 +95,7 @@ const appRoutes: Array<[string, LazyPage]> = [
   ['todos', TodoBoard],
   ['attachments/:id', AttachmentPermalink],
   ['about', AboutPage],
+  ['search', SearchPage],
 ]
 
 /**

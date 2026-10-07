@@ -14,9 +14,7 @@ import {
   History,
   Search,
   Loader2,
-  User,
   FileSignature,
-  Receipt,
   X,
   MessageSquarePlus,
   Landmark,
@@ -32,25 +30,15 @@ import { useAuth } from '@/lib/auth'
 import { FeedbackModal } from './FeedbackModal'
 import { SignOutDialog } from './SignOutDialog'
 import { isSsoSession } from '@/lib/ssoSession'
-
-const GLOBAL_SEARCH = gql`
-  query GlobalSearch($query: String!, $limit: Int) {
-    globalSearch(query: $query, limit: $limit) {
-      totalCount
-      groups {
-        type
-        label
-        hasMore
-        items {
-          id
-          title
-          subtitle
-          url
-        }
-      }
-    }
-  }
-`
+import { matchesAllTokens, searchTokens } from '@/lib/searchFold'
+import {
+  GLOBAL_SEARCH,
+  HighlightedText,
+  SimilarHint,
+  searchResultsUrl,
+  searchTypeIcon,
+  type GlobalSearchData,
+} from './SearchResultParts'
 
 const FEEDBACK_ENABLED = gql`
   query FeedbackEnabled {
@@ -86,7 +74,7 @@ const navItems: NavItem[] = [
 
 interface SearchablePage {
   labelKey: string
-  keywords: string[]  // extra terms to match against (always lowercase)
+  keywords: string[]  // extra terms to match against (gefaltet verglichen)
   url: string
   permission?: string
 }
@@ -101,11 +89,14 @@ const searchablePages: SearchablePage[] = [
   { labelKey: 'nav.projects', keywords: ['projects', 'projekte'], url: '/projects' },
   { labelKey: 'nav.invoices', keywords: ['invoices', 'rechnungen'], url: '/invoices', permission: 'invoices.read' },
   { labelKey: 'nav.offers', keywords: ['offers', 'angebote'], url: '/offers', permission: 'offers.read' },
+  { labelKey: 'nav.incomingInvoices', keywords: ['incoming invoices', 'eingangsrechnungen', 'lieferantenrechnungen', 'supplier invoices', 'bills'], url: '/incoming-invoices', permission: 'incoming_invoices.read' },
   { labelKey: 'nav.banking', keywords: ['banking', 'bankkonten', 'bank'], url: '/banking', permission: 'banking.read' },
   { labelKey: 'nav.forecasts', keywords: ['forecasts', 'vorschauen', 'prognose'], url: '/forecasts' },
   { labelKey: 'forecasts.liquidityTab', keywords: ['liquidity', 'liquidität', 'liquiditätsanalyse', 'cash flow', 'balance'], url: '/forecasts?tab=liquidity', permission: 'banking.read' },
   { labelKey: 'nav.departmentAnalysis', keywords: ['department', 'abteilung', 'analyse', 'analysis'], url: '/department-analysis', permission: 'department_analysis.read' },
   { labelKey: 'nav.auditLog', keywords: ['audit', 'auditlog', 'log', 'history'], url: '/audit-log' },
+  { labelKey: 'nav.about', keywords: ['about', 'info', 'über', 'version', 'changelog', 'änderungen', 'lizenzen', 'licenses'], url: '/about' },
+  { labelKey: 'search.resultsTitle', keywords: ['search', 'suche', 'suchergebnisse', 'search results', 'alle treffer'], url: '/search' },
   // Settings pages
   { labelKey: 'settings.tabs.user', keywords: ['user', 'benutzer', 'profile', 'profil', 'security', 'sicherheit', '2fa'], url: '/settings' },
   { labelKey: 'settings.tabs.general', keywords: ['general', 'allgemein', 'settings', 'einstellungen', 'contracts', 'tenant', 'organization', 'organisation', 'organisationsname'], url: '/settings/general', permission: 'settings.read' },
@@ -129,16 +120,36 @@ const searchablePages: SearchablePage[] = [
   { labelKey: 'settings.numbering.orderConfirmations', keywords: ['order confirmation number', 'ab nummer', 'auftragsbestätigung nummer'], url: '/settings/numbering/order-confirmations', permission: 'invoices.settings' },
   { labelKey: 'settings.tabs.emailTemplates', keywords: ['email template', 'e-mail vorlage', 'email vorlage', 'mail template', 'invoice email', 'rechnungs-email'], url: '/settings/email-templates', permission: 'invoices.settings' },
   { labelKey: 'settings.emailTemplates.orderConfirmation', keywords: ['order confirmation', 'auftragsbestätigung', 'ab email', 'order email'], url: '/settings/email-templates/order-confirmation', permission: 'invoices.settings' },
-  { labelKey: 'settings.emailTemplates.dunning', keywords: ['dunning template', 'mahn-vorlage', 'mahnvorlage', 'mahnung email', 'mahnungen email', 'reminder template', 'payment reminder email', 'zahlungserinnerung email'], url: '/settings/email-templates/dunning', permission: 'reminders.settings' },
+  { labelKey: 'search.pageDunningTemplate', keywords: ['dunning template', 'mahn-vorlage', 'mahnvorlage', 'mahnung email', 'mahnungen email', 'reminder template', 'payment reminder email', 'zahlungserinnerung email'], url: '/settings/email-templates/dunning', permission: 'reminders.settings' },
   { labelKey: 'settings.emailTemplates.bcc', keywords: ['bcc', 'blind copy', 'blindkopie', 'kopie', 'cc', 'copy recipient'], url: '/settings/email-templates/bcc', permission: 'settings.write' },
   { labelKey: 'settings.tabs.accounting', keywords: ['accounting', 'buchhaltung', 'revenue goals', 'umsatzziele'], url: '/settings/accounting', permission: 'settings.read' },
   { labelKey: 'settings.accountingTabs.revenueGoals', keywords: ['revenue goals', 'umsatzziele', 'ziele', 'goals'], url: '/settings/accounting', permission: 'settings.read' },
   { labelKey: 'settings.accountingTabs.costCenters', keywords: ['cost centers', 'kostenstellen', 'cost center', 'kostenstelle', 'split rules', 'aufteilungsregeln'], url: '/settings/accounting/cost-centers', permission: 'settings.read' },
-  { labelKey: 'reminders.settings.title', keywords: ['dunning', 'mahnwesen', 'mahnung', 'mahnungen', 'payment reminder', 'zahlungserinnerung', 'verzug', 'interest', 'verzugszinsen', 'mahngebühr', 'reminder', 'dunning settings'], url: '/settings/accounting/dunning', permission: 'reminders.settings' },
+  { labelKey: 'search.pageDunningSettings', keywords: ['dunning', 'mahnwesen', 'mahnung', 'mahnungen', 'payment reminder', 'zahlungserinnerung', 'verzug', 'interest', 'verzugszinsen', 'mahngebühr', 'reminder', 'dunning settings'], url: '/settings/accounting/dunning', permission: 'reminders.settings' },
   { labelKey: 'settings.tabs.banking', keywords: ['banking settings', 'bankeinstellungen', 'bank account', 'bankkonto', 'iban', 'fee tolerance'], url: '/settings/banking', permission: 'banking.read' },
   { labelKey: 'auth.signUp', keywords: ['signup', 'sign up', 'registrieren', 'register', 'anmelden'], url: '/signup' },
   { labelKey: 'auth.verifySuccess', keywords: ['verify', 'verifizieren', 'bestätigen', 'verification'], url: '/verify-signup' },
 ]
+
+/**
+ * Seiten passend zur Anfrage. Gefaltet wie die Datensuche: jedes Wort muss im
+ * Seitennamen oder in den Stichworten vorkommen, Reihenfolge egal.
+ */
+export function searchPages(
+  query: string,
+  t: (key: string) => string,
+  hasPermission: (resource: string, action: string) => boolean
+): SearchablePage[] {
+  const tokens = searchTokens(query)
+  if (tokens.length === 0) return []
+  return searchablePages.filter((page) => {
+    if (page.permission) {
+      const [resource, action] = page.permission.split('.')
+      if (!hasPermission(resource, action)) return false
+    }
+    return matchesAllTokens([t(page.labelKey), ...page.keywords].join(' '), tokens)
+  })
+}
 
 interface GlobalSearchProps {
   /**
@@ -159,6 +170,9 @@ export function GlobalSearch({ variant = 'dropdown', autoFocus = false, onNaviga
   const { hasPermission } = useAuth()
   const navigate = useNavigate()
   const [searchQuery, setSearchQuery] = useState('')
+  // Anfrage, fuer die zuletzt gesucht wurde - weicht sie vom Feld ab, sind die
+  // angezeigten Treffer veraltet
+  const [searchedQuery, setSearchedQuery] = useState('')
   const [showResults, setShowResults] = useState(false)
 
   const [selectedIndex, setSelectedIndex] = useState(-1)
@@ -166,20 +180,25 @@ export function GlobalSearch({ variant = 'dropdown', autoFocus = false, onNaviga
   const inputRef = useRef<HTMLInputElement>(null)
   const isDropdown = variant === 'dropdown'
 
-  const [search, { data, loading }] = useLazyQuery(GLOBAL_SEARCH, {
+  const [search, { data, previousData, loading }] = useLazyQuery<GlobalSearchData>(GLOBAL_SEARCH, {
     fetchPolicy: 'cache-and-network',
   })
+  // Waehrend eine neue Anfrage laeuft, bleiben die alten Treffer (abgeblendet) stehen
+  const shownData = data ?? previousData
+  const trimmedQuery = searchQuery.trim()
+  const isStale = trimmedQuery !== searchedQuery || (loading && !data)
 
   // Debounced search
   useEffect(() => {
-    if (searchQuery.length < 2) {
+    if (trimmedQuery.length < 2) {
       return
     }
     const timer = setTimeout(() => {
-      search({ variables: { query: searchQuery, limit: 10 } })
+      setSearchedQuery(trimmedQuery)
+      search({ variables: { query: trimmedQuery, limit: 10 } })
     }, 300)
     return () => clearTimeout(timer)
-  }, [searchQuery, search])
+  }, [trimmedQuery, search])
 
   // Close on click outside
   useEffect(() => {
@@ -210,37 +229,32 @@ export function GlobalSearch({ variant = 'dropdown', autoFocus = false, onNaviga
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [isDropdown])
 
-  // Client-side page search
-  const filteredPages = useMemo(() => {
-    if (searchQuery.length < 2) return []
-    const q = searchQuery.toLowerCase()
-    return searchablePages.filter((page) => {
-      // Permission check
-      if (page.permission) {
-        const [resource, action] = page.permission.split('.')
-        if (!hasPermission(resource, action)) return false
-      }
-      // Match against translated label or keywords
-      const label = t(page.labelKey).toLowerCase()
-      if (label.includes(q)) return true
-      return page.keywords.some((kw) => kw.includes(q))
-    }).slice(0, 5)
-  }, [searchQuery, t, hasPermission])
+  // Seitensuche im Browser, gleiche Faltung wie die Datensuche
+  const filteredPages = useMemo(
+    () => (trimmedQuery.length < 2 ? [] : searchPages(trimmedQuery, t, hasPermission).slice(0, 5)),
+    [trimmedQuery, t, hasPermission]
+  )
 
-  // Flat list of all visible result URLs for keyboard navigation
+  const groups = useMemo(() => shownData?.globalSearch?.groups ?? [], [shownData])
+  const showAllUrl = searchResultsUrl(trimmedQuery)
+
+  // Flache Liste aller anwaehlbaren Zeilen fuer die Tastatur, in Anzeigereihenfolge
   const allResultUrls = useMemo(() => {
     const urls: string[] = []
     filteredPages.forEach((page) => urls.push(page.url))
-    data?.globalSearch?.groups?.forEach((group: { items: { url: string }[] }) => {
+    groups.forEach((group) => {
       group.items.forEach((item) => urls.push(item.url))
+      if (group.hasMore) urls.push(searchResultsUrl(trimmedQuery, group.type))
     })
+    if (groups.length > 0) urls.push(showAllUrl)
     return urls
-  }, [filteredPages, data])
+  }, [filteredPages, groups, trimmedQuery, showAllUrl])
 
-  // Reset selection when results change
+  // Reset selection when results change (Inhalt vergleichen, nicht die Array-Identitaet)
+  const resultsKey = allResultUrls.join(' ')
   useEffect(() => {
     setSelectedIndex(-1)
-  }, [allResultUrls])
+  }, [resultsKey])
 
   const handleResultClick = (url: string) => {
     navigate(url)
@@ -251,6 +265,23 @@ export function GlobalSearch({ variant = 'dropdown', autoFocus = false, onNaviga
   }
 
   const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      if (showResults && selectedIndex >= 0 && allResultUrls[selectedIndex]) {
+        e.preventDefault()
+        handleResultClick(allResultUrls[selectedIndex])
+      } else if (trimmedQuery.length >= 2) {
+        // Enter ohne markierten Treffer: alle Treffer auf der Ergebnisseite
+        e.preventDefault()
+        handleResultClick(showAllUrl)
+      }
+      return
+    }
+    if (e.key === 'Escape') {
+      setShowResults(false)
+      setSelectedIndex(-1)
+      inputRef.current?.blur()
+      return
+    }
     if (!showResults || allResultUrls.length === 0) return
 
     if (e.key === 'ArrowDown') {
@@ -259,26 +290,6 @@ export function GlobalSearch({ variant = 'dropdown', autoFocus = false, onNaviga
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
       setSelectedIndex((prev) => (prev > 0 ? prev - 1 : allResultUrls.length - 1))
-    } else if (e.key === 'Enter' && selectedIndex >= 0) {
-      e.preventDefault()
-      handleResultClick(allResultUrls[selectedIndex])
-    } else if (e.key === 'Escape') {
-      setShowResults(false)
-      setSelectedIndex(-1)
-      inputRef.current?.blur()
-    }
-  }
-
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'customer':
-        return User
-      case 'contract':
-        return FileSignature
-      case 'invoice':
-        return Receipt
-      default:
-        return FileText
     }
   }
 
@@ -287,6 +298,13 @@ export function GlobalSearch({ variant = 'dropdown', autoFocus = false, onNaviga
       'flex w-full items-start gap-3 px-3 text-left',
       isDropdown ? 'py-2' : 'py-3',
       idx === selectedIndex ? 'bg-blue-50' : 'hover:bg-gray-50'
+    )
+
+  const linkRowClass = (idx: number) =>
+    cn(
+      'flex w-full items-center gap-1 px-3 text-left text-xs font-medium text-blue-600',
+      isDropdown ? 'py-2' : 'py-3',
+      idx === selectedIndex ? 'bg-blue-50' : 'hover:bg-gray-50 hover:underline'
     )
 
   return (
@@ -339,7 +357,7 @@ export function GlobalSearch({ variant = 'dropdown', autoFocus = false, onNaviga
       </div>
 
       {/* Search Results */}
-      {showResults && searchQuery.length >= 2 && (() => {
+      {showResults && trimmedQuery.length >= 2 && (() => {
         let flatIndex = 0
         return (
         <div
@@ -367,51 +385,87 @@ export function GlobalSearch({ variant = 'dropdown', autoFocus = false, onNaviga
                   >
                     <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
                     <div className="truncate text-sm font-medium text-gray-900">
-                      {t(page.labelKey)}
+                      <HighlightedText text={t(page.labelKey)} query={trimmedQuery} />
                     </div>
                   </button>
                 )
               })}
             </div>
           )}
-          {/* Data results (API) */}
-          {data?.globalSearch?.groups?.map((group: { type: string; label: string; hasMore: boolean; items: { id: number; title: string; subtitle?: string; url: string }[] }) => (
-            <div key={group.type}>
+          {/* Data results (API) - veraltete Treffer abgeblendet, bis die neuen da sind */}
+          <div
+            className={cn('transition-opacity', isStale && 'opacity-50')}
+            data-testid="global-search-data"
+            data-stale={isStale ? 'true' : undefined}
+            aria-busy={isStale}
+          >
+          {groups.map((group) => {
+            const Icon = searchTypeIcon(group.type)
+            return (
+            <div key={group.type} data-testid={`global-search-group-${group.type}`}>
               <div className="sticky top-0 bg-gray-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500">
                 {t(`search.${group.type}`, group.label)}
               </div>
               {group.items.map((item) => {
-                const Icon = getTypeIcon(group.type)
                 const idx = flatIndex++
                 return (
                   <button
                     key={`${group.type}-${item.id}`}
                     onClick={() => handleResultClick(item.url)}
                     className={resultButtonClass(idx)}
+                    data-testid={`global-search-item-${group.type}-${item.id}`}
+                    data-fuzzy={item.fuzzy ? 'true' : undefined}
                   >
                     <Icon className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-medium text-gray-900">
-                        {item.title}
+                      <div className="flex items-center gap-2">
+                        <div className={cn('min-w-0 truncate text-sm', item.fuzzy ? 'text-gray-600' : 'font-medium text-gray-900')}>
+                          <HighlightedText text={item.title} query={trimmedQuery} plain={item.fuzzy} />
+                        </div>
+                        {item.fuzzy && <SimilarHint />}
                       </div>
                       {item.subtitle && (
                         <div className="truncate text-xs text-gray-500">
-                          {item.subtitle}
+                          <HighlightedText text={item.subtitle} query={trimmedQuery} plain={item.fuzzy} />
                         </div>
                       )}
                     </div>
                   </button>
                 )
               })}
-              {group.hasMore && (
-                <div className="px-3 py-2 text-xs text-gray-400 italic">
-                  {t('search.moreResults', '+ more results...')}
-                </div>
-              )}
+              {group.hasMore && (() => {
+                const idx = flatIndex++
+                return (
+                  <button
+                    type="button"
+                    onClick={() => handleResultClick(searchResultsUrl(trimmedQuery, group.type))}
+                    className={linkRowClass(idx)}
+                    data-testid={`global-search-more-${group.type}`}
+                  >
+                    {t('search.moreResults', '+ more results...')}
+                  </button>
+                )
+              })()}
             </div>
-          ))}
+            )
+          })}
+          {groups.length > 0 && (() => {
+            const idx = flatIndex++
+            return (
+              <button
+                type="button"
+                onClick={() => handleResultClick(showAllUrl)}
+                className={cn(linkRowClass(idx), 'justify-center border-t')}
+                data-testid="global-search-show-all"
+              >
+                {t('search.showAll')}
+                <ArrowRight className="h-3.5 w-3.5" />
+              </button>
+            )
+          })()}
+          </div>
           {/* No results */}
-          {filteredPages.length === 0 && !data?.globalSearch?.groups?.length && !loading && (
+          {filteredPages.length === 0 && groups.length === 0 && !loading && !isStale && (
             <div className="px-3 py-4 text-center text-sm text-gray-500">
               {t('search.noResults')}
             </div>

@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, gql } from '@apollo/client'
 import { Loader2, Search, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
@@ -113,9 +114,19 @@ export function ProductList() {
   const { t } = useTranslation()
   const { hasPermission } = useAuth()
   const canEditProducts = hasPermission('products', 'write')
-  const [searchTerm, setSearchTerm] = useState('')
-  const [searchInput, setSearchInput] = useState('')
+  // ?search= aus der globalen Suche (Produkt-Treffer) uebernehmen
+  const [searchParams] = useSearchParams()
+  const urlSearch = searchParams.get('search') ?? ''
+  const [searchTerm, setSearchTerm] = useState(urlSearch)
+  const [searchInput, setSearchInput] = useState(urlSearch)
   const [page, setPage] = useState(1)
+  // Neuer Treffer aus der globalen Suche, waehrend die Liste schon offen ist
+  useEffect(() => {
+    if (!urlSearch) return
+    setSearchInput(urlSearch)
+    setSearchTerm(urlSearch)
+    setPage(1)
+  }, [urlSearch])
   const [showInactive, setShowInactive] = useState(false)
   const [revenueTypeFilter, setRevenueTypeFilter] = useState<string>('')
   const [sortBy, setSortBy] = usePersistedState<SortField>('products-sort-by', 'name')

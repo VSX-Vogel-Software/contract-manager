@@ -39,6 +39,8 @@ export const routes: MobileRoute[] = [
   { name: 'department-analysis', path: '/department-analysis' },
   { name: 'audit-log', path: '/audit-log' },
   { name: 'about', path: '/about' },
+  // Ergebnisseite der globalen Suche (Supportvertrag: elf Vertraege im Demo-Bestand)
+  { name: 'search', path: '/search?q=Supportvertrag' },
   { name: 'settings-user', path: '/settings' },
   { name: 'settings-general', path: '/settings/general' },
   { name: 'settings-integrations', path: '/settings/integrations' },

@@ -41,9 +41,15 @@ export const resultErrorLink = new ApolloLink((operation, forward) =>
   })
 )
 
+export const typePolicies = {
+  // Suchtreffer verschiedener Bereiche koennen dieselbe id haben (Kunde 7,
+  // Vertrag 7) - nicht normalisieren, sonst ueberschreiben sie sich im Cache
+  SearchResultItem: { keyFields: false as const },
+}
+
 export const apolloClient = new ApolloClient({
   link: from([errorLink, resultErrorLink, authLink, httpLink]),
-  cache: new InMemoryCache(),
+  cache: new InMemoryCache({ typePolicies }),
   defaultOptions: {
     watchQuery: {
       fetchPolicy: 'cache-and-network',

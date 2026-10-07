@@ -102,6 +102,7 @@ contract-manager/
 | `/contracts/:id/edit` | ContractForm | View/Edit contract details |
 | `/products` | ProductList | Product catalog |
 | `/settings` | Settings | App settings, HubSpot integration |
+| `/search?q=&type=` | SearchPage | Alle Treffer der globalen Suche je Bereich, mit Nachladen |
 
 ## Contract Views Terminology
 
