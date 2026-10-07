@@ -86,3 +86,6 @@ frontend/public/licenses-frontend.json
 # Claude Code
 .claude/
 .gstack/
+
+# Celery Beat legt seinen Zustand lokal im Bind-Mount ab
+backend/celerybeat-schedule*

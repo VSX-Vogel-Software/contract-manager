@@ -18,5 +18,5 @@
 
 ## 3. Abschluss
 
-- [ ] 3.1 Mobil-Suite gruen, Desktop-Vergleich
+- [x] 3.1 Mobil-Suite gruen, Desktop-Vergleich; ausgeliefert mit 2.40.1, Snapshot-Zeit seit 2.41.1 fest 23:30
 - [x] 3.2 Changelog-Eintrag

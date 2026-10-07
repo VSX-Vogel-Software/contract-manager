@@ -31,11 +31,11 @@
 ## 4. Abschluss
 
 - [x] 4.1 Code-Review des Gesamtdiffs, Funde behoben
-- [ ] 4.2 Volle Suite alle Formate gruen (gegen `vite preview`), bestehende Unit-Tests gruen, `tsc`
-- [ ] 4.2a Offen: Fehlzeitenbericht- und Zeiterfassungs-Dialoge (Seed ohne Abteilungen/Zeiterfassung), Changelog-Dialog (nur mit Versions-Build)
-- [ ] 4.3 Sichtpruefung im echten Chrome
-- [ ] 4.4 Abnahme durch bk auf echtem Telefon (iOS Safari, Android Chrome) - insbesondere PDF oeffnen/herunterladen
-- [ ] 4.5 Nach Auslieferung: Spec nach `openspec/specs/mobile-support/`, Change ins Archiv
+- [x] 4.2 Volle Suite alle Formate gruen (gegen `vite preview`): 1201/0, Unit-Tests gruen, `tsc`
+- [ ] 4.2a Nicht automatisch getestet (bleibt offen): Fehlzeitenbericht- und Zeiterfassungs-Dialoge (Seed ohne Abteilungen/Zeiterfassung), Changelog-Dialog (nur mit Versions-Build)
+- [x] 4.3 Sichtpruefung durch bk im Browser (Claude-in-Chrome lieferte keine Screenshots; Pruefung per Playwright-Fotos)
+- [x] 4.4 Abnahme durch bk, ausgeliefert als 2.40.1 am 06.10.2026 (Test auf echtem iOS/Android steht noch aus - insbesondere PDF oeffnen/herunterladen)
+- [x] 4.5 Spec nach `openspec/specs/mobile-support/` (ergaenzt um Kartensortierung, fixierte Spalte, Verbindungsabbruch, Chunk-Neuladen), Change ins Archiv
 
 ## Suite ausfuehren
 
