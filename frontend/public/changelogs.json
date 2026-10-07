@@ -1,5 +1,17 @@
 [
   {
+    "version": "2.43.0",
+    "date": "2026-10-07",
+    "title": "Runterziehen zum Aktualisieren",
+    "description": "Auf Telefon und Tablet lässt sich jede Seite jetzt wie gewohnt aktualisieren: oben auf der Seite nach unten ziehen und loslassen. Die Daten werden frisch geladen, ohne dass die Seite neu startet - Filter, Tabs und Eingaben bleiben erhalten. Außerdem öffnet das Menü doppelt so schnell.",
+    "type": "feature",
+    "details": [
+      "Ein Kreisel zeigt an, wann das Loslassen aktualisiert",
+      "Seitliches Wischen in Tabellen und kurze Bewegungen lösen nichts aus",
+      "Menü, Suche und Filter fahren in 200 statt 500 ms ein"
+    ]
+  },
+  {
     "version": "2.42.2",
     "date": "2026-10-07",
     "title": "Abteilungsanalyse passt aufs Telefon",
