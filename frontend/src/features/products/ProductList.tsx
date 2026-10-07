@@ -354,8 +354,10 @@ export function ProductList() {
             <table className="table-sticky-first min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
+                  {/* Mindestbreite: die fixierte Spalte darf umbrechen und
+                      wird sonst von breiten Nachbarn aufs laengste Wort gedrueckt */}
                   <th
-                    className="cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:bg-gray-100"
+                    className="min-w-[14rem] cursor-pointer px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 hover:bg-gray-100 lg:min-w-[18rem]"
                     onClick={() => handleSort('name')}
                   >
                     <div className="flex items-center">
@@ -428,7 +430,7 @@ export function ProductList() {
                     <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
                       {product.sku || '-'}
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+                    <td className="min-w-[10rem] px-6 py-4 text-sm text-gray-500">
                       {product.category?.name || '-'}
                     </td>
                     <td className="whitespace-nowrap px-6 py-4">
