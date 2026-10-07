@@ -1,5 +1,16 @@
 [
   {
+    "version": "2.42.2",
+    "date": "2026-10-07",
+    "title": "Abteilungsanalyse passt aufs Telefon",
+    "description": "In der Abteilungsanalyse ragten auf schmalen Telefonen die Umschalter und der Export-Knopf über den Bildschirmrand, sodass man seitlich scrollen musste. Sie brechen jetzt in eine neue Zeile um.",
+    "type": "bugfix",
+    "details": [
+      "Verteilung und Benutzer-Aufschlüsselung: Umschalter und Export bleiben im Bild",
+      "Abwesenheiten: Erzeugen, Abschließen und Senden brechen bei Bedarf um"
+    ]
+  },
+  {
     "version": "2.42.1",
     "date": "2026-10-07",
     "title": "Suche nach Bereich: \"ksb verträge\"",
