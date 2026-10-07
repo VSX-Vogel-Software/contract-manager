@@ -5,4 +5,4 @@
 
 ## 2. Abschluss
 
-- [ ] 2.1 Changelog, Release, Spec nach `openspec/specs/global-search/`, Change ins Archiv
+- [x] 2.1 Changelog, Release, Spec nach `openspec/specs/global-search/`, Change ins Archiv
