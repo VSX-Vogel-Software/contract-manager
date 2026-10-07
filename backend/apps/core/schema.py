@@ -4,7 +4,6 @@ from typing import Annotated, Union
 
 import strawberry
 from django.contrib.auth import authenticate
-from django.db.models import Q
 from strawberry.types import Info
 
 from apps.core.auth import (
@@ -122,10 +121,13 @@ class CurrentUser:
 class SearchResultItem:
     """A single search result item."""
 
-    id: int
+    # String-ID: Eingangsrechnungen und Gegenparteien haben UUIDs
+    id: strawberry.ID
     title: str
     subtitle: str | None = None
     url: str
+    # True = aehnlicher (unscharfer) Treffer - im Frontend nicht hervorheben
+    fuzzy: bool = False
 
 
 @strawberry.type
@@ -237,16 +239,26 @@ class CoreQuery:
 
     @strawberry.field
     def global_search(
-        self, info: Info[Context, None], query: str, limit: int = 10
+        self,
+        info: Info[Context, None],
+        query: str,
+        limit: int = 10,
+        types: list[str] | None = None,
+        offset: int = 0,
     ) -> GlobalSearchResult:
-        """Search across customers, contracts, and invoices."""
-        from apps.contracts.models import Contract
-        from apps.customers.models import Customer
-        from apps.invoices.models import InvoiceRecord
+        """Suche ueber Kunden, Vertraege, Rechnungen, Angebote, Eingangsrechnungen,
+        Gegenparteien und Produkte (Logik in apps.core.search).
 
+        `types` schraenkt auf Gruppen ein (z. B. ["contract"]), `offset` laedt
+        auf der Ergebnisseite je Gruppe nach.
+        """
         from apps.core.permissions import check_perm
+        from apps.core.search import run_search
 
         empty = GlobalSearchResult(groups=[], total_count=0)
+        # Zu kurze Anfrage: ohne jede Datenbankabfrage zurueck
+        if len(query.strip()) < 2:
+            return empty
         # Gleiche Regeln wie jede andere Abfrage: ohne Anmeldung oder mit einem
         # 2FA-Setup-Token (nur Passwort, 2FA noch nicht eingerichtet) nichts.
         # Bewusst leere Liste statt Fehler - die Suche laeuft beim Tippen.
@@ -261,136 +273,32 @@ class CoreQuery:
             allowed, _ = check_perm(info, resource, "read")
             return allowed is not None
 
-        query = query.strip()
-        if len(query) < 2:
-            return empty
-        limit = max(1, min(limit, 50))
-
-        groups = []
-        total_count = 0
-        is_numeric = query.isdigit()
-
-        # Search customers (include all, not just active)
-        # Order by: customers with CUS ID first, then by name
-        # Fetch limit+1 to check if there are more
-        from django.db.models import Case, When, Value, IntegerField
-        customer_q = None if not may_read("customers") else (
-            Q(name__icontains=query) |
-            Q(netsuite_customer_number__icontains=query)
-        )
-        if customer_q is not None and is_numeric:
-            customer_q |= Q(id=int(query))
-        customers = [] if customer_q is None else list(Customer.objects.filter(
-            tenant=user.tenant,
-        ).filter(customer_q).annotate(
-            has_cus_id=Case(
-                When(netsuite_customer_number__isnull=False, netsuite_customer_number__gt='', then=Value(0)),
-                default=Value(1),
-                output_field=IntegerField(),
+        groups = [
+            SearchResultGroup(
+                type=g.type,
+                label=g.label,
+                has_more=g.has_more,
+                items=[
+                    SearchResultItem(
+                        id=strawberry.ID(h.id),
+                        title=h.title,
+                        subtitle=h.subtitle,
+                        url=h.url,
+                        fuzzy=h.fuzzy,
+                    )
+                    for h in g.items
+                ],
             )
-        ).order_by('has_cus_id', 'name')[:limit + 1])
-
-        customers_has_more = len(customers) > limit
-        if customers_has_more:
-            customers = customers[:limit]
-
-        if customers:
-            customer_items = [
-                SearchResultItem(
-                    id=c.id,
-                    title=c.name,
-                    subtitle=c.netsuite_customer_number or f"#{c.id}",
-                    url=f"/customers/{c.id}",
-                )
-                for c in customers
-            ]
-            groups.append(SearchResultGroup(
-                type="customer",
-                label="Customers",
-                items=customer_items,
-                has_more=customers_has_more,
-            ))
-            total_count += len(customer_items)
-
-        # Search contracts
-        # Fetch limit+1 to check if there are more
-        contract_q = None if not may_read("contracts") else (
-            Q(name__icontains=query) |
-            Q(netsuite_sales_order_number__icontains=query) |
-            Q(po_number__icontains=query) |
-            Q(order_confirmation_number__icontains=query)
-        )
-        if contract_q is not None and is_numeric:
-            contract_q |= Q(id=int(query))
-        contracts = [] if contract_q is None else list(Contract.objects.filter(
-            tenant=user.tenant,
-        ).filter(contract_q).select_related("customer")[:limit + 1])
-
-        contracts_has_more = len(contracts) > limit
-        if contracts_has_more:
-            contracts = contracts[:limit]
-
-        if contracts:
-            contract_items = [
-                SearchResultItem(
-                    id=c.id,
-                    title=c.name,
-                    subtitle=_build_contract_subtitle(c),
-                    url=f"/contracts/{c.id}",
-                )
-                for c in contracts
-            ]
-            groups.append(SearchResultGroup(
-                type="contract",
-                label="Contracts",
-                items=contract_items,
-                has_more=contracts_has_more,
-            ))
-            total_count += len(contract_items)
-
-        # Search invoice records by invoice number
-        invoice_records = [] if not may_read("invoices") else list(InvoiceRecord.objects.filter(
-            tenant=user.tenant,
-            invoice_number__icontains=query,
-        ).exclude(
-            status=InvoiceRecord.Status.VOIDED,
-        ).select_related("customer")[:limit + 1])
-
-        invoices_has_more = len(invoice_records) > limit
-        if invoices_has_more:
-            invoice_records = invoice_records[:limit]
-
-        if invoice_records:
-            invoice_items = [
-                SearchResultItem(
-                    id=r.id,
-                    title=r.invoice_number,
-                    subtitle=r.customer_name,
-                    url=f"/invoices/{r.id}",
-                )
-                for r in invoice_records
-            ]
-            groups.append(SearchResultGroup(
-                type="invoice",
-                label="Invoices",
-                items=invoice_items,
-                has_more=invoices_has_more,
-            ))
-            total_count += len(invoice_items)
-
-        return GlobalSearchResult(groups=groups, total_count=total_count)
-
-
-def _build_contract_subtitle(contract) -> str | None:
-    """Build subtitle from contract metadata."""
-    parts = [f"#{contract.id}"]
-    if contract.customer:
-        parts.append(contract.customer.name)
-    if contract.netsuite_sales_order_number:
-        parts.append(f"SO: {contract.netsuite_sales_order_number}")
-    if contract.po_number:
-        parts.append(f"PO: {contract.po_number}")
-    return " • ".join(parts)
+            for g in run_search(
+                user.tenant,
+                query,
+                may_read=may_read,
+                limit=max(1, min(limit, 50)),
+                offset=max(0, min(offset, 10_000)),
+                types=types,
+            )
+        ]
+        return GlobalSearchResult(groups=groups, total_count=sum(len(g.items) for g in groups))
 
 
 @strawberry.type

@@ -2393,7 +2393,7 @@ type Query {
   feedbackEnabled: Boolean!
   signupEnabled: Boolean!
   me: CurrentUser
-  globalSearch(query: String!, limit: Int! = 10): GlobalSearchResult!
+  globalSearch(query: String!, limit: Int! = 10, types: [String!] = null, offset: Int! = 0): GlobalSearchResult!
   tenantSettings: TenantSettingsType
   currentUser: UserType
   currentTenant: TenantType
@@ -2638,10 +2638,11 @@ type SearchResultGroup {
 }
 
 type SearchResultItem {
-  id: Int!
+  id: ID!
   title: String!
   subtitle: String
   url: String!
+  fuzzy: Boolean!
 }
 
 type ServiceBreakdown {

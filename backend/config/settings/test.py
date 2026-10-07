@@ -11,6 +11,11 @@ DATABASES = {
     }
 }
 
+# Wahlweise gegen Postgres (DATABASE_URL, Test-DB "test_<name>"), etwa fuer
+# die Suche mit cm_fold/pg_trgm:  TEST_POSTGRES=1 pytest tests/test_global_search*.py
+if env.bool("TEST_POSTGRES", default=False):  # noqa: F405
+    DATABASES = {"default": env.db("DATABASE_URL")}  # noqa: F405
+
 # Faster password hashing in tests
 PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.MD5PasswordHasher",
