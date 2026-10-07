@@ -352,6 +352,47 @@ def test_types_restrict_groups(tenant, data):
     assert [g.type for g in groups] == ["counterparty"]
 
 
+@pytest.mark.parametrize(
+    ("query", "type_"),
+    [
+        ("Thurn Verträge", "contract"),
+        ("vertraege thurn", "contract"),
+        ("thurn contracts", "contract"),
+        ("Thurn Rechnungen", "invoice"),
+        ("thurn angebot", "offer"),
+        ("Thurn Kunden", "customer"),
+        ("Telekom Eingangsrechnungen", "incoming_invoice"),
+        ("Lüdenscheid Gegenparteien", "counterparty"),
+        ("Backup Produkte", "product"),
+    ],
+)
+def test_type_word_narrows_to_its_group(tenant, data, query, type_):
+    groups = _search(tenant, query)
+    assert [g.type for g in groups] == [type_]
+    assert not any(h.fuzzy for g in groups for h in g.items)
+
+
+def test_type_word_without_hit_falls_back_to_literal(tenant, data):
+    # Kein Vertrag heisst "Rechnungsmodul" - woertlich gibt es das Produkt
+    Product.objects.create(tenant=tenant, name="Rechnungsmodul Vertrag", sku="T-P-RM")
+    assert _titles(_search(tenant, "rechnungsmodul vertrag"), "product") == ["Rechnungsmodul Vertrag"]
+
+
+def test_type_word_alone_is_a_normal_search(tenant, data):
+    # "Rahmenvertrag" ist kein Bereichswort, "Vertrag" allein sucht woertlich
+    assert _group(_search(tenant, "Rahmenvertrag"), "contract") is not None
+    assert _group(_search(tenant, "Supportvertrag"), "contract") is not None
+
+
+def test_type_word_respects_types_and_offset(tenant, data):
+    # Ergebnisseite laedt je Bereich nach: types und Bereichswort schneiden sich
+    first = _search(tenant, "support vertraege", types=["contract"], limit=10)
+    rest = _search(tenant, "support vertraege", types=["contract"], limit=10, offset=10)
+    assert len(first[0].items) == 10 and first[0].has_more
+    assert len(rest[0].items) == 2
+    assert _search(tenant, "support vertraege", types=["contract"], limit=10, offset=20) == []
+
+
 def test_urls_and_ids(tenant, data):
     def first(query, type_):
         return _group(_search(tenant, query), type_).items[0]
