@@ -1,5 +1,20 @@
 [
   {
+    "version": "2.42.0",
+    "date": "2026-10-07",
+    "title": "Die Suche findet mehr und versteht Schreibvarianten",
+    "description": "Die Suche oben in der Navigation durchsucht jetzt auch Angebote, Eingangsrechnungen, Gegenparteien und Produkte. Sie findet \"Mueller\" ebenso wie \"Müller\", verträgt kleine Tippfehler und Wörter in beliebiger Reihenfolge. Exakte Treffer wie eine vollständige Rechnungsnummer stehen ganz oben. Mit Enter oder \"weitere Ergebnisse\" öffnet sich eine Ergebnisseite mit allen Treffern.",
+    "type": "feature",
+    "details": [
+      "Neue Bereiche: Angebote, Eingangsrechnungen, Gegenparteien (auch per IBAN) und Produkte (auch per SKU), jeweils nur mit dem passenden Leserecht",
+      "Kunden auch per E-Mail-Adresse und USt-ID, Verträge auch per Kundenname sowie SO-, PO-, AB- und NetSuite-Nummer",
+      "Umlaute und Umschreibungen gleichwertig (ä/ae, ö/oe, ü/ue, ß/ss), Bindestriche zählen wie Leerzeichen",
+      "Gibt es keinen direkten Treffer, zeigt die Suche ähnlich geschriebene Treffer und kennzeichnet sie",
+      "Beträge wie \"38.700\" oder \"38700,50\" finden Rechnungen, Eingangsrechnungen und Angebote mit genau diesem Betrag",
+      "Fundstellen werden hervorgehoben; neue Ergebnisseite mit Nachladen je Bereich, auf dem Telefon als Karten"
+    ]
+  },
+  {
     "version": "2.41.2",
     "date": "2026-10-07",
     "title": "Suche beachtet die Zugriffsrechte",

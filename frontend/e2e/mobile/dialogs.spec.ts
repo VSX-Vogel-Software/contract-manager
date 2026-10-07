@@ -261,6 +261,43 @@ const commentPencil = (page: Page) =>
     .first()
 
 /**
+ * Bearbeiten geht nur am eigenen, neuesten Kommentar der letzten 24 h - die
+ * Demo-Kommentare altern heraus. Fehlt der Stift, einen Kommentar per API
+ * anlegen und neu laden; die uebrigen Formate finden ihn dann vor (hoechstens
+ * einer je Tag und Datensatz).
+ */
+async function ensureEditableComment(page: Page, kind: 'contract' | 'customer', id: string): Promise<Locator> {
+  await expect(page.getByRole('button', { name: 'Add Comment' }).first()).toBeVisible()
+  if ((await commentPencil(page).count()) === 0) {
+    const field = kind === 'contract' ? 'addContractComment' : 'addCustomerComment'
+    const arg = kind === 'contract' ? 'contractId' : 'customerId'
+    const ok = await page.evaluate(
+      async ({ field, arg, id }) => {
+        const res = await fetch('/graphql', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            authorization: `Bearer ${localStorage.getItem('auth_token') ?? ''}`,
+          },
+          body: JSON.stringify({
+            query: `mutation($id: ID!, $text: String!) { ${field}(${arg}: $id, text: $text) { success error } }`,
+            variables: { id, text: 'E2E: bearbeitbarer Kommentar fuer den Dialogtest' },
+          }),
+        })
+        const body = await res.json()
+        return body?.data?.[field]?.success === true
+      },
+      { field, arg, id },
+    )
+    expect(ok, `${field} fuer ${id}`).toBe(true)
+    await page.reload()
+    await settle(page)
+  }
+  return commentPencil(page)
+}
+
+/**
  * Klick auf einen Zeilenknopf ganz rechts in einer waagerecht scrollenden
  * Tabelle. Playwright scrollt das Ziel sonst in die Mitte - dort liegt auf
  * dem Telefon die fixierte erste Spalte darueber. Ein Mensch wischt bis
@@ -534,7 +571,7 @@ const cases: DialogCase[] = [
     name: 'contract-comment-edit',
     path: `/contracts/${ids.activeContract}`,
     open: async (page) => {
-      await commentPencil(page).click()
+      await (await ensureEditableComment(page, 'contract', ids.activeContract)).click()
       return topDialog(page)
     },
   },
@@ -668,7 +705,7 @@ const cases: DialogCase[] = [
     name: 'customer-comment-edit',
     path: `/customers/${ids.customer}`,
     open: async (page) => {
-      await commentPencil(page).click()
+      await (await ensureEditableComment(page, 'customer', ids.customer)).click()
       return topDialog(page)
     },
   },
