@@ -1,5 +1,17 @@
 [
   {
+    "version": "2.42.1",
+    "date": "2026-10-07",
+    "title": "Suche nach Bereich: \"ksb verträge\"",
+    "description": "Wer in der Suche den Bereich mittippt, bekommt nur Treffer aus diesem Bereich: \"ksb verträge\" zeigt die Verträge von KSB, \"ksb rechnungen\" die Rechnungen. Das funktioniert auf Deutsch und Englisch, in Ein- und Mehrzahl und in beliebiger Reihenfolge. Außerdem ist die Namensspalte in der Produktliste wieder gut lesbar.",
+    "type": "improvement",
+    "details": [
+      "Bereichswörter: Kunden, Verträge, Rechnungen, Angebote, Eingangsrechnungen, Gegenparteien, Produkte",
+      "Findet die eingegrenzte Suche nichts, wird wie bisher nach dem ganzen Text gesucht",
+      "Produktliste: Namensspalte breiter, lange Kategorien brechen um"
+    ]
+  },
+  {
     "version": "2.42.0",
     "date": "2026-10-07",
     "title": "Die Suche findet mehr und versteht Schreibvarianten",
