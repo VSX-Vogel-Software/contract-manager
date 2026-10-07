@@ -2868,6 +2868,8 @@
     "openChat": "Open assistant",
     "openPdf": "Open PDF",
     "pdfHint": "The preview cannot be embedded on this device.",
-    "showInfo": "Show info"
+    "showInfo": "Show info",
+    "pullToRefresh": "Pull to refresh",
+    "refreshing": "Refreshing"
   }
 }

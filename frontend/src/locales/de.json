@@ -2868,6 +2868,8 @@
     "openChat": "Assistent öffnen",
     "openPdf": "PDF öffnen",
     "pdfHint": "Die Vorschau lässt sich auf diesem Gerät nicht einbetten.",
-    "showInfo": "Info anzeigen"
+    "showInfo": "Info anzeigen",
+    "pullToRefresh": "Zum Aktualisieren ziehen",
+    "refreshing": "Wird aktualisiert"
   }
 }

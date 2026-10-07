@@ -1,13 +1,16 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { MessageSquare } from 'lucide-react'
+import { MessageSquare, RefreshCw } from 'lucide-react'
 import { Sidebar } from './Sidebar'
 import { MobileHeader, MobileNavDrawer, MobileSearch } from './MobileNav'
 import { UpdateBanner } from './UpdateBanner'
 import { ChunkErrorBoundary, PageLoading } from './ChunkErrorBoundary'
+import { apolloClient } from '@/lib/apollo'
 import { useAuth } from '@/lib/auth'
 import { useIsDesktop } from '@/lib/useMediaQuery'
+import { PULL_THRESHOLD, usePullToRefresh } from '@/lib/usePullToRefresh'
+import { cn } from '@/lib/utils'
 
 // Assistent (inkl. react-markdown) erst laden, wenn er zum ersten Mal geoeffnet wird
 const ChatDrawer = lazy(() => import('@/features/assistant').then((m) => ({ default: m.ChatDrawer })))
@@ -26,6 +29,11 @@ export function Layout() {
   // CSS, sonst laufen Tastaturkuerzel, Abfragen und Dialoge doppelt.
   const isDesktop = useIsDesktop()
   const location = useLocation()
+  const mainRef = useRef<HTMLElement>(null)
+  // Runterziehen laedt die Daten der Seite neu (alle aktiven Abfragen), ohne
+  // die Seite selbst neu zu laden - Filter, Tabs und Eingaben bleiben stehen.
+  const refresh = useCallback(() => apolloClient.refetchQueries({ include: 'active' }), [])
+  const pull = usePullToRefresh(mainRef, refresh)
 
   // Bei jedem Seitenwechsel Schublade und Suche schliessen
   useEffect(() => {
@@ -39,9 +47,30 @@ export function Layout() {
       {!isDesktop && (
         <MobileHeader onOpenNav={() => setNavOpen(true)} onOpenSearch={() => setSearchOpen(true)} />
       )}
-      <div className="flex min-h-0 flex-1">
+      <div className="relative flex min-h-0 flex-1">
         {isDesktop && <Sidebar />}
-        <main className="min-w-0 flex-1 overflow-auto overscroll-contain bg-gray-50 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4 sm:pb-[max(1rem,env(safe-area-inset-bottom))] lg:p-6" data-testid="main">
+        {(pull.distance > 0 || pull.refreshing) && (
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 z-20 flex justify-center lg:left-64"
+            style={{ transform: `translateY(${pull.distance - 40}px)` }}
+            role="status"
+            aria-label={pull.refreshing ? t('mobile.refreshing') : t('mobile.pullToRefresh')}
+            data-testid="pull-to-refresh"
+            data-state={pull.refreshing ? 'refreshing' : pull.distance >= PULL_THRESHOLD ? 'armed' : 'pulling'}
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-full border bg-white shadow-md">
+              <RefreshCw
+                className={cn(
+                  'h-5 w-5',
+                  pull.distance >= PULL_THRESHOLD || pull.refreshing ? 'text-blue-600' : 'text-gray-400',
+                  pull.refreshing && 'animate-spin'
+                )}
+                style={pull.refreshing ? undefined : { transform: `rotate(${pull.distance * 4}deg)` }}
+              />
+            </div>
+          </div>
+        )}
+        <main ref={mainRef} className="min-w-0 flex-1 overflow-auto overscroll-contain bg-gray-50 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:p-4 sm:pb-[max(1rem,env(safe-area-inset-bottom))] lg:p-6" data-testid="main">
           <ChunkErrorBoundary resetKey={location.pathname}>
             <Suspense fallback={<PageLoading />}>
               <Outlet />
