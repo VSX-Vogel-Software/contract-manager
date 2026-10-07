@@ -6,4 +6,4 @@
 
 ## 2. Abschluss
 
-- [ ] 2.1 Changelog, Release, Spec nach `openspec/specs/mobile-support/`, Change ins Archiv
+- [x] 2.1 Changelog, Release, Spec nach `openspec/specs/mobile-support/`, Change ins Archiv
