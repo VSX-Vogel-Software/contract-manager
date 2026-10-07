@@ -330,12 +330,12 @@ function DepartmentAnalysisContent() {
       ) : (
         <>
           {/* Distribution section */}
-          <div className="mb-8 rounded-lg border bg-white p-6">
-            <div className="mb-4 flex items-center justify-between">
+          <div className="mb-8 rounded-lg border bg-white p-4 sm:p-6">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-lg font-medium text-gray-900">
                 {chartView === 'hours' ? t('departmentAnalysis.distribution') : t('departmentAnalysis.costDistribution')}
               </h2>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 {distributionFilled && (
                   <div className="flex rounded-md border">
                     <button
@@ -415,7 +415,7 @@ function DepartmentAnalysisContent() {
               </>
             ) : (
               <>
-                <div className="mb-4 flex items-center gap-3">
+                <div className="mb-4 flex flex-wrap items-center gap-3">
                   <p className="text-sm text-gray-500">
                     {t('departmentAnalysis.ftes')}: <span className="font-semibold text-gray-900">{costDistribution.reduce((sum: number, d: { ftes: number }) => sum + d.ftes, 0).toFixed(2)}</span>
                   </p>
@@ -533,8 +533,8 @@ function DepartmentAnalysisContent() {
           </div>
 
           {/* User x Department matrix */}
-          <div className="rounded-lg border bg-white p-6">
-            <div className="mb-4 flex items-center justify-between">
+          <div className="rounded-lg border bg-white p-4 sm:p-6">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-lg font-medium text-gray-900">{t('departmentAnalysis.userMatrix')}</h2>
               <div className="flex items-center gap-2">
                 <div className="flex rounded-md border">

@@ -247,7 +247,7 @@ export function AbsenceReport() {
       </div>
 
       {/* Actions */}
-      <div className="mb-4 flex items-center gap-2">
+      <div className="mb-4 flex flex-wrap items-center gap-2">
         <Button
           variant="outline"
           size="sm"
@@ -283,7 +283,7 @@ export function AbsenceReport() {
         )}
 
         {report && (
-          <span className={`ml-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
             isFinalized
               ? 'bg-green-100 text-green-800'
               : 'bg-yellow-100 text-yellow-800'
