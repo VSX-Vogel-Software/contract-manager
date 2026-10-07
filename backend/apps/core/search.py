@@ -10,7 +10,8 @@ Kernidee (openspec/changes/global-search-improvements/design.md):
 - Ein Treffer muss jedes Wort der Anfrage irgendwo in seinen Suchfeldern
   enthalten (Reihenfolge egal).
 - Rang je Treffer: 0 Feld exakt gleich, 1 Feld beginnt mit der Anfrage,
-  2 ein Wort beginnt mit dem ersten Suchwort, 3 Teilstring, 4 unscharf.
+  2 jedes Suchwort beginnt ein Wort einer Nummer, 3 jedes Suchwort beginnt
+  ein Wort irgendwo, 4 Teilstring, 5 unscharf.
 - Unscharf (word_similarity) nur als Fallback, wenn die Suche insgesamt keine
   direkten Treffer hat.
 """
@@ -493,13 +494,31 @@ def _direct(area: Area, qs: QuerySet, parsed: ParsedQuery) -> QuerySet:
             qs = qs.alias(**{f"_key{i}": Fold(key)})
             exact |= Q(**{f"_key{i}": parsed.folded})
             prefix |= Q(**{f"_key{i}__startswith": parsed.folded})
-        first = parsed.tokens[0]
+        # Rang 2: *jedes* Suchwort beginnt ein Wort im Namen/in der Nummer.
+        # Nur das erste Wort zu pruefen liess "re 0007" einen Kunden vor die
+        # Rechnung RE-...-0007 stellen ("re" mitten in "Wasserversorgung").
+        # Rang 2: jedes Suchwort beginnt ein Wort in den Nummern/Schluesseln
+        # (wer "re 0007" tippt, meint RE-...-0007); Rang 3: dasselbe irgendwo
+        # in Name und Feldern. Nur das erste Wort zu pruefen bzw. nicht nach
+        # Nummern zu unterscheiden liess "re 0007" einen Kunden vor die
+        # Rechnung stellen ("re" aus der E-Mail rechnung@...).
+        # nur Nummern, nicht der Name (der steht bei manchen Bereichen mit in
+        # key_fields und wuerde "re" aus "Region" mitzaehlen)
+        numbers = [f for f in area.key_fields if getattr(f, "name", None) != "name"]
+        key_starts, word_starts = (Q(pk__in=[]) if not numbers else Q()), Q()
+        if numbers:
+            qs = qs.alias(_keys=Fold(_join(numbers)))
+        for token in parsed.tokens:
+            if numbers:
+                key_starts &= Q(_keys__startswith=token) | Q(_keys__contains=f" {token}")
+            word_starts &= Q(_own__startswith=token) | Q(_own__contains=f" {token}")
         rank_cases += [
             When(exact, then=Value(0)),
             When(prefix, then=Value(1)),
-            When(Q(_own__startswith=first) | Q(_own__contains=f" {first}"), then=Value(2)),
+            When(key_starts, then=Value(2)),
+            When(word_starts, then=Value(3)),
         ]
-    rank = Case(*rank_cases, default=Value(3), output_field=IntegerField())
+    rank = Case(*rank_cases, default=Value(4), output_field=IntegerField())
     return qs.filter(match).annotate(_rank=rank).order_by("_rank", *area.order)
 
 
@@ -512,7 +531,7 @@ def _fuzzy(area: Area, qs: QuerySet, parsed: ParsedQuery) -> QuerySet:
         qs = qs.filter(**{f"_sim{i}__gte": FUZZY_THRESHOLD})
         score = F(f"_sim{i}") if score is None else score + F(f"_sim{i}")
     return qs.annotate(
-        _score=score, _rank=Value(4, output_field=IntegerField())
+        _score=score, _rank=Value(5, output_field=IntegerField())
     ).order_by("-_score", *area.order)
 
 

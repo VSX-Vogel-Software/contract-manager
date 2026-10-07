@@ -314,6 +314,20 @@ def test_fuzzy_only_without_direct_hits_in_that_group(tenant, data):
     assert not any(h.fuzzy for h in customers.items)
 
 
+def test_number_parts_put_the_numbered_record_first(tenant, data):
+    # "re 0007": beide Woerter beginnen Woerter der Rechnungsnummer. Ein Kunde,
+    # bei dem "re" nur in Name/E-Mail und "0007" in der Kundennummer steht,
+    # darf nicht davor landen.
+    customer = Customer.objects.create(
+        tenant=tenant, name="Regionalwerke Kunde", netsuite_customer_number="T-K-0007"
+    )
+    customer.billing_emails = ["rechnung@regional.example"]
+    customer.save()
+    groups = _search(tenant, "re 0007")
+    assert groups[0].type == "invoice"
+    assert groups[0].items[0].title.endswith("0007")
+
+
 def test_direct_hit_anywhere_suppresses_fuzzy_everywhere(tenant, data):
     # "Supportvertrag" trifft Vertraege direkt - das Produkt "Support-
     # Kontingent" darf nicht als aehnlicher Treffer dazukommen.
