@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 
 import environ
+from celery.schedules import crontab
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -282,29 +283,34 @@ CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = TIME_ZONE
 CELERY_TASK_ACKS_LATE = True  # Ensure tasks aren't lost on worker crash
 CELERY_TASK_REJECT_ON_WORKER_LOST = True
+# Feste Uhrzeiten (crontab) statt Intervallen: Ein Intervall zaehlt ab dem
+# Start von Celery Beat, und jedes Deploy startet Beat neu - bei mehreren
+# Deploys am Tag lief ein "taeglicher" Job dann nie (am 07.10.2026 gab es
+# deshalb noch keinen einzigen KPI-Snapshot). Zeiten in CELERY_TIMEZONE.
 CELERY_BEAT_SCHEDULE = {
     "refresh-time-tracking-data": {
         "task": "apps.contracts.tasks.refresh_all_time_tracking_data",
-        "schedule": 43200,  # every 12 hours
+        "schedule": crontab(minute=40, hour="5,17"),  # alle 12 Stunden
     },
     "sync-hubspot-all-tenants": {
         "task": "apps.customers.tasks.sync_all_hubspot_tenants",
-        "schedule": 21600,  # every 6 hours
+        "schedule": crontab(minute=10, hour="*/6"),  # alle 6 Stunden
     },
     "auto-link-time-tracking": {
         "task": "apps.contracts.tasks.auto_link_time_tracking_projects",
-        "schedule": 86400,  # daily
+        "schedule": crontab(minute=0, hour=6),  # taeglich, nach dem Zeiterfassungs-Abgleich
     },
     "capture-fte-snapshots": {
         "task": "apps.banking.tasks.capture_monthly_fte_snapshots",
-        "schedule": 86400,  # daily (checks capture day internally)
+        "schedule": crontab(minute=30, hour=6),  # taeglich (prueft den Stichtag selbst)
     },
     "send-scheduled-reports": {
         "task": "apps.contracts.tasks.send_scheduled_reports",
-        "schedule": 86400,  # daily
+        "schedule": crontab(minute=0, hour=7),  # taeglich (prueft den Versandtag selbst)
     },
     "capture-dashboard-kpi-snapshots": {
         "task": "apps.contracts.tasks.capture_dashboard_kpi_snapshots",
-        "schedule": 86400,  # daily (upsert des laufenden Monats)
+        # spaet am Tag: der letzte Lauf im Monat haelt den Monatsendstand fest
+        "schedule": crontab(minute=30, hour=23),
     },
 }

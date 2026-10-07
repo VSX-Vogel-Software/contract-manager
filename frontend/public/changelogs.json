@@ -1,5 +1,17 @@
 [
   {
+    "version": "2.41.1",
+    "date": "2026-10-07",
+    "title": "Tägliche Aufgaben laufen zuverlässig zur festen Uhrzeit",
+    "description": "Hintergrundaufgaben wie der Versand geplanter Berichte, die FTE- und Dashboard-Momentaufnahmen und der HubSpot-Abgleich laufen jetzt zu festen Uhrzeiten. Bisher zählte ihr Takt ab dem letzten Update der Anwendung neu - an Tagen mit mehreren Updates konnte ein täglicher Lauf dadurch ausfallen.",
+    "type": "bugfix",
+    "details": [
+      "Dashboard-Momentaufnahme täglich um 23:30, damit die Verläufe den Monatsendstand zeigen",
+      "Geplante Berichte täglich um 7:00 (der Versandtag bleibt wie eingestellt)",
+      "HubSpot-Abgleich alle 6 Stunden, Zeiterfassungs-Abgleich zweimal täglich zu festen Zeiten"
+    ]
+  },
+  {
     "version": "2.41.0",
     "date": "2026-10-07",
     "title": "Spürbar schneller, besonders auf dem Telefon",
