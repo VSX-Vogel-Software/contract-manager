@@ -18,5 +18,5 @@
 
 ## 3. Abschluss
 
-- [ ] 3.1 Volle Suiten gruen, Testmatrix erneut messen
-- [ ] 3.2 Changelog, Release, Spec nach `openspec/specs/global-search/`, Change ins Archiv
+- [x] 3.1 Volle Suiten gruen, Testmatrix erneut messen
+- [x] 3.2 Changelog, Release, Spec nach `openspec/specs/global-search/`, Change ins Archiv
