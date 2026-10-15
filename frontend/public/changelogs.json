@@ -1,5 +1,17 @@
 [
   {
+    "version": "2.43.1",
+    "date": "2026-10-15",
+    "title": "Claude kann wieder Rechnungen und Buchungen lesen",
+    "description": "Über die Claude-Anbindung ließen sich Rechnungen und Kontobewegungen nicht mehr abrufen, jede Abfrage endete mit einem Fehler. Das ist behoben: Rechnungen lassen sich wieder auflisten und im Detail ansehen, Kontobewegungen wieder nach Gegenpartei und Zeitraum durchsuchen.",
+    "type": "bugfix",
+    "details": [
+      "Rechnungsliste zeigt erzeugte und importierte Rechnungen gemeinsam",
+      "Rechnungsdetails mit Positionen, importierte Rechnungen mit Bruttobetrag",
+      "Kontobewegungen mit Buchungsdatum, Gegenpartei, Verwendungszweck und IBAN"
+    ]
+  },
+  {
     "version": "2.43.0",
     "date": "2026-10-07",
     "title": "Runterziehen zum Aktualisieren",
