@@ -234,6 +234,90 @@ class TestReadTools:
         result = _make_tool(InvoiceTools, self.user).list_invoices()
         assert "No invoices found" in result
 
+    def _invoice_record(self):
+        from datetime import date
+        from decimal import Decimal
+        from apps.invoices.models import InvoiceRecord
+        return InvoiceRecord.objects.create(
+            tenant=self.tenant, contract=self.contract, customer=self.customer,
+            invoice_number="INV-MCP-1", billing_date=date(2026, 1, 1),
+            invoice_date=date(2026, 1, 1),
+            period_start=date(2026, 1, 1), period_end=date(2026, 1, 31),
+            total_net=Decimal("100.00"), tax_rate=Decimal("19.00"),
+            tax_amount=Decimal("19.00"), total_gross=Decimal("119.00"),
+            line_items_snapshot=[{"product_name": "Widget", "description": "", "amount": "100.00"}],
+            company_data_snapshot={}, customer_name=self.customer.name,
+            contract_name=self.contract.name,
+        )
+
+    def _imported_invoice(self):
+        from datetime import date
+        from decimal import Decimal
+        from apps.invoices.models import ImportedInvoice
+        return ImportedInvoice.objects.create(
+            tenant=self.tenant, invoice_number="IMP-MCP-1", invoice_date=date(2025, 6, 1),
+            total_amount=Decimal("238.00"), customer_name="Legacy GmbH",
+            pdf_file="imports/legacy.pdf", original_filename="legacy.pdf", file_size=1024,
+        )
+
+    def test_list_invoices_generated_and_imported(self):
+        from apps.mcp.tools import InvoiceTools
+        self._invoice_record()
+        self._imported_invoice()
+        result = _make_tool(InvoiceTools, self.user).list_invoices()
+        assert "INV-MCP-1" in result
+        assert "IMP-MCP-1" in result
+        assert "Legacy GmbH" in result
+        assert "238.00" in result
+
+    def test_get_invoice_generated(self):
+        from apps.mcp.tools import InvoiceTools
+        r = self._invoice_record()
+        result = _make_tool(InvoiceTools, self.user).get_invoice(invoice_id=r.id, verbose=True)
+        assert "INV-MCP-1" in result
+        assert "Widget: 100.00" in result
+
+    def test_get_invoice_imported(self):
+        from apps.mcp.tools import InvoiceTools
+        inv = self._imported_invoice()
+        result = _make_tool(InvoiceTools, self.user).get_invoice(
+            invoice_id=inv.id, invoice_type="imported", verbose=True,
+        )
+        assert "Legacy GmbH" in result
+        assert "238.00" in result
+
+    def _transaction(self):
+        from decimal import Decimal
+        from apps.banking.models import BankAccount, BankTransaction, Counterparty
+        account = BankAccount.objects.create(
+            tenant=self.tenant, name="Main", bank_code="85090000",
+            account_number="2721891006", iban="DE12850900002721891006",
+        )
+        cp = Counterparty.objects.create(
+            tenant=self.tenant, name="Acme Corp", iban="DE89370400440532013000",
+        )
+        return BankTransaction.objects.create(
+            tenant=self.tenant, account=account, entry_date="2026-02-03",
+            amount=Decimal("119.00"), counterparty=cp,
+            booking_text="RE INV-MCP-1", import_hash="mcp-hash-1",
+        )
+
+    def test_list_transactions(self):
+        from apps.mcp.tools import BankingTools
+        self._transaction()
+        tool = _make_tool(BankingTools, self.user)
+        result = tool.list_transactions(counterparty="acme", date_from="2026-02-01")
+        assert "Acme Corp" in result
+        assert "RE INV-MCP-1" in result
+        assert "No transactions found" in tool.list_transactions(date_to="2026-01-31")
+
+    def test_get_transaction(self):
+        from apps.mcp.tools import BankingTools
+        t = self._transaction()
+        result = _make_tool(BankingTools, self.user).get_transaction(transaction_id=t.id, verbose=True)
+        assert "Acme Corp" in result
+        assert "DE89370400440532013000" in result
+
 
 # ── Write Tools ───────────────────────────────────────────────────
 

@@ -362,9 +362,9 @@ class InvoiceTools(_BaseTool):
                 "id": inv.id,
                 "number": inv.invoice_number or f"IMP-{inv.id}",
                 "date": inv.invoice_date,
-                "customer": inv.customer.name if inv.customer else inv.vendor_name or "-",
-                "net": inv.net_amount,
-                "gross": inv.gross_amount,
+                "customer": inv.customer.name if inv.customer else inv.customer_name or "-",
+                "net": None,
+                "gross": inv.total_amount,
                 "status": "imported",
                 "email_sent": False,
             })
@@ -410,9 +410,8 @@ class InvoiceTools(_BaseTool):
                 f"# {inv.invoice_number or f'IMP-{inv.id}'}",
                 f"Type: Imported",
                 f"Date: {self._fmt_date(inv.invoice_date)}",
-                f"Customer: {inv.customer.name if inv.customer else inv.vendor_name or '-'}",
-                f"Net: {self._fmt_currency(inv.net_amount)}",
-                f"Gross: {self._fmt_currency(inv.gross_amount)}",
+                f"Customer: {inv.customer.name if inv.customer else inv.customer_name or '-'}",
+                f"Gross: {self._fmt_currency(inv.total_amount)}",
             ]
             if verbose:
                 lines.append(self._dump_all_fields(inv))
@@ -446,12 +445,12 @@ class InvoiceTools(_BaseTool):
             lines.append(self._dump_all_fields(r))
 
         # Line items from snapshot
-        items = r.items_snapshot or []
+        items = r.line_items_snapshot or []
         if items:
             lines.append("\n## Line Items")
             for item in items:
                 name = item.get("description") or item.get("product_name", "Item")
-                total = item.get("total_price")
+                total = item.get("amount")
                 lines.append(f"- {name}: {self._fmt_currency(total)}")
 
         return "\n".join(lines)
@@ -471,13 +470,17 @@ class BankingTools(_BaseTool):
             return err
         tenant = self._get_tenant()
         from apps.banking.models import BankTransaction
-        qs = BankTransaction.objects.filter(account__tenant=tenant).order_by("-date")
+        qs = (
+            BankTransaction.objects.filter(account__tenant=tenant)
+            .select_related("counterparty")
+            .order_by("-entry_date", "-id")
+        )
         if counterparty:
-            qs = qs.filter(counterparty_name__icontains=counterparty)
+            qs = qs.filter(counterparty__name__icontains=counterparty)
         if date_from:
-            qs = qs.filter(date__gte=date_from)
+            qs = qs.filter(entry_date__gte=date_from)
         if date_to:
-            qs = qs.filter(date__lte=date_to)
+            qs = qs.filter(entry_date__lte=date_to)
         total = qs.count()
         txns = qs[offset:offset + limit]
         if not txns:
@@ -485,10 +488,10 @@ class BankingTools(_BaseTool):
         lines = [f"Transactions (showing {offset + 1}-{offset + len(txns)} of {total})", ""]
         for t in txns:
             color = "+" if t.amount >= 0 else ""
-            lines.append(f"- {self._fmt_date(t.date)} | {color}{self._fmt_currency(t.amount)}")
-            lines.append(f"  {t.counterparty_name or 'Unknown'}")
-            if t.purpose:
-                lines.append(f"  Purpose: {t.purpose[:80]}")
+            lines.append(f"- {self._fmt_date(t.entry_date)} | {color}{self._fmt_currency(t.amount)} (ID: {t.id})")
+            lines.append(f"  {t.counterparty.name or 'Unknown'}")
+            if t.booking_text:
+                lines.append(f"  Purpose: {t.booking_text[:80]}")
         return "\n".join(lines)
 
     def get_transaction(self, transaction_id: int, verbose: bool = False) -> str:
@@ -501,22 +504,22 @@ class BankingTools(_BaseTool):
         tenant = self._get_tenant()
         from apps.banking.models import BankTransaction
         try:
-            t = BankTransaction.objects.select_related("account").get(
+            t = BankTransaction.objects.select_related("account", "counterparty").get(
                 id=transaction_id, account__tenant=tenant
             )
         except BankTransaction.DoesNotExist:
             return f"Transaction {transaction_id} not found."
         lines = [
             f"# Transaction {t.id}",
-            f"Date: {self._fmt_date(t.date)}",
+            f"Date: {self._fmt_date(t.entry_date)}",
             f"Amount: {self._fmt_currency(t.amount)}",
-            f"Counterparty: {t.counterparty_name or '-'}",
+            f"Counterparty: {t.counterparty.name or '-'}",
             f"Account: {t.account.name if t.account else '-'}",
         ]
-        if t.purpose:
-            lines.append(f"Purpose: {t.purpose}")
-        if t.counterparty_iban:
-            lines.append(f"IBAN: {t.counterparty_iban}")
+        if t.booking_text:
+            lines.append(f"Purpose: {t.booking_text}")
+        if t.counterparty.iban:
+            lines.append(f"IBAN: {t.counterparty.iban}")
         if verbose:
             lines.append(self._dump_all_fields(t))
         return "\n".join(lines)
