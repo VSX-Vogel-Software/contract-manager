@@ -1,5 +1,20 @@
 [
   {
+    "version": "2.44.0",
+    "date": "2026-10-16",
+    "title": "Jede Ansicht lässt sich verlinken",
+    "description": "Tabs - auch Tabs innerhalb von Tabs - stehen jetzt in der Adresse. Wer einen Link aus der Adresszeile weitergibt, landet genau in derselben Ansicht, Neuladen und Zurück behalten den Tab. Einzelne Einträge lassen sich direkt verlinken: Beim Öffnen rollt die Seite zum Eintrag und hebt ihn kurz hervor.",
+    "type": "feature",
+    "details": [
+      "Vertrag, Kunde, Banking, Gegenpartei, Abteilungsanalyse, Info-Seite und die Unter-Tabs der Zeiterfassung merken den Tab in der Adresse",
+      "Link-Symbol neben Kommentaren, Todos, Vertragspositionen, Vertragsänderungen, Anhängen und Changelog-Einträgen kopiert einen Link direkt dorthin",
+      "Ein Link auf einen älteren Kommentar öffnet die Liste aller Kommentare und zeigt ihn dort",
+      "Todo-Mails und der Sprung aus der Todo-Übersicht führen direkt zum Todo im Vertrag oder Kunden",
+      "Alte Links auf Vertrags-Tabs funktionieren weiter",
+      "Muss man sich erst anmelden - auch über Microsoft oder nach abgelaufener Sitzung -, geht es danach genau zum geöffneten Link weiter"
+    ]
+  },
+  {
     "version": "2.43.1",
     "date": "2026-10-15",
     "title": "Claude kann wieder Rechnungen und Buchungen lesen",
