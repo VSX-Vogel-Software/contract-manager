@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQuery, gql } from '@apollo/client'
 import ReactMarkdown from 'react-markdown'
@@ -12,6 +13,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
+import { CopyLinkButton } from '@/components/CopyLinkButton'
+import { currentLinkTarget, linkTargetId } from '@/lib/linkTarget'
 
 // =============================================================================
 // GraphQL
@@ -147,16 +150,22 @@ function CommentItem({
   comment,
   onEdit,
   onDelete,
+  anchored = true,
 }: {
   comment: Comment
   onEdit: (comment: Comment) => void
   onDelete: (comment: Comment) => void
+  /** Traegt die Sprungziel-`id` - nie zweimal gleichzeitig (Vorschau + Dialog). */
+  anchored?: boolean
 }) {
   const { t } = useTranslation()
   const wasEdited = Math.abs(new Date(comment.updatedAt).getTime() - new Date(comment.createdAt).getTime()) > 2000
 
   return (
-    <div className="py-2 first:pt-0 last:pb-0">
+    <div
+      id={anchored ? linkTargetId('comment', comment.id) : undefined}
+      className="group/link rounded py-2 first:pt-0 last:pb-0"
+    >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <span className="font-medium text-foreground">
@@ -171,30 +180,29 @@ function CommentItem({
             </>
           )}
         </div>
-        {(comment.canEdit || comment.canDelete) && (
-          <div className="flex items-center gap-0.5 shrink-0">
-            {comment.canEdit && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 w-6 p-0"
-                onClick={() => onEdit(comment)}
-              >
-                <Pencil className="h-3 w-3" />
-              </Button>
-            )}
-            {comment.canDelete && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 w-6 p-0 text-destructive hover:text-destructive"
-                onClick={() => onDelete(comment)}
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
-            )}
-          </div>
-        )}
+        <div className="flex items-center gap-0.5 shrink-0">
+          <CopyLinkButton targetId={linkTargetId('comment', comment.id)} />
+          {comment.canEdit && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0"
+              onClick={() => onEdit(comment)}
+            >
+              <Pencil className="h-3 w-3" />
+            </Button>
+          )}
+          {comment.canDelete && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+              onClick={() => onDelete(comment)}
+            >
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
       </div>
       <div className="mt-1 text-sm [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-1 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:my-1 [&_li]:my-0 [&_p]:my-1 [&_code]:bg-muted [&_code]:px-1 [&_code]:rounded [&_pre]:bg-muted [&_pre]:p-2 [&_pre]:rounded [&_pre]:my-1 [&_a]:text-blue-600 [&_a]:underline [&_strong]:font-semibold">
         <ReactMarkdown remarkPlugins={[remarkBreaks]}>{comment.text}</ReactMarkdown>
@@ -237,6 +245,17 @@ export function CommentsSection({ entityType, entityId }: CommentsSectionProps) 
 
   const previewComments = comments.slice(0, 3)
   const hasMore = comments.length > 3
+
+  // Link auf einen Kommentar ausserhalb der Vorschau: Dialog mit allen oeffnen,
+  // dort findet lib/linkTarget das Ziel
+  const location = useLocation()
+  useEffect(() => {
+    const target = currentLinkTarget(location.hash)
+    if (!target?.startsWith('comment-')) return
+    const idx = comments.findIndex((c) => linkTargetId('comment', c.id) === target)
+    if (idx >= previewComments.length) setShowAllModal(true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key, location.hash, comments])
 
   const handleAdd = async () => {
     if (!commentText.trim()) return
@@ -327,6 +346,7 @@ export function CommentsSection({ entityType, entityId }: CommentsSectionProps) 
               comment={c}
               onEdit={openEdit}
               onDelete={handleDelete}
+              anchored={!showAllModal}
             />
           ))}
         </div>

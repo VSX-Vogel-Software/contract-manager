@@ -171,3 +171,41 @@ class TestErwaehnungsMail:
             base_url="https://contract-cora.com",
         )
         assert 'href="https://contract-cora.com/todos"' in body
+
+
+class TestTodoSprungziel:
+    """Todo-Mails verlinken das Todo selbst: Todo-Tab der Akte plus #todo-<id>."""
+
+    def _todo(self, **kw):
+        from unittest.mock import Mock as M
+
+        base = dict(id=42, text="Rechnung pruefen", entity_name="ACME",
+                    contract_id=None, contract_item_id=None, customer_id=None)
+        base.update(kw)
+        return M(**base)
+
+    def test_zuweisung_am_vertrag(self):
+        from unittest.mock import Mock as M
+
+        from apps.core.notifications import _build_todo_assigned_email
+
+        _, body = _build_todo_assigned_email(
+            todo=self._todo(contract_id=7),
+            assigner=M(get_full_name=lambda: "Anna Admin"),
+            base_url="https://contract-cora.com",
+        )
+        assert 'href="https://contract-cora.com/contracts/7?tab=todos#todo-42"' in body
+
+    def test_erwaehnung_am_kunden(self):
+        from unittest.mock import Mock as M
+
+        from apps.core.notifications import _build_todo_mention_email
+
+        _, body = _build_todo_mention_email(
+            todo=self._todo(customer_id=3),
+            mentioner=M(get_full_name=lambda: "Anna Admin"),
+            comment_text="schau mal",
+            base_url="https://contract-cora.com",
+        )
+        assert 'href="https://contract-cora.com/customers/3?tab=todos#todo-42"' in body
+        assert 'href="https://contract-cora.com/todos"' in body

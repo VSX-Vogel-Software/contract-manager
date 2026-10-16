@@ -17,6 +17,9 @@
     "incomingInvoices": "Eingangsrechnungen"
   },
   "common": {
+    "copyLinkHere": "Link zu dieser Stelle kopieren",
+    "linkCopied": "Link kopiert",
+    "linkCopyFailed": "Link konnte nicht kopiert werden",
     "total": "Gesamt",
     "name": "Name",
     "active": "Aktiv",

@@ -166,6 +166,7 @@ Anforderungen im Format `### Requirement: …` mit SHALL/MUST, darunter mindeste
 - **Date format**: Always `dd.mm.yyyy` (German format). Use 24h time format (`HH:mm`).
 - **Tables are always sortable**: Every table column that contains data should be sortable by clicking the header. Use the existing sortable table header pattern.
 - **Filters above tables**: When a table has filters, place them in a card above the table — same pattern as the Banking page (filter card with inputs/selects, table below). Never inline filters into the table header.
+- **Everything linkable (since 2.44.0)**: Tab state never lives in `useState`/`usePersistedState` alone. Use `useUrlTab(param, values, fallback, options)` from `lib/useUrlTab.ts` - top-level tabs use `?tab=`, nested tabs `?sub=` (pass `resets: ['sub']` on the parent). Settings tabs are path-based routes instead. List entries worth sharing get `id={linkTargetId('<kind>', id)}`, the class `group/link` and a `<CopyLinkButton targetId=... />`; `useLinkTarget()` in `Layout` scrolls to `#<id>` (waits for lazy data) and flashes it (`.link-target-flash` in `index.css`). Never reuse the hash for anything else.
 
 ## Testing
 

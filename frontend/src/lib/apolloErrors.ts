@@ -7,6 +7,7 @@
  * navigiert und toastet nicht.
  */
 import i18n from 'i18next'
+import { rememberReturnTo } from './returnTo'
 import { pushToast } from './toastStore'
 
 const AUTH_ERROR_MESSAGE = 'Authentication required'
@@ -24,6 +25,9 @@ interface HandleApolloErrorParams {
 }
 
 function defaultRedirectToLogin() {
+  // Nach der erneuten Anmeldung zurueck an dieselbe Stelle
+  const { pathname, search, hash } = window.location
+  rememberReturnTo(`${pathname}${search}${hash}`)
   window.location.href = '/login'
 }
 

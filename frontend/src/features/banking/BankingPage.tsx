@@ -56,6 +56,7 @@ import { MobileSortControl } from '@/components/MobileSortControl'
 import { ScrollTabs } from '@/components/ScrollTabs'
 import { useMediaQuery } from '@/lib/useMediaQuery'
 import { Link2, AlertTriangle } from 'lucide-react'
+import { useUrlTab } from '@/lib/useUrlTab'
 
 // --- GraphQL ---
 
@@ -322,6 +323,8 @@ interface BankTransaction {
 
 // --- Component ---
 
+const BANKING_TABS = ['transactions', 'counterparties'] as const
+
 export function BankingPage() {
   const { t } = useTranslation()
   const { token } = useAuth()
@@ -329,7 +332,7 @@ export function BankingPage() {
   const [, setSearchParams] = useSearchParams()
 
   // Tab state
-  const [activeTab, setActiveTab] = usePersistedState<'transactions' | 'counterparties'>('cm:banking:activeTab', 'transactions')
+  const [activeTab, setActiveTab] = useUrlTab('tab', BANKING_TABS, 'transactions', { storageKey: 'cm:banking:activeTab' })
 
   // Counterparty list state
   const [cpSearch, setCpSearch] = useState('')

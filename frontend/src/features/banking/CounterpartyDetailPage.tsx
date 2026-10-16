@@ -45,6 +45,7 @@ import { IncomingInvoiceDetail } from '../incoming-invoices/IncomingInvoiceDetai
 import { Badge } from '@/components/ui/badge'
 import { ScrollTabs } from '@/components/ScrollTabs'
 import { Link2, FileText, Receipt, AlertTriangle } from 'lucide-react'
+import { useUrlTab } from '@/lib/useUrlTab'
 
 const COUNTERPARTY_DETAIL = gql`
   query CounterpartyDetail($id: ID!, $dateFrom: Date, $dateTo: Date) {
@@ -345,6 +346,8 @@ interface CustomerSearchResult {
   netsuiteCustomerNumber: string | null
 }
 
+const COUNTERPARTY_TABS = ['account', 'transactions', 'invoices', 'outgoing'] as const
+
 export function CounterpartyDetailPage() {
   const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
@@ -389,7 +392,7 @@ export function CounterpartyDetailPage() {
   const customerSearchInputRef = useRef<HTMLInputElement>(null)
 
   // Tab state
-  const [activeTab, setActiveTab] = useState<'account' | 'transactions' | 'invoices' | 'outgoing'>('account')
+  const [activeTab, setActiveTab] = useUrlTab('tab', COUNTERPARTY_TABS, 'account')
   const [invPage, setInvPage] = useState(1)
   const [invSortBy, setInvSortBy] = useState('invoice_date')
   const [invSortOrder, setInvSortOrder] = useState<'asc' | 'desc'>('desc')

@@ -2,6 +2,7 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { WifiOff } from 'lucide-react'
 import { useAuth } from '../lib/auth'
+import { locationToPath, rememberReturnTo } from '../lib/returnTo'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -42,6 +43,8 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   if (!isAuthenticated) {
+    // Ziel samt ?tab= und #Sprungziel merken - auch fuer den Umweg ueber Microsoft
+    rememberReturnTo(locationToPath(location))
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 

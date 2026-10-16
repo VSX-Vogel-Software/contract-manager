@@ -140,3 +140,37 @@ html {
     padding-right: 0.75rem;
   }
 }
+
+/*
+ * Sprungziel aus einem Link (#...): kurz und dezent hervorheben, siehe
+ * lib/linkTarget.ts. Nur Schatten und Umriss - eine Hintergrundfarbe wuerde
+ * am Ende auf die eigene Farbe des Elements zurueckspringen.
+ */
+@keyframes link-target-flash {
+  0% { box-shadow: 0 0 0 0 rgb(59 130 246 / 0); }
+  12% { box-shadow: 0 0 0 3px rgb(59 130 246 / 0.55), 0 0 0 8px rgb(59 130 246 / 0.12); }
+  60% { box-shadow: 0 0 0 3px rgb(59 130 246 / 0.35), 0 0 0 6px rgb(59 130 246 / 0.06); }
+  100% { box-shadow: 0 0 0 3px rgb(59 130 246 / 0), 0 0 0 6px rgb(59 130 246 / 0); }
+}
+@keyframes link-target-flash-cell {
+  0%, 100% { background-color: transparent; }
+  12%, 55% { background-color: rgb(219 234 254); }
+}
+.link-target-flash {
+  animation: link-target-flash 2.4s ease-out;
+}
+/* Tabellenzeilen tragen keinen Schatten zuverlaessig - dort die Zellen faerben */
+tr.link-target-flash {
+  animation: none;
+}
+tr.link-target-flash > td {
+  animation: link-target-flash-cell 2.4s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .link-target-flash,
+  tr.link-target-flash > td {
+    animation-duration: 0.01s;
+    outline: 2px solid rgb(59 130 246 / 0.6);
+    outline-offset: 2px;
+  }
+}

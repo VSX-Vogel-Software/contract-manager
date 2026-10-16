@@ -8,6 +8,7 @@ import { UpdateBanner } from './UpdateBanner'
 import { ChunkErrorBoundary, PageLoading } from './ChunkErrorBoundary'
 import { apolloClient } from '@/lib/apollo'
 import { useAuth } from '@/lib/auth'
+import { useLinkTarget } from '@/lib/linkTarget'
 import { useIsDesktop } from '@/lib/useMediaQuery'
 import { PULL_THRESHOLD, usePullToRefresh } from '@/lib/usePullToRefresh'
 import { cn } from '@/lib/utils'
@@ -34,6 +35,8 @@ export function Layout() {
   // die Seite selbst neu zu laden - Filter, Tabs und Eingaben bleiben stehen.
   const refresh = useCallback(() => apolloClient.refetchQueries({ include: 'active' }), [])
   const pull = usePullToRefresh(mainRef, refresh)
+  // Links mit #<id> rollen zum Ziel und heben es kurz hervor
+  useLinkTarget()
 
   // Bei jedem Seitenwechsel Schublade und Suche schliessen
   useEffect(() => {

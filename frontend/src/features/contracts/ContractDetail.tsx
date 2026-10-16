@@ -1,6 +1,6 @@
 import { lazy, Suspense, useState, useRef, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate, useParams, useLocation, Link } from 'react-router-dom'
+import { useNavigate, useParams, Link } from 'react-router-dom'
 import { useQuery, useMutation, gql } from '@apollo/client'
 import {
   Loader2,
@@ -102,6 +102,9 @@ import { PaymentReminderList } from '@/features/reminders/PaymentReminderList'
 import { DUNNING_SETTINGS_QUERY, type PaymentReminder, type DunningSettings } from '@/features/reminders/dunning'
 import { CREATE_OFFER_MUTATION } from './contractOfferMutations'
 import type { Attachment, ContractLink } from './ContractAttachmentsTab'
+import { useUrlTab } from '@/lib/useUrlTab'
+import { linkTargetId } from '@/lib/linkTarget'
+import { CopyLinkButton } from '@/components/CopyLinkButton'
 
 // Tab-Inhalte und selten genutzte Dialoge erst bei Bedarf laden: die
 // Vertragsuebersicht (Positionen) soll ohne Audit, Zeiterfassung, Anhaenge
@@ -650,11 +653,10 @@ type Tab = 'items' | 'amendments' | 'forecast' | 'attachments' | 'invoices' | 't
 export function ContractDetail() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const location = useLocation()
   const { id } = useParams<{ id: string }>()
   const validTabs: Tab[] = ['items', 'amendments', 'forecast', 'attachments', 'invoices', 'todos', 'timeTracking', 'activity']
-  const hashTab = location.hash.replace('#', '') as Tab
-  const [activeTab, setActiveTab] = useState<Tab>(validTabs.includes(hashTab) ? hashTab : 'items')
+  // ?tab= in der Adresse; alte Links mit #<tab> gelten weiter
+  const [activeTab, setActiveTab] = useUrlTab<Tab>('tab', validTabs, 'items', { legacyHash: true })
   const [showAddItemModal, setShowAddItemModal] = useState(false)
   const [showPriceIncreaseModal, setShowPriceIncreaseModal] = useState(false)
   const [editingItem, setEditingItem] = useState<ContractItem | null>(null)
@@ -1445,7 +1447,7 @@ export function ContractDetail() {
                             return (
                               <SortableRow key={item.id} id={item.id} disabled={!canEdit}>
                                 {({ dragHandleProps, style, ref }) => (
-                                  <tr ref={ref} style={style}>
+                                  <tr ref={ref} style={style} id={linkTargetId('item', item.id)} className="group/link">
                                     {canEdit && (
                                       <td className="w-8 px-2 py-4">
                                         <span {...dragHandleProps} className="text-gray-400 hover:text-gray-600 touch:inline-flex touch:p-2">
@@ -1456,6 +1458,7 @@ export function ContractDetail() {
                                     <td className="px-6 py-4">
                                       <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
                                         <span className="font-medium text-gray-900">{itemName}</span>
+                                        <CopyLinkButton targetId={linkTargetId('item', item.id)} />
                                         {item.deliveryStatus === 'pending' && (
                                           <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
                                             <CircleDot className="h-3 w-3" />
@@ -1646,7 +1649,7 @@ export function ContractDetail() {
                               return (
                                 <SortableRow key={item.id} id={item.id} disabled={!canEdit}>
                                   {({ dragHandleProps, style, ref }) => (
-                                    <tr ref={ref} style={style}>
+                                    <tr ref={ref} style={style} id={linkTargetId('item', item.id)} className="group/link">
                                       {canEdit && (
                                         <td className="w-8 px-2 py-4">
                                           <span {...dragHandleProps} className="text-gray-400 hover:text-gray-600 touch:inline-flex touch:p-2">
@@ -1657,6 +1660,7 @@ export function ContractDetail() {
                                       <td className="px-6 py-4">
                                         <div className="flex flex-wrap items-center gap-2 lg:flex-nowrap">
                                           <span className="font-medium text-gray-900">{itemName}</span>
+                                          <CopyLinkButton targetId={linkTargetId('item', item.id)} />
                                           {item.deliveryStatus === 'pending' && (
                                             <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
                                               <CircleDot className="h-3 w-3" />
@@ -1817,12 +1821,17 @@ export function ContractDetail() {
           ) : (
             <div className="space-y-4">
               {contract.amendments.map((amendment) => (
-                <div key={amendment.id} className="rounded-lg border bg-white p-4">
+                <div
+                  key={amendment.id}
+                  id={linkTargetId('amendment', amendment.id)}
+                  className="group/link rounded-lg border bg-white p-4"
+                >
                   <div className="flex items-start justify-between">
                     <div>
                       <span className="inline-flex rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-800">
                         {t(`contracts.amendment.${amendment.type}`)}
                       </span>
+                      <CopyLinkButton targetId={linkTargetId('amendment', amendment.id)} className="ml-1 align-middle" />
                       <p className="mt-2 text-gray-900">{amendment.description}</p>
                     </div>
                     <div className="text-right text-sm text-gray-500">

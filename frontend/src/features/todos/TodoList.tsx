@@ -9,6 +9,9 @@ import { Calendar, User, UserCheck, Pencil, MessageSquare } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth'
 import { TodoDetailModal } from './TodoDetailModal'
+import { CopyLinkButton } from '@/components/CopyLinkButton'
+import { linkTargetId } from '@/lib/linkTarget'
+import { todoEntityLink, todoEntityPath } from './todoLinks'
 
 const UPDATE_TODO = gql`
   mutation UpdateTodo(
@@ -142,15 +145,9 @@ export function TodoList({ todos, showCreator = false, onUpdate, currentUserId }
   }
 
 
-  const getEntityLink = (todo: TodoItem): string => {
-    if (todo.contractId) {
-      return `/contracts/${todo.contractId}`
-    }
-    if (todo.customerId) {
-      return `/customers/${todo.customerId}`
-    }
-    return '#'
-  }
+  // Todo-Tab der Akte - Link und Sprung landen direkt beim Todo
+  const getEntityPath = todoEntityPath
+  const getEntityLink = todoEntityLink
 
   const canEdit = (todo: TodoItem) => {
     if (effectiveUserId) {
@@ -178,8 +175,9 @@ export function TodoList({ todos, showCreator = false, onUpdate, currentUserId }
         {todos.map((todo) => (
           <div
             key={todo.id}
+            id={linkTargetId('todo', todo.id)}
             className={cn(
-              'flex items-start gap-3 p-3 rounded-lg border bg-card',
+              'group/link flex items-start gap-3 p-3 rounded-lg border bg-card',
               todo.isCompleted && 'opacity-60'
             )}
             data-testid={`todo-item-${todo.id}`}
@@ -272,6 +270,11 @@ export function TodoList({ todos, showCreator = false, onUpdate, currentUserId }
 
             {/* Action button */}
             <div className="flex items-center gap-1">
+              <CopyLinkButton
+                targetId={linkTargetId('todo', todo.id)}
+                path={getEntityPath(todo) ?? undefined}
+                className="h-8 w-8"
+              />
               {canEdit(todo) && (
                 <Button
                   variant="ghost"

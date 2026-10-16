@@ -6,6 +6,7 @@ import { useAuth } from '../../lib/auth'
 import { MicrosoftLogo } from '@/components/MicrosoftLogo'
 import { clearFragment, readSsoFragment } from '@/lib/ssoFragment'
 import { markSsoSession } from '@/lib/ssoSession'
+import { clearReturnTo, locationToPath, peekReturnTo } from '@/lib/returnTo'
 import { TwoFactorVerify } from './TwoFactorVerify'
 
 const SIGNUP_ENABLED = gql`
@@ -45,7 +46,13 @@ export function Login() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [twoFactor, setTwoFactor] = useState<{ challengeToken: string; method: string } | null>(null)
 
-  const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/'
+  // Urspruenglicher Link samt ?tab= und #Sprungziel (lib/returnTo)
+  const stateFrom = (location.state as { from?: { pathname: string; search?: string; hash?: string } })?.from
+  const from = peekReturnTo(stateFrom ? locationToPath(stateFrom) : null)
+  const goToReturnTo = () => {
+    clearReturnTo()
+    navigate(from, { replace: true })
+  }
   const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
 
   // Der Rueckkanal des Backends landet als Fragment auf dieser Seite.
@@ -56,9 +63,7 @@ export function Login() {
 
     if (outcome.kind === 'tokens') {
       markSsoSession()
-      loginWithTokens(outcome.accessToken, outcome.refreshToken).then(() =>
-        navigate(from, { replace: true })
-      )
+      loginWithTokens(outcome.accessToken, outcome.refreshToken).then(goToReturnTo)
     } else if (outcome.kind === 'twoFactor') {
       setTwoFactor({ challengeToken: outcome.challengeToken, method: outcome.method })
     } else if (outcome.kind === 'unavailable') {
@@ -79,7 +84,7 @@ export function Login() {
     const result = await login(email, password)
 
     if (result.success) {
-      navigate(from, { replace: true })
+      goToReturnTo()
     } else if (result.setupRequired) {
       navigate('/setup-2fa', { replace: true })
     } else if (result.twoFactor) {
@@ -96,7 +101,7 @@ export function Login() {
     setIsSubmitting(true)
     const result = await login('admin@test.local', 'admin123')
     if (result.success) {
-      navigate(from, { replace: true })
+      goToReturnTo()
     } else if (result.setupRequired) {
       navigate('/setup-2fa', { replace: true })
     } else if (result.twoFactor) {
@@ -109,7 +114,7 @@ export function Login() {
 
   const handle2faSuccess = async (accessToken: string, refreshToken: string) => {
     await loginWithTokens(accessToken, refreshToken)
-    navigate(from, { replace: true })
+    goToReturnTo()
   }
 
   if (twoFactor) {

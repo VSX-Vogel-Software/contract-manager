@@ -31,6 +31,8 @@ import {
 } from '@/components/ui/select'
 import { FileDropZone } from '@/components/FileDropZone'
 import { PdfAnalysisPanel } from './PdfAnalysisPanel'
+import { CopyLinkButton } from '@/components/CopyLinkButton'
+import { linkTargetId } from '@/lib/linkTarget'
 
 export interface Attachment {
   id: string
@@ -408,7 +410,7 @@ export function AttachmentsTab({
   }
 
   const handleCopySectionLink = async () => {
-    const url = `${window.location.origin}/contracts/${contractId}#attachments`
+    const url = `${window.location.origin}/contracts/${contractId}?tab=attachments`
     await navigator.clipboard.writeText(url)
     setCopiedId('section')
     setTimeout(() => setCopiedId(null), 2000)
@@ -537,13 +539,19 @@ export function AttachmentsTab({
                 // — no edit/delete/permalink/analyze actions; only download + preview.
                 const isSynthetic = Number(attachment.id) < 0
                 return (
-                <tr key={attachment.id}>
+                <tr key={attachment.id} id={linkTargetId('attachment', attachment.id)} className="group/link">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
                       {getFileIcon(attachment.contentType)}
                       <span className="font-medium text-gray-900">
                         {attachment.originalFilename}
                       </span>
+                      {!isSynthetic && (
+                        <CopyLinkButton
+                          targetId={linkTargetId('attachment', attachment.id)}
+                          path={`/contracts/${contractId}?tab=attachments`}
+                        />
+                      )}
                     </div>
                     {!isSynthetic && editingNoteId === attachment.id ? (
                       <div className="mt-1 flex items-center gap-1">

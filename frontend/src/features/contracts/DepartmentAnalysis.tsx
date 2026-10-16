@@ -5,6 +5,7 @@ import { useQuery, gql } from '@apollo/client'
 import { Loader2, ArrowUpDown, ArrowUp, ArrowDown, Download, Info, ShieldAlert } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
 import { AbsenceReport } from './AbsenceReport'
+import { useUrlTab } from '@/lib/useUrlTab'
 
 const DEPARTMENT_TIME_ANALYSIS = gql`
   query DepartmentTimeAnalysis($dateFrom: Date!, $dateTo: Date!) {
@@ -106,6 +107,8 @@ const COLORS = [
   'bg-indigo-500', 'bg-red-400',
 ]
 
+const DEPARTMENT_TABS = ['allocation', 'absences'] as const
+
 export function DepartmentAnalysis() {
   const { t } = useTranslation()
   const { hasPermission } = useAuth()
@@ -150,7 +153,7 @@ function DepartmentAnalysisContent() {
   const [showFilled, setShowFilled] = useState(false)
   const [sortBy, setSortBy] = useState<string>('__user')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
-  const [activeTab, setActiveTab] = useState<'allocation' | 'absences'>('allocation')
+  const [activeTab, setActiveTab] = useUrlTab('tab', DEPARTMENT_TABS, 'allocation')
 
   const monthShortcuts = useMemo(() => getMonthShortcuts(), [])
   const ytdFrom = formatDate(new Date(now.getFullYear(), 0, 1))

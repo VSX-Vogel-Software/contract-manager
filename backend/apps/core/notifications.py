@@ -24,13 +24,18 @@ def is_subscribed(user, event_type: str) -> bool:
 
 
 def _todo_entity_url(todo, base_url):
-    """Build a frontend URL to the entity linked to a todo."""
+    """Build a frontend URL to the entity linked to a todo.
+
+    Lands on the entity's todo tab; the fragment makes the page scroll to the
+    todo and highlight it (frontend lib/linkTarget.ts).
+    """
+    anchor = f"?tab=todos#todo-{todo.id}"
     if todo.contract_id:
-        return f"{base_url}/contracts/{todo.contract_id}"
+        return f"{base_url}/contracts/{todo.contract_id}{anchor}"
     if todo.contract_item_id:
-        return f"{base_url}/contracts/{todo.contract_item.contract_id}"
+        return f"{base_url}/contracts/{todo.contract_item.contract_id}?tab=todos"
     if todo.customer_id:
-        return f"{base_url}/customers/{todo.customer_id}"
+        return f"{base_url}/customers/{todo.customer_id}{anchor}"
     return None
 
 
@@ -69,6 +74,9 @@ def _build_todo_mention_email(*, todo, mentioner, comment_text, base_url="", **k
     ]
 
     if base_url:
+        entity_url = _todo_entity_url(todo, base_url)
+        if entity_url:
+            lines.append(f"<p><a href=\"{entity_url}\">Open todo</a></p>")
         todo_url = f"{base_url}/todos"
         lines.append(f"<p><a href=\"{todo_url}\">Open Todos</a></p>")
 

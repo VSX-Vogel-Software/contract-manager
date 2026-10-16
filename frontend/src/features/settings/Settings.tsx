@@ -5,6 +5,7 @@ import { useMutation, useQuery, useLazyQuery, gql } from '@apollo/client'
 import { RefreshCw, CheckCircle, XCircle, Loader2, Upload, Plus, X, Info, Copy, Check, Pencil, Trash2, Save } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
 import { HelpVideoSettings } from './HelpVideoSettings'
+import { useUrlTab } from '@/lib/useUrlTab'
 
 interface CompanyFilter {
   propertyName: string
@@ -353,6 +354,8 @@ interface SettingsProps {
   section?: 'hubspot' | 'timeTracking' | 'email' | 'contracts' | 'helpVideos'
 }
 
+const TIME_TRACKING_SUB_TABS = ['connection', 'departments', 'costs', 'projects'] as const
+
 export function Settings({ showHeader = true, section }: SettingsProps) {
   const { t } = useTranslation()
   const [ttProvider, setTtProvider] = useState('clockodo')
@@ -393,7 +396,8 @@ export function Settings({ showHeader = true, section }: SettingsProps) {
   const [templateMessage, setTemplateMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   // Time tracking sub-tab state
-  const [ttSubTab, setTtSubTab] = useState<'connection' | 'departments' | 'costs' | 'projects'>('connection')
+  // ?sub= - der Zeiterfassungs-Bereich hat eigene Tabs innerhalb der Einstellungs-Tabs
+  const [ttSubTabWanted, setTtSubTab] = useUrlTab('sub', TIME_TRACKING_SUB_TABS, 'connection')
 
   // Department state
   const [newDeptName, setNewDeptName] = useState('')
@@ -404,6 +408,8 @@ export function Settings({ showHeader = true, section }: SettingsProps) {
   const [assignmentMessage, setAssignmentMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const isTimeTrackingConfigured = !!ttSettingsData?.timeTrackingSettings?.isConfigured
+  // Ohne Verbindung sind die anderen Unter-Tabs gesperrt - auch per Link
+  const ttSubTab = isTimeTrackingConfigured ? ttSubTabWanted : 'connection'
   const { data: deptsData, refetch: refetchDepts } = useQuery(DEPARTMENTS_QUERY, { skip: !isTimeTrackingConfigured })
   const { data: costCentersForDeptData } = useQuery(COST_CENTERS_FOR_DEPT_QUERY, { skip: !isTimeTrackingConfigured })
   const [fetchServices, { data: servicesData, loading: loadingServices }] = useLazyQuery(CLOCKODO_SERVICES_QUERY)
@@ -1707,6 +1713,8 @@ export function Settings({ showHeader = true, section }: SettingsProps) {
                   key={tab}
                   onClick={() => !disabled && setTtSubTab(tab)}
                   disabled={disabled}
+                  aria-current={ttSubTab === tab ? 'page' : undefined}
+                  data-testid={`tt-subtab-${tab}`}
                   className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
                     ttSubTab === tab
                       ? 'border-blue-500 text-blue-600'

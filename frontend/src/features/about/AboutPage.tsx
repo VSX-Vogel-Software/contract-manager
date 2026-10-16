@@ -4,6 +4,11 @@ import { Search, Sparkles, Bug, Zap, Shield, Loader2, ExternalLink, Code, Scale 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { formatDateTime, formatDate as formatDateUtil } from '@/lib/utils'
+import { useUrlTab } from '@/lib/useUrlTab'
+import { linkTargetId } from '@/lib/linkTarget'
+import { CopyLinkButton } from '@/components/CopyLinkButton'
+
+const ABOUT_TABS = ['changelog', 'about'] as const
 
 interface VersionInfo {
   version: string
@@ -46,6 +51,7 @@ const TYPE_CONFIG = {
 
 export function AboutPage() {
   const { t } = useTranslation()
+  const [activeTab, setActiveTab] = useUrlTab('tab', ABOUT_TABS, 'changelog')
   const [backendVersion, setBackendVersion] = useState<VersionInfo | null>(null)
   const [frontendLicenses, setFrontendLicenses] = useState<LicenseEntry[]>([])
   const [backendLicenses, setBackendLicenses] = useState<LicenseEntry[]>([])
@@ -130,7 +136,7 @@ export function AboutPage() {
     <div>
       <h1 className="text-2xl font-bold mb-6">{t('about.title')}</h1>
 
-      <Tabs defaultValue="changelog">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as (typeof ABOUT_TABS)[number])}>
         <TabsList>
           <TabsTrigger value="changelog">{t('about.changelog.tab')}</TabsTrigger>
           <TabsTrigger value="about">{t('about.changelog.aboutTab')}</TabsTrigger>
@@ -150,8 +156,9 @@ export function AboutPage() {
               {changelog.map((entry, i) => {
                 const config = TYPE_CONFIG[entry.type] || TYPE_CONFIG.feature
                 const Icon = config.icon
+                const anchor = linkTargetId('version', entry.version)
                 return (
-                  <div key={i} className="rounded-lg border bg-white p-4 sm:p-6">
+                  <div key={i} id={anchor} className="group/link rounded-lg border bg-white p-4 sm:p-6">
                     <div className="flex items-start justify-between gap-4">
                       {/* min-w-0 + break-words: lange Woerter/Pfade in Eintraegen sprengen sonst die Breite */}
                       <div className="min-w-0 flex-1 break-words">
@@ -163,6 +170,7 @@ export function AboutPage() {
                           <span className="text-sm text-gray-500">
                             v{entry.version} · {formatChangelogDate(entry.date)}
                           </span>
+                          <CopyLinkButton targetId={anchor} />
                         </div>
                         <h3 className="text-lg font-semibold mt-2">{entry.title}</h3>
                         <p className="text-gray-600 mt-1">{entry.description}</p>

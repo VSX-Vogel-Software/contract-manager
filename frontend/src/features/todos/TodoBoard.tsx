@@ -36,6 +36,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth'
 import { TodoDetailModal } from './TodoDetailModal'
+import { todoEntityLink } from './todoLinks'
 
 // ============================================================================
 // GraphQL Queries and Mutations
@@ -216,15 +217,7 @@ function TodoCard({
   moveTargets,
   onMove,
 }: TodoCardProps) {
-  const getEntityLink = (todo: TodoItem): string => {
-    if (todo.contractId) {
-      return `/contracts/${todo.contractId}`
-    }
-    if (todo.customerId) {
-      return `/customers/${todo.customerId}`
-    }
-    return '#'
-  }
+  const getEntityLink = (todo: TodoItem): string => todoEntityLink(todo)
 
 
   const canEdit = todo.createdById === currentUserId

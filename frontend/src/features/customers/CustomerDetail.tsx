@@ -42,10 +42,12 @@ import {
   type PaymentReminder,
   type DunningSettings,
 } from '@/features/reminders/dunning'
+import { useUrlTab } from '@/lib/useUrlTab'
 
 type SortField = 'name' | 'status' | 'startDate' | 'endDate' | 'arr' | 'totalValue' | 'remainingMonths' | null
 type SortOrder = 'asc' | 'desc'
-type Tab = 'contracts' | 'groups' | 'invoices' | 'attachments' | 'documents' | 'activity' | 'todos'
+const CUSTOMER_TABS = ['contracts', 'groups', 'invoices', 'attachments', 'documents', 'activity', 'todos'] as const
+type Tab = (typeof CUSTOMER_TABS)[number]
 
 const CUSTOMER_QUERY = gql`
   query Customer($id: ID!) {
@@ -491,7 +493,9 @@ interface CustomerData {
 export function CustomerDetail() {
   const { id } = useParams<{ id: string }>()
   const { t, i18n } = useTranslation()
-  const [activeTab, setActiveTab] = usePersistedState<Tab>('cm:customerDetail:activeTab', 'contracts')
+  const [activeTab, setActiveTab] = useUrlTab<Tab>('tab', CUSTOMER_TABS, 'contracts', {
+    storageKey: 'cm:customerDetail:activeTab',
+  })
   const [sortField, setSortField] = usePersistedState<SortField>('cm:customerDetail:sortBy', null)
   const [sortOrder, setSortOrder] = usePersistedState<SortOrder>('cm:customerDetail:sortOrder', 'asc')
 
