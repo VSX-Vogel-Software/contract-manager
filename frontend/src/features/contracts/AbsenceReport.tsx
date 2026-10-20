@@ -128,21 +128,23 @@ const ABSENCE_TYPE_LABELS: Record<string, Record<string, string>> = {
 // Reihenfolge der Summen nach Art (wie im PDF): Krankheit mit AU vor ohne AU
 const ABSENCE_TYPE_ORDER = Object.keys(ABSENCE_TYPE_LABELS.de)
 
+// In den Summen zaehlt Kind krank zu Krank mit bzw. ohne AU; die Einzelzeilen behalten ihre Art
+const SUMMARY_TYPE: Record<string, string> = {
+  sick_child: 'sick',
+  sick_child_certificate: 'sick_certificate',
+}
+
 // Krankheit erscheint immer paarweise mit und ohne AU, auch wenn eine Seite 0 ist
-const SICK_NOTE_PAIRS = [
-  ['sick_certificate', 'sick'],
-  ['sick_child_certificate', 'sick_child'],
-]
+const SICK_NOTE_PAIR = ['sick_certificate', 'sick']
 
 function sumDaysByType(entries: AbsenceEntry[]): { absenceType: string; days: number }[] {
   const sums: Record<string, number> = {}
   for (const e of entries) {
-    sums[e.absenceType] = (sums[e.absenceType] || 0) + parseFloat(e.daysCount)
+    const type = SUMMARY_TYPE[e.absenceType] || e.absenceType
+    sums[type] = (sums[type] || 0) + parseFloat(e.daysCount)
   }
-  for (const pair of SICK_NOTE_PAIRS) {
-    if (pair.some((t) => t in sums)) {
-      for (const t of pair) sums[t] = sums[t] || 0
-    }
+  if (SICK_NOTE_PAIR.some((t) => t in sums)) {
+    for (const t of SICK_NOTE_PAIR) sums[t] = sums[t] || 0
   }
   const rank = (t: string) => {
     const i = ABSENCE_TYPE_ORDER.indexOf(t)

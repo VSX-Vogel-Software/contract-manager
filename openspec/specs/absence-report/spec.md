@@ -43,3 +43,10 @@ Reicht eine Abwesenheit über die Monatsgrenze, SHALL das System ihre Tage nach 
 #### Scenario: Urlaub über das Monatsende
 - **WHEN** 5 Urlaubstage von Mi 28.01. bis Di 03.02. gebucht sind
 - **THEN** zeigt der Februar-Report 2 Tage (nicht 2,14)
+
+### Requirement: Kind krank in den Krank-Summen
+In den Summen „Fehltage nach Art“ und in der Abteilungsanalyse SHALL das System Kind krank mit AU zu „Krank mit AU“ und Kind krank ohne AU zu „Krank ohne AU“ zählen. Eine eigene Summe oder Spalte für Kind krank SHALL NOT angezeigt werden. Die Einzelzeilen des Reports MUST die Art „Kind krank mit/ohne AU“ behalten.
+
+#### Scenario: Kind krank mit AU
+- **WHEN** ein Mitarbeiter 2 Tage krank mit AU und 3 Tage Kind krank mit AU hat
+- **THEN** zeigen Summe und Abteilungsanalyse „Krank mit AU: 5“

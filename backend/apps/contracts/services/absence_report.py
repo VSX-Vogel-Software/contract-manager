@@ -66,8 +66,6 @@ ABSENCE_LABELS = {
 ABSENCE_TYPE_ORDER = [
     "sick_certificate",
     "sick",
-    "sick_child_certificate",
-    "sick_child",
     "vacation",
     "special_leave",
     "education",
@@ -76,11 +74,15 @@ ABSENCE_TYPE_ORDER = [
 ]
 
 
+# In den Summen zaehlt Kind krank zu Krank mit bzw. ohne AU (Vorgabe Personal,
+# 20.10.2026); die Einzelzeilen behalten ihre Art.
+SUMMARY_TYPE = {
+    "sick_child": "sick",
+    "sick_child_certificate": "sick_certificate",
+}
+
 # Krankheit erscheint immer paarweise mit und ohne AU, auch wenn eine Seite 0 ist
-SICK_NOTE_PAIRS = [
-    ("sick_certificate", "sick"),
-    ("sick_child_certificate", "sick_child"),
-]
+SICK_NOTE_PAIR = ("sick_certificate", "sick")
 
 
 def _dedup_family(absence_type: str) -> str:
@@ -359,12 +361,12 @@ class AbsenceReportService:
         """Sum days per absence type (sick with/without certificate separately)."""
         sums: dict[str, dict] = {}
         for e in entries:
-            row = sums.setdefault(e["absence_type"], {"type_label": e["type_label"], "days": Decimal("0")})
+            absence_type = SUMMARY_TYPE.get(e["absence_type"], e["absence_type"])
+            row = sums.setdefault(absence_type, {"type_label": labels.get(f"type_{absence_type}", e["type_label"]), "days": Decimal("0")})
             row["days"] += e["days_count"]
-        for pair in SICK_NOTE_PAIRS:
-            if any(t in sums for t in pair):
-                for t in pair:
-                    sums.setdefault(t, {"type_label": labels.get(f"type_{t}", t), "days": Decimal("0")})
+        if any(t in sums for t in SICK_NOTE_PAIR):
+            for t in SICK_NOTE_PAIR:
+                sums.setdefault(t, {"type_label": labels.get(f"type_{t}", t), "days": Decimal("0")})
         order = {t: i for i, t in enumerate(ABSENCE_TYPE_ORDER)}
         return [sums[t] for t in sorted(sums, key=lambda t: order.get(t, len(order)))]
 

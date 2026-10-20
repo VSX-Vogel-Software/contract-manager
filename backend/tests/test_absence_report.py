@@ -365,6 +365,8 @@ class TestAbsenceReportService:
             ("Alice", "1", "sick", 2, "1.00"),
             ("Alice", "1", "sick_certificate", 3, "3.00"),
             ("Bob", "2", "sick_certificate", 9, "2.00"),
+            ("Bob", "2", "sick_child_certificate", 12, "1.00"),
+            ("Bob", "2", "sick_child", 13, "1.00"),
             ("Bob", "2", "vacation", 16, "5.00"),
         ]:
             AbsenceReportEntry.objects.create(
@@ -382,21 +384,40 @@ class TestAbsenceReportService:
             ("Krank ohne AU", Decimal("1.00")),
         ]
         bob = next(g for g in grouped if g["user_name"] == "Bob")
+        # Kind krank zaehlt in den Summen mit zu Krank mit/ohne AU
         assert [(t["type_label"], t["days"]) for t in bob["days_by_type"]] == [
-            ("Krank mit AU", Decimal("2.00")),
-            ("Krank ohne AU", Decimal("0")),
+            ("Krank mit AU", Decimal("3.00")),
+            ("Krank ohne AU", Decimal("1.00")),
             ("Urlaub", Decimal("5.00")),
         ]
         totals = service._days_by_type((e for g in grouped for e in g["entries"]), ABSENCE_LABELS["de"])
         assert [(t["type_label"], t["days"]) for t in totals] == [
-            ("Krank mit AU", Decimal("5.00")),
-            ("Krank ohne AU", Decimal("1.00")),
+            ("Krank mit AU", Decimal("6.00")),
+            ("Krank ohne AU", Decimal("2.00")),
             ("Urlaub", Decimal("5.00")),
         ]
 
         html = service.render_html(report, language="de")
         assert "Fehltage nach Art" in html
         assert "Krank mit AU" in html
+        # Einzelzeilen behalten die Art, damit nachvollziehbar bleibt, woher ein Tag kommt
+        assert "Kind krank mit AU" in html
+
+    def test_days_by_type_child_only(self, db, tenant):
+        """Nur Kind krank: Summe zeigt trotzdem beide Krank-Zeilen."""
+        report = AbsenceReport.objects.create(tenant=tenant, year=2026, month=2)
+        AbsenceReportEntry.objects.create(
+            tenant=tenant, report=report, user_name="Carla",
+            external_user_id="3", absence_type="sick_child_certificate",
+            date_from=date(2026, 2, 3), date_to=date(2026, 2, 4),
+            days_count=Decimal("2.00"),
+        )
+        service = AbsenceReportService(tenant)
+        grouped = service._build_grouped_entries(report, "de")
+        assert [(t["type_label"], t["days"]) for t in grouped[0]["days_by_type"]] == [
+            ("Krank mit AU", Decimal("2.00")),
+            ("Krank ohne AU", Decimal("0")),
+        ]
 
     def test_render_html_english(self, db, tenant):
         """English HTML rendering contains expected labels."""

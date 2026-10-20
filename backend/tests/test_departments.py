@@ -938,3 +938,60 @@ class TestDepartmentTimeXlsxUserSelection:
 
         with pytest.raises(ValueError, match="no active user with department_analysis.read"):
             generate_department_time_xlsx(tenant, 2026, 8)
+
+
+SICK_ANALYSIS_QUERY = """
+query($dateFrom: Date!, $dateTo: Date!) {
+  departmentTimeAnalysis(dateFrom: $dateFrom, dateTo: $dateTo) {
+    userMatrix { userName sickDays sickCertificateDays sickChildDays }
+  }
+}
+"""
+
+
+@pytest.mark.django_db
+class TestSickDaysByCertificate:
+    """Kind krank zaehlt zu Krank mit bzw. ohne AU, keine eigene Spalte."""
+
+    def setup_method(self):
+        from django.core.cache import cache
+        cache.clear()
+
+    def test_child_sick_merged_into_sick_with_and_without_certificate(self, user, tenant, department):
+        from apps.contracts.services.clockodo_provider import ClockodoProvider
+
+        DepartmentServiceMapping.objects.create(
+            tenant=tenant, department=department,
+            external_service_id="s1", external_service_name="Dev",
+        )
+        absences = [
+            {"user_id": "u1", "date_since": "2026-01-05", "date_until": "2026-01-05",
+             "count_days": 1, "type": 4, "status": 1, "sick_note": False},
+            {"user_id": "u1", "date_since": "2026-01-06", "date_until": "2026-01-07",
+             "count_days": 2, "type": 4, "status": 1, "sick_note": True},
+            {"user_id": "u1", "date_since": "2026-01-12", "date_until": "2026-01-12",
+             "count_days": 1, "type": 5, "status": 1, "sick_note": False},
+            {"user_id": "u1", "date_since": "2026-01-13", "date_until": "2026-01-15",
+             "count_days": 3, "type": 5, "status": 1, "sick_note": True},
+        ]
+        clockodo = ClockodoProvider({"api_user": "x", "api_key": "y"})
+
+        with patch("apps.contracts.services.time_tracking.get_provider") as mock_prov:
+            provider = Mock()
+            provider.get_department_time_data.return_value = [
+                {"user_id": "u1", "user_name": "Alice", "service_id": "s1", "service_name": "Dev", "hours": 100},
+            ]
+            provider.get_absences.return_value = absences
+            provider.get_users.return_value = [{"id": "u1", "name": "Alice"}]
+            provider.normalize_absence_type.side_effect = clockodo.normalize_absence_type
+            mock_prov.return_value = provider
+
+            result = run_graphql(SICK_ANALYSIS_QUERY, {
+                "dateFrom": "2026-01-01", "dateTo": "2026-01-31",
+            }, make_context(user))
+
+        assert result.errors is None
+        alice = next(r for r in result.data["departmentTimeAnalysis"]["userMatrix"] if r["userName"] == "Alice")
+        assert alice["sickDays"] == 2.0             # 1 eigen + 1 Kind, ohne AU
+        assert alice["sickCertificateDays"] == 5.0  # 2 eigen + 3 Kind, mit AU
+        assert alice["sickChildDays"] is None

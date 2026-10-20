@@ -4124,12 +4124,11 @@ class ContractQuery:
                     )
                 except Exception:
                     normalized = "other"
-                if normalized == "sick":
+                # Kind krank zaehlt zu Krank mit bzw. ohne AU (Vorgabe Personal)
+                if normalized in ("sick", "sick_child"):
                     user_sick_days[uid] += counted_days
-                elif normalized == "sick_certificate":
+                elif normalized in ("sick_certificate", "sick_child_certificate"):
                     user_sick_certificate_days[uid] += counted_days
-                elif normalized in ("sick_child", "sick_child_certificate"):
-                    user_sick_child_days[uid] += counted_days
         except Exception:
             pass  # Absences are optional, don't fail the whole analysis
 

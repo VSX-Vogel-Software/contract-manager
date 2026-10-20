@@ -218,8 +218,8 @@ function DepartmentAnalysisContent() {
         cmp = (a.absenceDays || 0) - (b.absenceDays || 0)
       } else if (sortBy === '__sick') {
         // Combined column sorts by total of all three sick categories
-        const at = (a.sickDays || 0) + (a.sickCertificateDays || 0) + (a.sickChildDays || 0)
-        const bt = (b.sickDays || 0) + (b.sickCertificateDays || 0) + (b.sickChildDays || 0)
+        const at = (a.sickDays || 0) + (a.sickCertificateDays || 0)
+        const bt = (b.sickDays || 0) + (b.sickCertificateDays || 0)
         cmp = at - bt
       } else if (sortBy === '__total') {
         cmp = a.totalHours - b.totalHours
@@ -568,7 +568,6 @@ function DepartmentAnalysisContent() {
                       t('departmentAnalysis.absenceDays'),
                       t('departmentAnalysis.sickDays'),
                       t('departmentAnalysis.sickCertificateDays'),
-                      t('departmentAnalysis.sickChildDays'),
                       ...deptNames,
                       t('departmentAnalysis.total'),
                     ].map(escape).join(';')
@@ -578,7 +577,6 @@ function DepartmentAnalysisContent() {
                         row.absenceDays != null ? num(row.absenceDays) : '',
                         row.sickDays != null ? num(row.sickDays) : '',
                         row.sickCertificateDays != null ? num(row.sickCertificateDays) : '',
-                        row.sickChildDays != null ? num(row.sickChildDays) : '',
                         ...deptNames.map((name: string) => {
                           const cell = row.departments.find((d: { departmentName: string }) => d.departmentName === name)
                           if (!cell) return num(0)
@@ -636,7 +634,7 @@ function DepartmentAnalysisContent() {
                           onClick={() => handleSort('__sick')}
                           title={t(
                             'departmentAnalysis.sickCombinedHint',
-                            'Krankheitstage gesamt — aufgeteilt nach: ohne AU / mit AU / Kind krank',
+                            'Krankheitstage gesamt inkl. Kind krank — aufgeteilt nach: ohne AU / mit AU',
                           )}
                         >
                           <div className="flex items-center justify-end">
@@ -681,8 +679,7 @@ function DepartmentAnalysisContent() {
                           {(() => {
                             const s = row.sickDays || 0
                             const sc = row.sickCertificateDays || 0
-                            const sk = row.sickChildDays || 0
-                            const total = s + sc + sk
+                            const total = s + sc
                             if (total === 0) {
                               return (
                                 <td className="px-6 py-3 text-right text-sm text-gray-300">-</td>
@@ -711,15 +708,6 @@ function DepartmentAnalysisContent() {
                                     )}
                                   >
                                     {t('departmentAnalysis.sickCertShort', 'AU')}: {sc.toFixed(1)}
-                                  </span>
-                                  <span
-                                    className={sk > 0 ? 'text-amber-600' : 'text-gray-300'}
-                                    title={t(
-                                      'departmentAnalysis.sickChildDaysHint',
-                                      'Kind krank',
-                                    )}
-                                  >
-                                    {t('departmentAnalysis.sickChildShort', 'Kind')}: {sk.toFixed(1)}
                                   </span>
                                 </div>
                               </td>
