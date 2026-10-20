@@ -1,5 +1,20 @@
 [
   {
+    "version": "2.45.0",
+    "date": "2026-10-20",
+    "title": "Fehlzeiten-Report: Kranktage mit und ohne AU",
+    "description": "Der Fehlzeiten-Report weist Kranktage jetzt getrennt nach „mit AU“ und „ohne AU“ aus, je Mitarbeiter und für den ganzen Monat. Abwesenheiten über das Monatsende werden nach Werktagen aufgeteilt, krumme Werte wie 2,14 Tage gibt es nicht mehr. Verschickt wird der Report nur noch automatisch an die hinterlegten Empfänger oder an Kolleginnen und Kollegen, die Abwesenheiten ohnehin sehen dürfen.",
+    "type": "feature",
+    "details": [
+      "Krank und Kind krank jeweils mit und ohne AU, übernommen aus der Angabe in Clockodo",
+      "Summe „Fehltage nach Art“ je Mitarbeiter und für den Monat, im PDF und in der Ansicht",
+      "Abteilungsanalyse: Spalte „Krank (AU)“ ist jetzt gefüllt",
+      "Abwesenheiten über das Monatsende zählen nach Werktagen, gerundet auf halbe Tage",
+      "Neuer Knopf „An Benutzer senden“: Auswahl nur unter Benutzern, die Abwesenheiten sehen dürfen",
+      "Versand an frei eingegebene Adressen entfällt; automatischer Versand standardmäßig am 7. des Folgemonats"
+    ]
+  },
+  {
     "version": "2.44.0",
     "date": "2026-10-16",
     "title": "Jede Ansicht lässt sich verlinken",
