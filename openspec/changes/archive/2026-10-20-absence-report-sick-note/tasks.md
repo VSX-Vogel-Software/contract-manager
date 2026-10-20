@@ -15,7 +15,7 @@
 - [x] 2.2 Freien Versand (Dialog + `sendAbsenceReport`) entfernen
 - [x] 2.3 Knopf „An Benutzer senden“: Query `absenceReportRecipients`, Mutation `sendAbsenceReportToUser`
 - [x] 2.4 Standard-Versandtag Fehlzeiten-Zeitplan: 7
-- [ ] 2.5 Produktion: Zeitplan Fehlzeiten aktivieren, Versandtag 7, Empfänger eintragen (Admin, Einstellungen > Reports)
+- [ ] 2.5 Produktion: Zeitplan Fehlzeiten aktivieren, Versandtag 7, Empfänger eintragen, Auto-Finalisierung an (Admin, Einstellungen > Reports) - an mmx gegeben 20.10.
 
 ## 3. Tests
 
