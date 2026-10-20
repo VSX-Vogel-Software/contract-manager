@@ -1,5 +1,16 @@
 [
   {
+    "version": "2.45.1",
+    "date": "2026-10-20",
+    "title": "Fehlzeiten: Kind krank zählt zu Krank mit/ohne AU",
+    "description": "Kranktage eines Kindes werden in den Summen des Fehlzeiten-Reports und in der Abteilungsanalyse jetzt mit den eigenen Kranktagen zusammengefasst: Kind krank mit AU zählt zu „Krank mit AU“, ohne AU zu „Krank ohne AU“. Eine eigene Spalte für Kind krank gibt es nicht mehr.",
+    "type": "improvement",
+    "details": [
+      "Fehlzeiten-Report: Summe je Mitarbeiter und Monat nur noch Krank mit AU / ohne AU, die Einzelzeilen zeigen weiter, ob es um ein Kind ging",
+      "Abteilungsanalyse: Krank-Spalte ohne Wert „Kind“, CSV-Export ohne Spalte „Kind krank“"
+    ]
+  },
+  {
     "version": "2.45.0",
     "date": "2026-10-20",
     "title": "Fehlzeiten-Report: Kranktage mit und ohne AU",
