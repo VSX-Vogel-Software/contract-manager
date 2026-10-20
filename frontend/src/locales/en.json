@@ -2592,6 +2592,13 @@
     "to": "To",
     "days": "Days",
     "totalDays": "Total Absence Days",
+    "daysByType": "Absence days by type",
+    "sendToUser": "Send to user",
+    "sendToUserTitle": "Send absence report to user",
+    "recipientUser": "User",
+    "recipientUserPlaceholder": "Select user",
+    "recipientUserHint": "Only users who may see absences can be selected.",
+    "noRecipientUsers": "No user may see absences.",
     "sendFailed": "The report could not be sent. Please check the M365 settings."
   },
   "orderConfirmation": {

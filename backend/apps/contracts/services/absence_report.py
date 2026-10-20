@@ -20,14 +20,16 @@ ABSENCE_LABELS = {
         "date_to": "Bis",
         "days": "Tage",
         "total_days": "Gesamt Fehltage",
+        "days_by_type": "Fehltage nach Art",
         "month_label": "Monat",
         "generated_at": "Erstellt am",
         "status_draft": "Entwurf",
         "status_finalized": "Festgeschrieben",
         # Absence type labels
-        "type_sick": "Krank",
-        "type_sick_child": "Krank (Kind)",
-        "type_sick_certificate": "Krank (AU)",
+        "type_sick": "Krank ohne AU",
+        "type_sick_child": "Kind krank ohne AU",
+        "type_sick_certificate": "Krank mit AU",
+        "type_sick_child_certificate": "Kind krank mit AU",
         "type_vacation": "Urlaub",
         "type_special_leave": "Sonderurlaub",
         "type_education": "Fortbildung",
@@ -42,14 +44,16 @@ ABSENCE_LABELS = {
         "date_to": "To",
         "days": "Days",
         "total_days": "Total Absence Days",
+        "days_by_type": "Absence days by type",
         "month_label": "Month",
         "generated_at": "Generated",
         "status_draft": "Draft",
         "status_finalized": "Finalized",
         # Absence type labels
-        "type_sick": "Sick",
-        "type_sick_child": "Sick (child)",
-        "type_sick_certificate": "Sick (certificate)",
+        "type_sick": "Sick, no certificate",
+        "type_sick_child": "Sick child, no certificate",
+        "type_sick_certificate": "Sick, with certificate",
+        "type_sick_child_certificate": "Sick child, with certificate",
         "type_vacation": "Vacation",
         "type_special_leave": "Special leave",
         "type_education": "Education",
@@ -57,6 +61,61 @@ ABSENCE_LABELS = {
         "type_other": "Other",
     },
 }
+
+# Reihenfolge der Arten in den Summen: Krankheit mit AU vor ohne AU
+ABSENCE_TYPE_ORDER = [
+    "sick_certificate",
+    "sick",
+    "sick_child_certificate",
+    "sick_child",
+    "vacation",
+    "special_leave",
+    "education",
+    "overtime_reduction",
+    "other",
+]
+
+
+# Krankheit erscheint immer paarweise mit und ohne AU, auch wenn eine Seite 0 ist
+SICK_NOTE_PAIRS = [
+    ("sick_certificate", "sick"),
+    ("sick_child_certificate", "sick_child"),
+]
+
+
+def _dedup_family(absence_type: str) -> str:
+    """Mit und ohne AU zaehlen beim Entdoppeln als dieselbe Art."""
+    return absence_type.removesuffix("_certificate")
+
+
+def _weekdays(start: date, end: date) -> int:
+    """Count Monday-Friday between start and end (inclusive)."""
+    return sum(1 for i in range((end - start).days + 1) if (start + timedelta(days=i)).weekday() < 5)
+
+
+def prorate_absence_days(
+    count_days: float, ab_start: date, ab_end: date, period_start: date, period_end: date,
+) -> float:
+    """Days of an absence that fall into the period.
+
+    Fully inside: count_days as reported. Crossing the period boundary:
+    split by weekdays (not calendar days, which produced values like 2.14
+    for whole working days) and round to half days, the smallest unit
+    that can be booked.
+    """
+    if ab_start >= period_start and ab_end <= period_end:
+        return count_days
+    overlap_start = max(ab_start, period_start)
+    overlap_end = min(ab_end, period_end)
+    if overlap_end < overlap_start:
+        return 0
+    span = _weekdays(ab_start, ab_end)
+    if span > 0:
+        share = _weekdays(overlap_start, overlap_end) / span
+    else:
+        share = ((overlap_end - overlap_start).days + 1) / ((ab_end - ab_start).days + 1)
+    return round(count_days * share * 2) / 2
+
 
 MONTH_NAMES = {
     "de": [
@@ -116,21 +175,16 @@ class AbsenceReportService:
                 continue
 
             # Pro-rate if absence spans month boundaries
-            if ab_start >= period_start and ab_end <= period_end:
-                prorated_days = total_days
-            else:
-                absence_span = (ab_end - ab_start).days + 1
-                overlap_start = max(ab_start, period_start)
-                overlap_end = min(ab_end, period_end)
-                overlap_days = (overlap_end - overlap_start).days + 1
-                prorated_days = total_days * (overlap_days / absence_span) if absence_span > 0 else 0
+            prorated_days = prorate_absence_days(total_days, ab_start, ab_end, period_start, period_end)
 
             if prorated_days <= 0:
                 continue
 
             entries.append({
                 "user_id": ab["user_id"],
-                "absence_type": provider.normalize_absence_type(ab.get("type", 0)),
+                "absence_type": provider.normalize_absence_type(
+                    ab.get("type", 0), sick_note=ab.get("sick_note", False),
+                ),
                 "date_from": max(ab_start, period_start),
                 "date_to": min(ab_end, period_end),
                 "days_count": Decimal(str(round(prorated_days, 2))),
@@ -144,13 +198,14 @@ class AbsenceReportService:
 
         Clockodo returns both a multi-day record AND individual day records
         for the same absence. Keep dates exactly as Clockodo reports them,
-        but drop entries that are fully covered by a longer one (same user+type).
+        but drop entries that are fully covered by a longer one (same user+type;
+        with and without sick note count as the same type here).
         """
         from itertools import groupby
 
         result = []
-        key_fn = lambda e: (e["user_id"], e["absence_type"])
-        sorted_entries = sorted(entries, key=lambda e: (e["user_id"], e["absence_type"], e["date_from"], -(e["date_to"] - e["date_from"]).days))
+        key_fn = lambda e: (e["user_id"], _dedup_family(e["absence_type"]))
+        sorted_entries = sorted(entries, key=lambda e: (e["user_id"], _dedup_family(e["absence_type"]), e["date_from"], -(e["date_to"] - e["date_from"]).days))
 
         for (_user_id, _absence_type), group in groupby(sorted_entries, key=key_fn):
             kept: list[dict] = []
@@ -263,10 +318,10 @@ class AbsenceReportService:
 
         # Deduplicate: remove entries fully contained in a longer one (same user+type)
         kept = []
-        for entry in entries:
+        for entry in sorted(entries, key=lambda e: (e.user_name, _dedup_family(e.absence_type), e.date_from, -(e.date_to - e.date_from).days)):
             is_contained = any(
                 k.user_name == entry.user_name
-                and k.absence_type == entry.absence_type
+                and _dedup_family(k.absence_type) == _dedup_family(entry.absence_type)
                 and k.date_from <= entry.date_from
                 and k.date_to >= entry.date_to
                 and k.pk != entry.pk
@@ -281,6 +336,7 @@ class AbsenceReportService:
                 grouped[entry.user_name] = []
             type_label = labels.get(f"type_{entry.absence_type}", entry.get_absence_type_display())
             grouped[entry.user_name].append({
+                "absence_type": entry.absence_type,
                 "type_label": type_label,
                 "date_from": entry.date_from,
                 "date_to": entry.date_to,
@@ -294,8 +350,23 @@ class AbsenceReportService:
                 "user_name": user_name,
                 "entries": user_entries,
                 "total_days": total,
+                "days_by_type": self._days_by_type(user_entries, labels),
             })
         return result
+
+    @staticmethod
+    def _days_by_type(entries, labels: dict) -> list[dict]:
+        """Sum days per absence type (sick with/without certificate separately)."""
+        sums: dict[str, dict] = {}
+        for e in entries:
+            row = sums.setdefault(e["absence_type"], {"type_label": e["type_label"], "days": Decimal("0")})
+            row["days"] += e["days_count"]
+        for pair in SICK_NOTE_PAIRS:
+            if any(t in sums for t in pair):
+                for t in pair:
+                    sums.setdefault(t, {"type_label": labels.get(f"type_{t}", t), "days": Decimal("0")})
+        order = {t: i for i, t in enumerate(ABSENCE_TYPE_ORDER)}
+        return [sums[t] for t in sorted(sums, key=lambda t: order.get(t, len(order)))]
 
     def render_html(self, report: AbsenceReport, language: str = "de") -> str:
         """Render the absence report as HTML."""
@@ -304,6 +375,7 @@ class AbsenceReportService:
         grouped = self._build_grouped_entries(report, language)
         month_name = MONTH_NAMES.get(language, MONTH_NAMES["de"])[report.month]
         total_days = sum(g["total_days"] for g in grouped)
+        days_by_type = self._days_by_type((e for g in grouped for e in g["entries"]), labels)
 
         ctx = {
             "labels": labels,
@@ -312,6 +384,7 @@ class AbsenceReportService:
             "month_name": month_name,
             "grouped_entries": grouped,
             "total_days": total_days,
+            "days_by_type": days_by_type,
             "generated_date": date.today(),
             **template_ctx,
         }

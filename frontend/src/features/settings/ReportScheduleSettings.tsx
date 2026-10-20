@@ -181,7 +181,8 @@ function ScheduleCard({
 export function ReportScheduleSettings() {
   const { t } = useTranslation()
 
-  const [absence, setAbsence] = useState<ScheduleState>(defaultSchedule)
+  // Fehlzeiten: sieben Tage nach Monatsende, damit Nachtraege noch einfliessen
+  const [absence, setAbsence] = useState<ScheduleState>({ ...defaultSchedule, sendDayOfMonth: 7 })
   const [department, setDepartment] = useState<ScheduleState>(defaultSchedule)
   const [absenceMessage, setAbsenceMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [departmentMessage, setDepartmentMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)

@@ -244,6 +244,8 @@ class ClockodoProvider(TimeTrackingProvider):
                     "count_days": float(a.get("count_days", 0) or 0),
                     "type": a.get("type", 0),
                     "status": a.get("status", 0),
+                    # AU liegt vor (nur bei Krankheitstypen gesetzt)
+                    "sick_note": bool(a.get("sick_note")),
                 }
                 for a in absences
             ]
@@ -253,6 +255,7 @@ class ClockodoProvider(TimeTrackingProvider):
 
     # Clockodo absence type codes → internal AbsenceType values
     # See: https://www.clockodo.com/en/api/absences/
+    # Ob eine AU vorliegt, steht nicht im Typ, sondern im Feld sick_note.
     ABSENCE_TYPE_MAP = {
         1: "vacation",             # Regular holiday / vacation
         2: "special_leave",        # Special leave
@@ -263,16 +266,25 @@ class ClockodoProvider(TimeTrackingProvider):
         7: "other",                # Maternity protection
         8: "other",                # Home office (typically filtered out)
         9: "other",                # Work out of office
-        10: "special_leave",       # Special leaves (company-specific)
-        11: "sick_certificate",    # Sick with certificate
-        12: "sick",                # Sick without pay
-        13: "other",               # Parental leave
-        14: "other",               # Sabbatical
+        10: "special_leave",       # Special leaves (unpaid)
+        11: "sick",                # Sick day (unpaid)
+        12: "sick_child",          # Sick day of a child (unpaid)
+        13: "other",               # Quarantine
+        14: "other",               # Military / alternative service
+        15: "sick",                # Sick day (sickness benefit)
     }
 
-    def normalize_absence_type(self, raw_type: int) -> str:
-        """Map Clockodo absence type code to internal AbsenceType value."""
-        return self.ABSENCE_TYPE_MAP.get(raw_type, "other")
+    SICK_NOTE_TYPES = {
+        "sick": "sick_certificate",
+        "sick_child": "sick_child_certificate",
+    }
+
+    def normalize_absence_type(self, raw_type: int, sick_note: bool = False) -> str:
+        """Map Clockodo absence type code (plus AU flag) to internal AbsenceType value."""
+        absence_type = self.ABSENCE_TYPE_MAP.get(raw_type, "other")
+        if sick_note:
+            return self.SICK_NOTE_TYPES.get(absence_type, absence_type)
+        return absence_type
 
     def get_department_time_data(
         self,

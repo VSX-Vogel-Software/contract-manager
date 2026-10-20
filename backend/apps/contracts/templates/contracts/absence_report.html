@@ -30,6 +30,12 @@
         table.entries td:last-child { text-align: right; }
 
         .employee-total { text-align: right; font-weight: 600; font-size: 9pt; padding: 2px 8px; color: #555; }
+        .employee-by-type { text-align: right; font-size: 8pt; padding: 0 8px; color: #777; }
+
+        .summary-title { margin-top: 20px; font-size: 10pt; font-weight: 600; color: var(--accent-color); border-bottom: 1px solid var(--accent-color); padding: 4px 0; margin-bottom: 4px; }
+        table.summary { width: 100%; border-collapse: collapse; }
+        table.summary td { padding: 4px 8px; border-bottom: 1px solid #f3f4f6; font-size: 9pt; }
+        table.summary td:last-child { text-align: right; }
 
         .grand-total { margin-top: 20px; padding: 8px; background: var(--accent-color); color: white; font-size: 10pt; font-weight: bold; display: flex; justify-content: space-between; }
 
@@ -82,11 +88,28 @@
                 {% endfor %}
             </tbody>
         </table>
+        {% if group.days_by_type|length > 1 %}
+        <div class="employee-by-type">
+            {% for row in group.days_by_type %}{{ row.type_label }}: {{ row.days|money:language }}{% if not forloop.last %} · {% endif %}{% endfor %}
+        </div>
+        {% endif %}
         <div class="employee-total">{{ group.total_days|money:language }} {{ labels.days }}</div>
     </div>
     {% endfor %}
 
     {% if grouped_entries %}
+    <div class="summary-title">{{ labels.days_by_type }}</div>
+    <table class="summary">
+        <tbody>
+            {% for row in days_by_type %}
+            <tr>
+                <td>{{ row.type_label }}</td>
+                <td>{{ row.days|money:language }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
     <div class="grand-total">
         <span>{{ labels.total_days }}</span>
         <span>{{ total_days|money:language }}</span>

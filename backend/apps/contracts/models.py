@@ -1918,6 +1918,7 @@ class AbsenceReport(TenantModel):
         SICK = "sick", "Sick"
         SICK_CHILD = "sick_child", "Sick (child)"
         SICK_CERTIFICATE = "sick_certificate", "Sick (with certificate)"
+        SICK_CHILD_CERTIFICATE = "sick_child_certificate", "Sick (child, with certificate)"
         VACATION = "vacation", "Vacation"
         SPECIAL_LEAVE = "special_leave", "Special leave"
         EDUCATION = "education", "Education/Training"

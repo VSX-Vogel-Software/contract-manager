@@ -2529,6 +2529,22 @@ class AbsenceReportType:
     entries: list[AbsenceReportEntryType]
 
 
+@strawberry.type
+class AbsenceReportRecipientType:
+    """A user the absence report may be sent to (can read absences)."""
+    id: strawberry.ID
+    name: str
+    email: str
+
+
+def _absence_report_readers(tenant):
+    """Active users of the tenant who may see absences (department_analysis.read)."""
+    from apps.tenants.models import User
+
+    users = User.objects.filter(tenant=tenant, is_active=True).prefetch_related("roles")
+    return [u for u in users if u.has_perm_check("department_analysis", "read")]
+
+
 @strawberry.input
 class MergeContractItemOverrideInput:
     """Per-item date overrides for contract merge."""
@@ -4064,6 +4080,8 @@ class ContractQuery:
                     cache.set(abs_cache_key, cached_abs, 3600)
                 all_absences.extend(cached_abs)
 
+            from apps.contracts.services.absence_report import prorate_absence_days
+
             for ab in all_absences:
                 # status: 0=enquired, 1=approved, 2=declined, 3=approval cancelled, 4=request cancelled
                 if ab.get("status") in (2, 3, 4):
@@ -4088,19 +4106,10 @@ class ContractQuery:
                 if total_days <= 0:
                     continue
 
-                # If the absence fully falls within the period, use count_days directly
-                if ab_start >= period_start and ab_end <= period_end:
-                    counted_days = total_days
-                else:
-                    # Partial overlap: pro-rate based on calendar days
-                    absence_span = (ab_end - ab_start).days + 1
-                    overlap_start = max(ab_start, period_start)
-                    overlap_end = min(ab_end, period_end)
-                    overlap_days = (overlap_end - overlap_start).days + 1
-                    if absence_span > 0:
-                        counted_days = total_days * (overlap_days / absence_span)
-                    else:
-                        counted_days = 0
+                # Partial overlap: pro-rate by weekdays, rounded to half days
+                counted_days = prorate_absence_days(
+                    total_days, ab_start, ab_end, period_start, period_end,
+                )
 
                 if counted_days <= 0:
                     continue
@@ -4110,14 +4119,16 @@ class ContractQuery:
 
                 # Categorize sick-related absences for sub-totals
                 try:
-                    normalized = provider.normalize_absence_type(ab.get("type", 0))
+                    normalized = provider.normalize_absence_type(
+                        ab.get("type", 0), sick_note=ab.get("sick_note", False),
+                    )
                 except Exception:
                     normalized = "other"
                 if normalized == "sick":
                     user_sick_days[uid] += counted_days
                 elif normalized == "sick_certificate":
                     user_sick_certificate_days[uid] += counted_days
-                elif normalized == "sick_child":
+                elif normalized in ("sick_child", "sick_child_certificate"):
                     user_sick_child_days[uid] += counted_days
         except Exception:
             pass  # Absences are optional, don't fail the whole analysis
@@ -4539,6 +4550,16 @@ class ContractQuery:
                     customer_id=item.contract.customer_id,
                 ))
         return result
+
+    @strawberry.field
+    def absence_report_recipients(self, info: Info[Context, None]) -> list[AbsenceReportRecipientType]:
+        """Users the absence report can be sent to: only those allowed to see absences."""
+        user = require_perm(info, "department_analysis", "send")
+        readers = sorted(_absence_report_readers(user.tenant), key=lambda u: (u.get_full_name() or u.email).lower())
+        return [
+            AbsenceReportRecipientType(id=strawberry.ID(str(u.id)), name=u.get_full_name() or u.email, email=u.email)
+            for u in readers
+        ]
 
     @strawberry.field
     def absence_report(
@@ -5016,24 +5037,31 @@ class ContractMutation:
         )
 
     @strawberry.mutation
-    def send_absence_report(
+    def send_absence_report_to_user(
         self,
         info: Info[Context, None],
         report_id: strawberry.ID,
-        recipients: list[str],
-    ) -> bool:
-        """Send a finalized absence report via email."""
-        user = require_perm(info, "department_analysis", "send")
+        user_id: strawberry.ID,
+    ) -> OperationResult:
+        """Send a finalized absence report to a user who may see absences."""
+        user, err = check_perm(info, "department_analysis", "send")
+        if err:
+            return OperationResult(success=False, error=err)
         from apps.contracts.services.absence_report import AbsenceReportService
         from apps.core.m365 import M365Error
 
+        # Der Report enthaelt Krankheitstage: nur an Benutzer, die Abwesenheiten
+        # ohnehin sehen duerfen - nie an eine frei eingetippte Adresse.
+        recipient = next((u for u in _absence_report_readers(user.tenant) if str(u.id) == str(user_id)), None)
+        if recipient is None:
+            return OperationResult(success=False, error="Recipient may not see absences")
+
         service = AbsenceReportService(user.tenant)
         try:
-            return service.send_report(int(report_id), recipients)
-        except M365Error:
-            # Keeps the boolean contract of this mutation. The reason is only
-            # in the log until the dialog can show it.
-            return False
+            service.send_report(int(report_id), [recipient.email])
+        except (M365Error, ValueError) as e:
+            return OperationResult(success=False, error=str(e))
+        return OperationResult(success=True)
 
     @strawberry.mutation
     def provision_clockodo_projects(

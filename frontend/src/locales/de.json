@@ -2592,6 +2592,13 @@
     "to": "Bis",
     "days": "Tage",
     "totalDays": "Gesamt Fehltage",
+    "daysByType": "Fehltage nach Art",
+    "sendToUser": "An Benutzer senden",
+    "sendToUserTitle": "Fehlzeiten-Report an Benutzer senden",
+    "recipientUser": "Benutzer",
+    "recipientUserPlaceholder": "Benutzer auswählen",
+    "recipientUserHint": "Zur Auswahl stehen nur Benutzer, die Abwesenheiten sehen dürfen.",
+    "noRecipientUsers": "Kein Benutzer darf Abwesenheiten sehen.",
     "sendFailed": "Der Report konnte nicht versendet werden. Bitte die M365-Einstellungen pruefen."
   },
   "orderConfirmation": {

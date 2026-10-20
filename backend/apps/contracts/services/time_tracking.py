@@ -99,11 +99,11 @@ class TimeTrackingProvider(ABC):
         """Fetch absences for a given year.
 
         Returns:
-            List of dicts: {user_id, date_since, date_until, count_days, type, status}
+            List of dicts: {user_id, date_since, date_until, count_days, type, status, sick_note}
         """
         raise NotImplementedError
 
-    def normalize_absence_type(self, raw_type: int) -> str:
+    def normalize_absence_type(self, raw_type: int, sick_note: bool = False) -> str:
         """Map provider-specific absence type code to internal AbsenceType value.
 
         Subclasses should override with provider-specific mappings.

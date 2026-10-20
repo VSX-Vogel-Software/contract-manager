@@ -1,11 +1,10 @@
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
-import { useQuery, useMutation, gql } from '@apollo/client'
+import { useQuery, useLazyQuery, useMutation, gql } from '@apollo/client'
 import { pushToast } from '@/lib/toastStore'
-import { Loader2, FileText, Send, RefreshCw, Lock, Info } from 'lucide-react'
+import { Loader2, FileText, Send, RefreshCw, Lock, Info, UserCheck, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
   Dialog,
   DialogContent,
@@ -65,11 +64,31 @@ const FINALIZE_ABSENCE_REPORT = gql`
   }
 `
 
-const SEND_ABSENCE_REPORT = gql`
-  mutation SendAbsenceReport($reportId: ID!, $recipients: [String!]!) {
-    sendAbsenceReport(reportId: $reportId, recipients: $recipients)
+// Nur Benutzer, die Abwesenheiten sehen duerfen (department_analysis.read)
+const ABSENCE_REPORT_RECIPIENTS_QUERY = gql`
+  query AbsenceReportRecipients {
+    absenceReportRecipients {
+      id
+      name
+      email
+    }
   }
 `
+
+const SEND_ABSENCE_REPORT_TO_USER = gql`
+  mutation SendAbsenceReportToUser($reportId: ID!, $userId: ID!) {
+    sendAbsenceReportToUser(reportId: $reportId, userId: $userId) {
+      success
+      error
+    }
+  }
+`
+
+interface RecipientUser {
+  id: string
+  name: string
+  email: string
+}
 
 const REPORT_SCHEDULES_QUERY = gql`
   query ReportSchedulesAbsence {
@@ -83,9 +102,10 @@ const REPORT_SCHEDULES_QUERY = gql`
 
 const ABSENCE_TYPE_LABELS: Record<string, Record<string, string>> = {
   de: {
-    sick: 'Krank',
-    sick_child: 'Krank (Kind)',
-    sick_certificate: 'Krank (AU)',
+    sick_certificate: 'Krank mit AU',
+    sick: 'Krank ohne AU',
+    sick_child_certificate: 'Kind krank mit AU',
+    sick_child: 'Kind krank ohne AU',
     vacation: 'Urlaub',
     special_leave: 'Sonderurlaub',
     education: 'Fortbildung',
@@ -93,15 +113,44 @@ const ABSENCE_TYPE_LABELS: Record<string, Record<string, string>> = {
     other: 'Sonstige',
   },
   en: {
-    sick: 'Sick',
-    sick_child: 'Sick (child)',
-    sick_certificate: 'Sick (certificate)',
+    sick_certificate: 'Sick, with certificate',
+    sick: 'Sick, no certificate',
+    sick_child_certificate: 'Sick child, with certificate',
+    sick_child: 'Sick child, no certificate',
     vacation: 'Vacation',
     special_leave: 'Special leave',
     education: 'Education',
     overtime_reduction: 'Overtime reduction',
     other: 'Other',
   },
+}
+
+// Reihenfolge der Summen nach Art (wie im PDF): Krankheit mit AU vor ohne AU
+const ABSENCE_TYPE_ORDER = Object.keys(ABSENCE_TYPE_LABELS.de)
+
+// Krankheit erscheint immer paarweise mit und ohne AU, auch wenn eine Seite 0 ist
+const SICK_NOTE_PAIRS = [
+  ['sick_certificate', 'sick'],
+  ['sick_child_certificate', 'sick_child'],
+]
+
+function sumDaysByType(entries: AbsenceEntry[]): { absenceType: string; days: number }[] {
+  const sums: Record<string, number> = {}
+  for (const e of entries) {
+    sums[e.absenceType] = (sums[e.absenceType] || 0) + parseFloat(e.daysCount)
+  }
+  for (const pair of SICK_NOTE_PAIRS) {
+    if (pair.some((t) => t in sums)) {
+      for (const t of pair) sums[t] = sums[t] || 0
+    }
+  }
+  const rank = (t: string) => {
+    const i = ABSENCE_TYPE_ORDER.indexOf(t)
+    return i === -1 ? ABSENCE_TYPE_ORDER.length : i
+  }
+  return Object.entries(sums)
+    .sort(([a], [b]) => rank(a) - rank(b))
+    .map(([absenceType, days]) => ({ absenceType, days }))
 }
 
 interface AbsenceEntry {
@@ -137,8 +186,8 @@ export function AbsenceReport() {
   const [year, setYear] = useState(prevMonth.getFullYear())
   const [month, setMonth] = useState(prevMonth.getMonth() + 1)
 
-  const [showSendDialog, setShowSendDialog] = useState(false)
-  const [recipients, setRecipients] = useState('')
+  const [showSendToUserDialog, setShowSendToUserDialog] = useState(false)
+  const [recipientUserId, setRecipientUserId] = useState('')
 
   const { data: schedulesData } = useQuery(REPORT_SCHEDULES_QUERY)
   const absenceSchedule = schedulesData?.reportSchedules?.find(
@@ -159,23 +208,36 @@ export function AbsenceReport() {
     onCompleted: () => refetch(),
   })
 
-  // sendAbsenceReport liefert nur bool - ein Fehlschlag traegt keinen Grund.
-  // Bis die Mutation einen OperationResult liefert, wird er hier wenigstens
-  // als Fehlschlag gemeldet, statt den Dialog wortlos zu schliessen.
-  const [sendReport, { loading: sending }] = useMutation(SEND_ABSENCE_REPORT, {
+  const [loadRecipients, { data: recipientsData, loading: recipientsLoading }] = useLazyQuery(
+    ABSENCE_REPORT_RECIPIENTS_QUERY,
+    { fetchPolicy: 'network-only' },
+  )
+  const recipientUsers: RecipientUser[] = recipientsData?.absenceReportRecipients || []
+
+  const [sendReportToUser, { loading: sendingToUser }] = useMutation(SEND_ABSENCE_REPORT_TO_USER, {
     onCompleted: (data) => {
-      if (data?.sendAbsenceReport) {
-        setShowSendDialog(false)
+      const result = data?.sendAbsenceReportToUser
+      if (result?.success) {
+        setShowSendToUserDialog(false)
         pushToast({ title: t('absenceReport.sent'), variant: 'success' })
       } else {
         pushToast({
           title: t('absenceReport.error'),
-          description: t('absenceReport.sendFailed'),
+          description: result?.error || t('absenceReport.sendFailed'),
           variant: 'error',
         })
       }
     },
+    onError: (err) => {
+      pushToast({ title: t('absenceReport.error'), description: err.message, variant: 'error' })
+    },
   })
+
+  const openSendToUserDialog = () => {
+    setRecipientUserId('')
+    loadRecipients()
+    setShowSendToUserDialog(true)
+  }
 
   const report: AbsenceReportData | null = data?.absenceReport || null
   const isFinalized = report?.status === 'finalized'
@@ -195,10 +257,12 @@ export function AbsenceReport() {
         userName,
         entries: entries.sort((a, b) => a.dateFrom.localeCompare(b.dateFrom)),
         totalDays: entries.reduce((sum, e) => sum + parseFloat(e.daysCount), 0),
+        daysByType: sumDaysByType(entries),
       }))
   }, [report])
 
   const totalDays = grouped.reduce((sum, g) => sum + g.totalDays, 0)
+  const totalDaysByType = useMemo(() => sumDaysByType(report?.entries || []), [report])
 
   // Month selector options (compact short format matching DepartmentAnalysis)
   const monthOptions = useMemo(() => {
@@ -275,10 +339,11 @@ export function AbsenceReport() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setShowSendDialog(true)}
+            onClick={openSendToUserDialog}
+            data-testid="absence-send-to-user-button"
           >
-            <Send className="mr-2 h-4 w-4" />
-            {t('absenceReport.send')}
+            <UserCheck className="mr-2 h-4 w-4" />
+            {t('absenceReport.sendToUser')}
           </Button>
         )}
 
@@ -323,6 +388,13 @@ export function AbsenceReport() {
                   {group.totalDays.toFixed(1)} {t('absenceReport.days')}
                 </span>
               </div>
+              {group.daysByType.length > 1 && (
+                <div className="border-b px-4 py-1.5 text-xs text-gray-500" data-testid="absence-employee-days-by-type">
+                  {group.daysByType
+                    .map((row) => `${typeLabels[row.absenceType] || row.absenceType}: ${row.days.toFixed(1)}`)
+                    .join(' · ')}
+                </div>
+              )}
               <table className="w-full table-fixed">
                 <thead>
                   <tr className="border-b text-left text-xs text-gray-500 uppercase">
@@ -346,6 +418,20 @@ export function AbsenceReport() {
             </div>
           ))}
 
+          <div className="rounded-lg border" data-testid="absence-days-by-type">
+            <div className="bg-gray-50 px-4 py-2 rounded-t-lg font-medium">{t('absenceReport.daysByType')}</div>
+            <table className="w-full">
+              <tbody>
+                {totalDaysByType.map((row) => (
+                  <tr key={row.absenceType} className="border-b last:border-0">
+                    <td className="px-4 py-2 text-sm">{typeLabels[row.absenceType] || row.absenceType}</td>
+                    <td className="px-4 py-2 text-sm text-right">{row.days.toFixed(1)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
           <div className="flex items-center justify-between rounded-lg bg-blue-50 px-4 py-3 font-medium">
             <span>{t('absenceReport.totalDays')}</span>
             <span>{totalDays.toFixed(1)}</span>
@@ -353,37 +439,59 @@ export function AbsenceReport() {
         </div>
       )}
 
-      {/* Send dialog */}
-      <Dialog open={showSendDialog} onOpenChange={setShowSendDialog}>
-        <DialogContent>
+      {/* Send to user dialog */}
+      <Dialog open={showSendToUserDialog} onOpenChange={setShowSendToUserDialog}>
+        <DialogContent data-testid="absence-send-to-user-dialog">
           <DialogHeader>
-            <DialogTitle>{t('absenceReport.sendTitle')}</DialogTitle>
+            <DialogTitle>{t('absenceReport.sendToUserTitle')}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium">{t('absenceReport.recipients')}</label>
-              <Input
-                placeholder="hr@example.com, finance@example.com"
-                value={recipients}
-                onChange={(e) => setRecipients(e.target.value)}
-              />
-              <p className="mt-1 text-xs text-gray-500">{t('absenceReport.recipientsHint')}</p>
+              <label className="text-sm font-medium" htmlFor="absence-recipient-user">
+                {t('absenceReport.recipientUser')}
+              </label>
+              {recipientsLoading ? (
+                <div className="flex items-center py-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                </div>
+              ) : recipientUsers.length === 0 ? (
+                <p className="mt-1 text-sm text-gray-500">{t('absenceReport.noRecipientUsers')}</p>
+              ) : (
+                <div className="relative mt-1">
+                  <select
+                    id="absence-recipient-user"
+                    data-testid="absence-recipient-user-select"
+                    value={recipientUserId}
+                    onChange={(e) => setRecipientUserId(e.target.value)}
+                    className="w-full appearance-none rounded-md border border-gray-300 bg-white py-2 pl-3 pr-8 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    <option value="">{t('absenceReport.recipientUserPlaceholder')}</option>
+                    {recipientUsers.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name === u.email ? u.email : `${u.name} (${u.email})`}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                </div>
+              )}
+              <p className="mt-1 text-xs text-gray-500">{t('absenceReport.recipientUserHint')}</p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSendDialog(false)}>
+            <Button variant="outline" onClick={() => setShowSendToUserDialog(false)}>
               {t('common.cancel')}
             </Button>
             <Button
+              data-testid="absence-send-to-user-submit"
               onClick={() => {
-                const emails = recipients.split(',').map(e => e.trim()).filter(Boolean)
-                if (emails.length && report) {
-                  sendReport({ variables: { reportId: String(report.id), recipients: emails } })
+                if (recipientUserId && report) {
+                  sendReportToUser({ variables: { reportId: String(report.id), userId: recipientUserId } })
                 }
               }}
-              disabled={sending || !recipients.trim()}
+              disabled={sendingToUser || !recipientUserId}
             >
-              {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+              {sendingToUser ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
               {t('absenceReport.send')}
             </Button>
           </DialogFooter>

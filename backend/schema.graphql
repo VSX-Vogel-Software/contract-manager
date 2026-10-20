@@ -32,6 +32,12 @@ type AbsenceReportEntryType {
   daysCount: Decimal!
 }
 
+type AbsenceReportRecipientType {
+  id: ID!
+  name: String!
+  email: String!
+}
+
 type AbsenceReportType {
   id: Int!
   year: Int!
@@ -192,11 +198,14 @@ type BankTransactionType {
   costCenter: CostCenterType
   matchedInvoice: InvoiceMatchInfoType
   matchedInvoices: [InvoiceMatchInfoType!]!
+  matchedAmount: Decimal
+  unmatchedAmount: Decimal
 }
 
 type BankingSettingsType {
   feeToleranceFixed: Decimal!
   feeTolerancePercent: Decimal!
+  partialMatchThreshold: Decimal!
 }
 
 type BillingEvent {
@@ -301,6 +310,12 @@ type ClockodoUserType {
   name: String!
 }
 
+type CloneOfferResult {
+  success: Boolean!
+  error: String
+  offer: OfferRecordType
+}
+
 type CommentAuthorType {
   id: ID!
   firstName: String!
@@ -392,6 +407,7 @@ type ContractAttachmentType {
   uploadedAt: DateTime!
   uploadedByName: String
   downloadUrl: String!
+  sourceOfferId: Int
 }
 
 type ContractCommentResult {
@@ -613,12 +629,18 @@ type ContractType {
   """Internal notes (not shown on invoices)"""
   notes: String!
 
+  """
+  Payment term in days. Empty means fall back to customer, then tenant default.
+  """
+  paymentTermDays: Int
+
   """Optional text to show on invoices below line items"""
   invoiceText: String!
 
   """Date the deal was won (from HubSpot closedate for imported deals)"""
   dealWonDate: Date
   customer: CustomerType!
+  paymentReminders: [PaymentReminderType!]!
   orderConfirmations: [OrderConfirmationType!]!
   orderConfirmationSentAt: DateTime
   isNewBusiness: Boolean!
@@ -728,10 +750,10 @@ type CounterpartyType {
   name: String!
   iban: String!
   bic: String!
-  transactionCount: Int!
   customerId: Int
   customerName: String
   defaultCostCenter: CostCenterType
+  transactionCount: Int!
 }
 
 input CreateBankAccountInput {
@@ -761,6 +783,7 @@ input CreateContractInput {
   noticePeriodMonths: Int! = 3
   noticePeriodAnchor: String! = "end_of_duration"
   noticePeriodAfterMinMonths: Int = null
+  paymentTermDays: Int = null
   groupId: ID = null
 }
 
@@ -800,6 +823,12 @@ type CreatePaymentMatchResult {
   success: Boolean!
   error: String
   match: PaymentMatchType
+}
+
+type CreateReminderDraftResult {
+  success: Boolean!
+  error: String
+  draft: PaymentReminderDraftType
 }
 
 input CreateSplitRuleInput {
@@ -936,6 +965,10 @@ type CustomerType {
 
   """Linked Clockodo customer ID"""
   clockodoCustomerId: String
+
+  """Payment term in days. Empty means use the tenant default."""
+  paymentTermDays: Int
+  paymentReminders: [PaymentReminderType!]!
   hubspotUrl: String
   contracts: [ContractType!]!
   contractCount: Int!
@@ -956,6 +989,23 @@ type DashboardKPIsType {
   nextYearForecast: Decimal!
   nextYearOneOff: Decimal!
   nextYearDiscounts: Decimal!
+}
+
+type DashboardKpiTrends {
+  activeContracts: [KpiTrendPoint!]!
+  annualRecurringRevenue: [KpiTrendPoint!]!
+  totalContractValue: [KpiTrendPoint!]!
+  currentYearForecast: [KpiTrendPoint!]!
+  nextYearForecast: [KpiTrendPoint!]!
+  revenueStreamForecast: [KpiStreamTrend!]!
+  yearToDateRevenue: [KpiTrendPoint!]!
+  wonNewArr: [KpiTrendPoint!]!
+  backToBaseArr: [KpiTrendPoint!]!
+  wonDevelopmentRevenue: [KpiTrendPoint!]!
+  wonDealCount: [KpiTrendPoint!]!
+  priceIncreaseTotal: [KpiTrendPoint!]!
+  priceIncreaseInflation: [KpiTrendPoint!]!
+  priceIncreaseNegotiated: [KpiTrendPoint!]!
 }
 
 type DashboardPreferencesType {
@@ -1007,6 +1057,10 @@ type DeliverableItemType {
   customerName: String!
   customerId: Int!
   dependentItemsCount: Int!
+  hoursBooked: Float!
+  orderValue: Float!
+  orderConfirmationNumber: String
+  psRatio: Float
 }
 
 type DepartmentCostEntry {
@@ -1072,6 +1126,30 @@ type DocumentEmailBccEntry {
   recipients: [String!]!
 }
 
+input DunningSettingsInput {
+  defaultPaymentTermDays: Int!
+  overdueRedThresholdDays: Int!
+  mahnfaehigThresholdDays: Int!
+  interestRate: Decimal!
+  defaultFeePerStage: JSON!
+  templates: JSON!
+}
+
+type DunningSettingsResult {
+  success: Boolean!
+  error: String
+  settings: DunningSettingsType
+}
+
+type DunningSettingsType {
+  defaultPaymentTermDays: Int!
+  overdueRedThresholdDays: Int!
+  mahnfaehigThresholdDays: Int!
+  interestRate: Decimal!
+  defaultFeePerStage: JSON!
+  templates: JSON!
+}
+
 input FeedbackInput {
   type: FeedbackType!
   title: String!
@@ -1092,6 +1170,13 @@ enum FeedbackType {
   BUG
   FEATURE
   GENERAL
+}
+
+type FinalizeOfferResult {
+  success: Boolean!
+  error: String
+  offer: OfferRecordType
+  isLockedError: Boolean!
 }
 
 type FteDistributionEntryType {
@@ -1558,11 +1643,16 @@ type InvoiceRecordType {
   emailSentAt: String
   emailSentTo: [String!]!
   emailMessageId: String!
+  emailError: String!
+  emailLastAttemptAt: String
   documentType: String!
   stornoOfId: Int
   stornoOfNumber: String
   stornoRecordId: Int
   stornoRecordNumber: String
+  dueDate: Date
+  overdueDays: Int!
+  paymentReminders: [PaymentReminderType!]!
 }
 
 type InvoiceResult {
@@ -1643,12 +1733,30 @@ type InvoiceType {
   receiverEmails: [String!]!
   uploadStatus: String!
   importBatchId: Int
+  documentType: String!
+  voidReason: String!
+  voidedAt: String
+  voidedByName: String
+  stornoOfId: Int
+  stornoOfNumber: String
+  creditNoteId: Int
+  creditNoteNumber: String
 }
 
 """
 The `JSON` scalar type represents JSON values as specified by [ECMA-404](https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf).
 """
 scalar JSON @specifiedBy(url: "https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf")
+
+type KpiStreamTrend {
+  stream: String!
+  points: [KpiTrendPoint!]!
+}
+
+type KpiTrendPoint {
+  month: String!
+  value: Float!
+}
 
 type LegalDataCheckResult {
   isComplete: Boolean!
@@ -1843,13 +1951,15 @@ type Mutation {
   updateHelpVideoLinks(entries: [HelpVideoLinksEntryInput!]!): [HelpVideoLinksEntryType!]!
   checkHubspotProperty(propertyName: String!): HubSpotPropertyCheckResult!
   deactivateUser(userId: ID!): OperationResult!
+  unlinkEntraIdentity(userId: ID!): OperationResult!
+  setLocalLoginAllowed(userId: ID!, allowed: Boolean!): OperationResult!
   reactivateUser(userId: ID!): OperationResult!
-  createInvitation(email: String!, baseUrl: String = null, roleIds: [ID!] = null): InvitationResult!
+  createInvitation(email: String!, roleIds: [ID!] = null): InvitationResult!
   revokeInvitation(invitationId: ID!): OperationResult!
   acceptInvitation(token: String!, password: String!, firstName: String! = "", lastName: String! = ""): OperationResult!
   changePassword(currentPassword: String!, newPassword: String!): OperationResult!
   updateProfile(firstName: String = null, lastName: String = null, email: String = null): ProfileUpdateResult!
-  createPasswordReset(userId: ID!, baseUrl: String = null): ResetLinkResult!
+  createPasswordReset(userId: ID!): ResetLinkResult!
   requestPasswordReset(email: String!): OperationResult!
   resetPassword(token: String!, newPassword: String!): OperationResult!
   setupTotp: TotpSetupResult!
@@ -1872,15 +1982,17 @@ type Mutation {
   sendM365TestEmail: OperationResult!
   selectM365Mailbox(mailbox: String!): OperationResult!
   saveSmtpSettings(host: String!, port: Int!, username: String!, password: String!, fromName: String!, fromAddress: String!, useTls: Boolean! = true): OperationResult!
-  saveBankingSettings(feeToleranceFixed: Decimal!, feeTolerancePercent: Decimal!): OperationResult!
+  saveBankingSettings(feeToleranceFixed: Decimal!, feeTolerancePercent: Decimal!, partialMatchThreshold: Decimal = null): OperationResult!
   saveForecastCacheTtl(minutes: Int!): OperationResult!
+  savePsHourlyRate(rate: Float!): OperationResult!
+  savePsRatioThresholds(amberMin: Float!, yellowMin: Float!, greenMin: Float!): OperationResult!
   testSmtpConnection: OperationResult!
   sendSmtpTestEmail: OperationResult!
   updateNotificationPreferences(todoAssigned: Boolean = null, hubspotNewContract: Boolean = null, hubspotSyncCompleted: Boolean = null, timeTrackingSyncCompleted: Boolean = null): OperationResult!
   updateDashboardPreferences(showContracts: Boolean = null, showRevenueGoals: Boolean = null, showNewBusiness: Boolean = null, showPriceIncreaseImpact: Boolean = null, autoCloseMatchSheet: Boolean = null): OperationResult!
   setInvoiceEmailTemplate(input: SetInvoiceEmailTemplateInput!): OperationResult!
   setDocumentEmailBcc(input: SetDocumentEmailBccInput!): OperationResult!
-  signUp(companyName: String!, email: String!, firstName: String!, lastName: String!, password: String!, baseUrl: String! = ""): OperationResult!
+  signUp(companyName: String!, email: String!, firstName: String!, lastName: String!, password: String!): OperationResult!
   verifySignup(token: String!): SignupVerifyResult!
   generateApiKey(input: GenerateAPIKeyInput!): GenerateAPIKeyResult!
   revokeApiKey(keyId: ID!): OperationResult!
@@ -1896,6 +2008,7 @@ type Mutation {
   deleteCustomerLink(linkId: ID!): DeleteResult!
   updateCustomerBillingEmails(input: UpdateBillingEmailsInput!): UpdateBillingEmailsResult!
   updateCustomerInvoiceLanguage(input: UpdateCustomerInvoiceLanguageInput!): UpdateCustomerInvoiceLanguageResult!
+  updateCustomerPaymentTerm(input: UpdateCustomerPaymentTermInput!): UpdateCustomerPaymentTermResult!
   updateCustomerVatId(input: UpdateCustomerVatIdInput!): UpdateCustomerVatIdResult!
   updateCustomer(input: UpdateCustomerInput!): UpdateCustomerResult!
   addCustomerComment(customerId: ID!, text: String!): CustomerCommentResult!
@@ -1904,7 +2017,7 @@ type Mutation {
   setProductRevenueType(productId: ID!, revenueType: String!): SetProductRevenueTypeResult!
   generateAbsenceReport(year: Int!, month: Int!): AbsenceReportType!
   finalizeAbsenceReport(reportId: ID!): AbsenceReportType!
-  sendAbsenceReport(reportId: ID!, recipients: [String!]!): Boolean!
+  sendAbsenceReportToUser(reportId: ID!, userId: ID!): OperationResult!
   provisionClockodoProjects(contractId: ID!, createMaintenance: Boolean! = true, oneoffStrategy: String! = "combined", selectedOneoffItemIds: [Int!] = null): ProvisioningResult!
   createContract(input: CreateContractInput!): ContractResult!
   updateContract(input: UpdateContractInput!): ContractResult!
@@ -1926,6 +2039,7 @@ type Mutation {
   deleteContractLink(linkId: ID!): DeleteResult!
   mapTimeTrackingProject(contractId: ID!, externalProjectId: String!, externalProjectName: String!, externalCustomerName: String! = "", contractItemId: ID = null): TimeTrackingMappingResult!
   unmapTimeTrackingProject(mappingId: ID!): DeleteResult!
+  updateTimeTrackingMappingItem(mappingId: ID!, contractItemId: ID = null): TimeTrackingMappingResult!
   createClockodoProjectForContract(contractId: ID!, projectName: String!, contractItemId: ID = null): TimeTrackingMappingResult!
   createAutoLinkRule(contractId: ID!, pattern: String!, matchType: String! = "contains", contractItemId: ID = null): DeleteResult!
   deleteAutoLinkRule(ruleId: ID!): DeleteResult!
@@ -1958,6 +2072,7 @@ type Mutation {
   saveUserCostProfiles(profiles: [UserCostProfileInput!]!): DeleteResult!
   createOrderConfirmation(contractId: ID!, personalMessage: String! = "", includeMessageInPdf: Boolean! = true, includeMessageInEmail: Boolean! = true, additionalEmails: [String!] = null): OrderConfirmationResult!
   sendOrderConfirmation(orderConfirmationId: ID!): OrderConfirmationResult!
+  resendOrderConfirmation(orderConfirmationId: ID!): OrderConfirmationResult!
   previewOrderConfirmationHtml(contractId: ID!, personalMessage: String! = "", includeMessageInPdf: Boolean! = true): OrderConfirmationPreviewResult!
   saveOrderConfirmationNumberScheme(input: OrderConfirmationNumberSchemeInput!): OrderConfirmationNumberSchemeResult!
   regenerateOrderConfirmationPdf(orderConfirmationId: ID!): OrderConfirmationResult!
@@ -1988,6 +2103,10 @@ type Mutation {
   confirmForecastInvoice(input: ConfirmForecastInvoiceInput!): InvoiceResult!
   extractInvoice(id: ID!): InvoiceResult!
   reExtractInvoice(id: ID!): InvoiceResult!
+  voidImportedInvoice(invoiceId: ID!, reason: String!, creditNoteId: ID = null): InvoiceResult!
+  unvoidImportedInvoice(invoiceId: ID!): InvoiceResult!
+  linkImportedCreditNote(creditNoteId: ID!, targetInvoiceId: ID!, reason: String! = ""): InvoiceResult!
+  unlinkImportedCreditNote(creditNoteId: ID!, keepTargetVoided: Boolean! = false): InvoiceResult!
   confirmCustomerMatch(invoiceId: ID!, customerId: Int!): InvoiceResult!
   unlinkCustomerFromInvoice(invoiceId: ID!): InvoiceResult!
   assignInvoiceContract(invoiceId: ID!, contractId: Int): InvoiceResult!
@@ -2000,6 +2119,9 @@ type Mutation {
   deleteImportBatch(id: ID!): DeleteResult!
   sendInvoiceEmail(invoiceRecordId: ID!): DeleteResult!
   sendAllUnsentInvoices: BulkSendResult!
+  createPaymentReminder(invoiceRecordId: Int!, stage: Int = null): CreateReminderDraftResult!
+  sendPaymentReminder(invoiceRecordId: Int!, stage: Int!, language: String!, title: String!, subject: String!, bodyText: String!, includeFee: Boolean! = true, includeInterest: Boolean! = true): PaymentReminderResult!
+  saveDunningSettings(input: DunningSettingsInput!): DunningSettingsResult!
   createBankAccount(input: CreateBankAccountInput!): BankAccountResult!
   updateBankAccount(input: UpdateBankAccountInput!): BankAccountResult!
   deleteBankAccount(id: Int!): DeleteResult!
@@ -2036,7 +2158,10 @@ type Mutation {
   assignTransactionCostCenter(transactionId: Int!, costCenterId: ID = null): DeleteResult!
   createOffer(contractId: Int!, billingDate: Date!, itemIds: [Int!] = null): CreateOfferResult!
   updateOfferStatus(id: Int!, status: String!): UpdateOfferStatusResult!
-  updateOffer(id: Int!, validUntil: Date = null, notes: String = null): UpdateOfferResult!
+  updateOffer(id: Int!, input: UpdateOfferInput!): UpdateOfferResult!
+  recreateOfferFromContract(id: Int!): UpdateOfferResult!
+  finalizeOffer(id: Int!): FinalizeOfferResult!
+  cloneOfferToDraft(id: Int!): CloneOfferResult!
   deleteOffer(id: Int!): DeleteResult!
   sendOfferEmail(id: Int!, recipients: [String!]!): UpdateOfferStatusResult!
   saveOfferNumberScheme(input: OfferNumberSchemeInput!): OfferNumberSchemeResult!
@@ -2131,7 +2256,15 @@ type OfferRecordType {
   emailSentAt: String
   emailSentTo: [String!]!
   emailMessageId: String!
+  emailError: String!
+  emailLastAttemptAt: String
   scopedItemIds: [Int!]
+  freeTextAfterItems: String!
+  freeTextBeforeTerms: String!
+  minimumTermMonths: Int
+  noticePeriodMonths: Int
+  clonedFromId: Int
+  isLocked: Boolean!
 }
 
 type OperationResult {
@@ -2196,6 +2329,8 @@ type OrderConfirmationType {
 
   """Microsoft Graph API message ID"""
   emailMessageId: String!
+  emailError: String!
+  emailLastAttemptAt: DateTime
   createdAt: DateTime!
   updatedAt: DateTime!
   pdfUrl: String
@@ -2234,6 +2369,50 @@ type PaymentMatchType {
   reference: String!
   valueDate: Date
   accountName: String!
+}
+
+type PaymentReminderDraftType {
+  invoiceRecordId: Int!
+  invoiceNumber: String!
+  stage: Int!
+  language: String!
+  title: String!
+  subject: String!
+  bodyText: String!
+  feeAmount: Decimal!
+  interestAmount: Decimal!
+  interestRate: Decimal!
+  interestDays: Int!
+  overdueDays: Int!
+}
+
+type PaymentReminderResult {
+  success: Boolean!
+  error: String
+  reminder: PaymentReminderType
+}
+
+type PaymentReminderType {
+  id: Int!
+  invoiceRecordId: Int!
+  invoiceNumber: String!
+  customerId: Int
+  customerName: String!
+  stage: Int!
+  language: String!
+  title: String!
+  subject: String!
+  bodyText: String!
+  feeAmount: Decimal!
+  interestAmount: Decimal!
+  interestRateSnapshot: Decimal!
+  interestDays: Int!
+  pdfUrl: String
+  sentAt: String
+  sentTo: [String!]!
+  emailError: String!
+  emailLastAttemptAt: String
+  createdAt: String!
 }
 
 enum PaymentStatusFilter {
@@ -2389,9 +2568,17 @@ type ProvisioningResult {
   errors: [String!]!
 }
 
+type PsRatioThresholdsType {
+  amberMin: Float!
+  yellowMin: Float!
+  greenMin: Float!
+}
+
 type Query {
   feedbackEnabled: Boolean!
   signupEnabled: Boolean!
+  entraSsoEnabled: Boolean!
+  latestVersion: String
   me: CurrentUser
   globalSearch(query: String!, limit: Int! = 10, types: [String!] = null, offset: Int! = 0): GlobalSearchResult!
   tenantSettings: TenantSettingsType
@@ -2415,6 +2602,8 @@ type Query {
   smtpSettings: SmtpSettingsType
   bankingSettings: BankingSettingsType
   forecastCacheTtl: Int!
+  psHourlyRate: Float!
+  psRatioThresholds: PsRatioThresholdsType!
   notificationPreferences: NotificationPreferencesType
   dashboardPreferences: DashboardPreferencesType!
   helpVideoLinks: [HelpVideoLinksEntryType!]!
@@ -2432,6 +2621,7 @@ type Query {
   previewContractActivation(contractId: ID!): ActivationPreviewResult
   mergeContractPreview(sourceContractId: ID!, targetContractId: ID!): MergeContractPreviewType!
   dashboardKpis: DashboardKPIsType!
+  dashboardKpiTrends(year: Int!, months: Int = 12): DashboardKpiTrends!
   priceIncreaseImpact(year: Int!): PriceIncreaseImpactType!
   contractPriceIncreases(year: Int!): [ContractPriceIncreaseDetailType!]!
   suggestedAlignmentDate(contractId: ID!, billingStartDate: Date!): SuggestedAlignmentDateResult!
@@ -2456,6 +2646,7 @@ type Query {
   revenueGoals(year: Int!): [RevenueGoalType!]!
   revenueByStream(year: Int!): [RevenueStreamDataType!]!
   unclassifiedRevenueItems: [UnclassifiedItemType!]!
+  absenceReportRecipients: [AbsenceReportRecipientType!]!
   absenceReport(year: Int!, month: Int!): AbsenceReportType
   newBusinessGoals(year: Int!): [NewBusinessGoalGQLType!]!
   newBusinessMetrics(year: Int!): NewBusinessMetricsType!
@@ -2485,6 +2676,7 @@ type Query {
   findPaymentMatches(invoiceId: ID!, daysAfter: Int! = 90): [PaymentMatchCandidateType!]!
   findPaymentMatchesForRecord(invoiceRecordId: Int!, daysAfter: Int! = 90): [PaymentMatchCandidateType!]!
   searchInvoicesForMatching(search: String! = "", unmatchedOnly: Boolean! = false, limit: Int! = 20): InvoiceSearchResultsType!
+  dunningSettings: DunningSettingsType!
   auditLogs(entityType: String = null, entityId: Int = null, userId: Int = null, action: String = null, includeRelated: Boolean! = false, dateFrom: DateTime = null, dateTo: DateTime = null, search: String = null, first: Int! = 25, after: String = null): AuditLogConnection!
   todo(todoId: Int!): TodoItemType
   myTodos(isCompleted: Boolean = null, limit: Int! = 100): [TodoItemType!]!
@@ -2753,6 +2945,9 @@ type TimeTrackingMappingResult {
   success: Boolean!
   error: String
   mapping: TimeTrackingMappingType
+  conflictContractId: Int
+  conflictContractName: String
+  conflictItemName: String
 }
 
 type TimeTrackingMappingType {
@@ -2941,6 +3136,7 @@ input UpdateContractInput {
   noticePeriodMonths: Int = null
   noticePeriodAnchor: String = null
   noticePeriodAfterMinMonths: Int = null
+  paymentTermDays: Int
   groupId: ID
   dealWonDate: Date
 }
@@ -3012,6 +3208,17 @@ type UpdateCustomerInvoiceLanguageResult {
   invoiceLanguage: String
 }
 
+input UpdateCustomerPaymentTermInput {
+  customerId: ID!
+  paymentTermDays: Int = null
+}
+
+type UpdateCustomerPaymentTermResult {
+  success: Boolean!
+  error: String
+  paymentTermDays: Int
+}
+
 type UpdateCustomerResult {
   success: Boolean!
   error: String
@@ -3066,10 +3273,20 @@ input UpdateInvoiceInput {
   customerId: Int = null
 }
 
+input UpdateOfferInput {
+  freeTextAfterItems: String = null
+  freeTextBeforeTerms: String = null
+  validUntil: Date
+  minimumTermMonths: Int
+  noticePeriodMonths: Int
+  scopedItemIds: [Int!]
+}
+
 type UpdateOfferResult {
   success: Boolean!
   error: String
   offer: OfferRecordType
+  isLockedError: Boolean!
 }
 
 type UpdateOfferStatusResult {
@@ -3224,6 +3441,8 @@ type UserType {
   lastLogin: DateTime
   fullName: String!
   roleNames: [String!]!
+  entraLinked: Boolean!
+  localLoginAllowed: Boolean!
   twoFactorEnabled: Boolean!
   twoFactorMethod: String
 }
