@@ -147,7 +147,8 @@ export function LiquidityAnalysis() {
     }
   )
 
-  const formatTooltipValue = (value: number | undefined) => value != null ? formatCurrency(value) : ''
+  // recharts hands the tooltip value over as ValueType (number | string | array), not as number
+  const formatTooltipValue = (value: unknown) => (typeof value === 'number' ? formatCurrency(value) : '')
 
   return (
     <div className="space-y-6">
