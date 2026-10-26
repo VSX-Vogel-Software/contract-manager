@@ -1,0 +1,22 @@
+# Dependabot keeps the SHA-pinned GitHub Actions up to date.
+#
+# Actions are pinned to full commit SHAs, so they no longer follow moving tags
+# (`@v4` used to pick up patch releases on its own). Dependabot proposes new
+# releases as pull requests and bumps the SHA and the version comment together.
+# One group, so there is at most one combined pull request per week.
+
+version: 2
+
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"                 # for github-actions this means .github/workflows
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: ci
