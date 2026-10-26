@@ -44,7 +44,7 @@
     "react-hook-form": "^7.50.0",
     "react-i18next": "^14.0.0",
     "react-markdown": "^10.1.0",
-    "react-router-dom": "^6.30.6",
+    "react-router-dom": "^7.18.4",
     "recharts": "^3.7.0",
     "remark-breaks": "^4.0.0",
     "tailwind-merge": "^2.2.0",
