@@ -1,4 +1,6 @@
-# Dependabot keeps the SHA-pinned GitHub Actions up to date.
+# Dependabot version updates: SHA-pinned GitHub Actions and the frontend's npm packages.
+#
+# GitHub Actions:
 #
 # Actions are pinned to full commit SHAs, so they no longer follow moving tags
 # (`@v4` used to pick up patch releases on its own). Dependabot proposes new
@@ -20,3 +22,23 @@ updates:
           - "*"
     commit-message:
       prefix: ci
+
+  # Frontend (React, Vite, Vitest). Minor and patch updates come as one weekly
+  # pull request; every major update is its own pull request, because toolchain
+  # majors (vite, vitest, @vitejs/plugin-react) have to be raised together and
+  # usually need code changes.
+  - package-ecosystem: npm
+    directory: "/frontend"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      npm-minor-patch:
+        update-types:
+          - minor
+          - patch
+    commit-message:
+      prefix: build
+      prefix-development: build
+      include: scope
